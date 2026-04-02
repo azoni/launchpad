@@ -1,106 +1,26 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useState, useCallback } from 'react';
 
 export default function ResultCard({ result, onReset }) {
   const cardRef = useRef(null);
-
-  const copyText = useCallback(() => {
-    const text = `Benchmark\n"${result.normalized_input}"\n${result.bench_estimate} lbs\n"${result.explanation}"`;
-    navigator.clipboard.writeText(text).catch(() => {});
-  }, [result]);
+  const [copied, setCopied] = useState(false);
 
   const shareResult = useCallback(async () => {
-    const text = `Benchmark: "${result.normalized_input}" = ${result.bench_estimate} lbs. ${result.explanation}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Benchmark', text });
-      } catch { /* user cancelled */ }
-    } else {
-      navigator.clipboard.writeText(text).catch(() => {});
-    }
-  }, [result]);
-
-  const downloadImage = useCallback(async () => {
-    const card = cardRef.current;
-    if (!card) return;
-
-    // Dynamic import for html2canvas-style approach using canvas API
     try {
-      const canvas = document.createElement('canvas');
-      const scale = 2;
-      canvas.width = 600 * scale;
-      canvas.height = 400 * scale;
-      const ctx = canvas.getContext('2d');
-      ctx.scale(scale, scale);
-
-      // Draw card background
-      ctx.fillStyle = '#1a1a2e';
-      roundRect(ctx, 0, 0, 600, 400, 16);
-      ctx.fill();
-
-      // Border
-      ctx.strokeStyle = '#2a2a4a';
-      ctx.lineWidth = 2;
-      roundRect(ctx, 1, 1, 598, 398, 16);
-      ctx.stroke();
-
-      // Title
-      ctx.fillStyle = '#6c63ff';
-      ctx.font = 'bold 18px Inter, system-ui, sans-serif';
-      ctx.fillText('Benchmark', 40, 50);
-
-      // Input text
-      ctx.fillStyle = '#aaa';
-      ctx.font = '16px Inter, system-ui, sans-serif';
-      const inputText = `"${result.normalized_input}"`;
-      wrapText(ctx, inputText, 40, 90, 520, 22);
-
-      // Bench number
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 72px Inter, system-ui, sans-serif';
-      ctx.fillText(`${result.bench_estimate}`, 40, 210);
-
-      // "lbs" label
-      ctx.fillStyle = '#6c63ff';
-      ctx.font = 'bold 28px Inter, system-ui, sans-serif';
-      const numWidth = ctx.measureText(`${result.bench_estimate}`).width;
-      ctx.font = 'bold 72px Inter, system-ui, sans-serif';
-      const bigNumWidth = ctx.measureText(`${result.bench_estimate}`).width;
-      ctx.font = 'bold 28px Inter, system-ui, sans-serif';
-      ctx.fillText('lbs', 40 + bigNumWidth + 12, 210);
-
-      // Explanation
-      ctx.fillStyle = '#ccc';
-      ctx.font = '15px Inter, system-ui, sans-serif';
-      wrapText(ctx, `"${result.explanation}"`, 40, 260, 520, 22);
-
-      // Domain tag
-      ctx.fillStyle = '#2a2a4a';
-      roundRect(ctx, 40, 320, ctx.measureText(result.domain).width + 24, 32, 8);
-      ctx.fill();
-      ctx.fillStyle = '#888';
-      ctx.font = '13px Inter, system-ui, sans-serif';
-      ctx.fillText(result.domain, 52, 341);
-
-      // Watermark
-      ctx.fillStyle = '#444';
-      ctx.font = '12px Inter, system-ui, sans-serif';
-      ctx.fillText('benchmarkapp.netlify.app', 40, 380);
-
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `benchmark-${result.bench_estimate}lbs.png`;
-        a.click();
-        URL.revokeObjectURL(url);
-      }, 'image/png');
-    } catch (err) {
-      console.error('Image generation failed:', err);
+      const blob = await renderCardToBlob(result);
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob })
+      ]);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: copy text if image clipboard fails
+      const text = `Benchmark: "${result.normalized_input}" = ${result.bench_estimate} lbs. ${result.explanation}`;
+      navigator.clipboard.writeText(text).catch(() => {});
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   }, [result]);
 
-  // Strength tier label
   const tier = getTier(result.bench_estimate);
 
   return (
@@ -132,14 +52,11 @@ export default function ResultCard({ result, onReset }) {
         <button className="btn btn-secondary" onClick={onReset}>
           Try another
         </button>
-        <button className="btn btn-ghost" onClick={copyText}>
-          Copy
-        </button>
-        <button className="btn btn-ghost" onClick={shareResult}>
-          Share
-        </button>
-        <button className="btn btn-ghost" onClick={downloadImage}>
-          Download
+        <button
+          className={`btn btn-share${copied ? ' copied' : ''}`}
+          onClick={shareResult}
+        >
+          {copied ? 'Copied!' : 'Share'}
         </button>
       </div>
     </div>
@@ -169,7 +86,84 @@ function getTier(lbs) {
   return 'Beginner';
 }
 
-// Canvas helpers
+/** Render the result as a PNG blob using Canvas */
+async function renderCardToBlob(result) {
+  const canvas = document.createElement('canvas');
+  const scale = 2;
+  const W = 600;
+  const H = 380;
+  canvas.width = W * scale;
+  canvas.height = H * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+
+  // Background
+  ctx.fillStyle = '#1a1917';
+  roundRect(ctx, 0, 0, W, H, 16);
+  ctx.fill();
+
+  // Top accent stripe
+  ctx.fillStyle = '#ff6b35';
+  ctx.fillRect(0, 0, W, 3);
+
+  // Border
+  ctx.strokeStyle = '#33322e';
+  ctx.lineWidth = 2;
+  roundRect(ctx, 1, 1, W - 2, H - 2, 16);
+  ctx.stroke();
+
+  // "BENCHMARK" label
+  ctx.fillStyle = '#ff6b35';
+  ctx.font = '500 13px "DM Mono", monospace';
+  ctx.letterSpacing = '2px';
+  ctx.fillText('BENCHMARK', 36, 42);
+
+  // Domain tag
+  ctx.fillStyle = '#5e5b53';
+  ctx.font = '12px "DM Mono", monospace';
+  const domainWidth = ctx.measureText(result.domain).width;
+  ctx.fillStyle = '#242320';
+  roundRect(ctx, W - 36 - domainWidth - 16, 28, domainWidth + 16, 22, 4);
+  ctx.fill();
+  ctx.fillStyle = '#5e5b53';
+  ctx.fillText(result.domain, W - 36 - domainWidth - 8, 43);
+
+  // Input text
+  ctx.fillStyle = '#9e9a8f';
+  ctx.font = '500 15px "Plus Jakarta Sans", system-ui, sans-serif';
+  wrapText(ctx, `"${result.normalized_input}"`, 36, 80, W - 72, 21);
+
+  // Big number
+  ctx.fillStyle = '#f5f0e8';
+  ctx.font = '800 80px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillText(`${result.bench_estimate}`, 36, 195);
+
+  // "lbs"
+  const numW = ctx.measureText(`${result.bench_estimate}`).width;
+  ctx.fillStyle = '#ff6b35';
+  ctx.font = '700 30px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillText('lbs', 36 + numW + 10, 195);
+
+  // Tier
+  ctx.fillStyle = '#ffc233';
+  ctx.font = '500 11px "DM Mono", monospace';
+  ctx.fillText(getTier(result.bench_estimate).toUpperCase(), 36, 220);
+
+  // Explanation
+  ctx.fillStyle = '#9e9a8f';
+  ctx.font = '500 14px "Plus Jakarta Sans", system-ui, sans-serif';
+  wrapText(ctx, `"${result.explanation}"`, 36, 255, W - 72, 20);
+
+  // Watermark
+  ctx.fillStyle = '#33322e';
+  ctx.font = '11px "DM Mono", monospace';
+  ctx.fillText('benchmark-app-azoni.netlify.app', 36, H - 20);
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), 'image/png');
+  });
+}
+
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
