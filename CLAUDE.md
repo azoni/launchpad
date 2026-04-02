@@ -12,6 +12,26 @@ Unless told otherwise, use:
 - **Repo:** GitHub repo via `gh` CLI (account: `azoni`)
 - **Affiliate:** Amazon Creators API (credentials already exist — see Amazon section)
 
+If the user specifies a different stack (e.g. React + Vite, no Tailwind), use that instead — but still follow every other section of this checklist that applies. The stack is the only thing that changes; the quality bar stays the same.
+
+### Non-Next.js Apps
+
+When building with Vite, plain React, or other non-Next.js frameworks:
+- **Env vars:** Vite uses `import.meta.env.VITE_*` (not `process.env.NEXT_PUBLIC_*`). Prefix client-side env vars with `VITE_`. Server-side vars in Netlify Functions use `process.env.*` normally.
+- **Netlify config:** Set `publish = "dist"` (not `.next`), omit the `@netlify/plugin-nextjs` plugin. Use `netlify/functions/` directory for serverless endpoints with `[[redirects]]` to proxy `/api/*`.
+- **SEO/OG:** Add meta tags directly in `index.html` since there's no `generateMetadata()`. For dynamic OG images, use a Netlify Function or pre-generate them.
+- **Icons/PWA:** Place `favicon.svg` and `icon.svg` in `public/` directly (no `src/app/` convention).
+- All other requirements (design, analytics beacon, footer link, llms.txt, security headers, cost logging, deployment steps) still apply exactly as written.
+
+### Shared Environment Variables
+
+The monorepo root `.env.local` contains shared API keys reused across apps:
+- `OPENAI_API_KEY` — for apps using OpenAI models
+- `NEXT_PUBLIC_MCP_READ_KEY` — analytics beacon + MCP admin key (same value)
+- `AMAZON_CLIENT_ID`, `AMAZON_CLIENT_SECRET`, `AMAZON_PARTNER_TAG` — affiliate API
+
+Check this file before asking the user for API keys. Copy relevant values to each app's Netlify env vars during deployment.
+
 ## Design — No Generic AI Aesthetic
 
 Every site must have a distinct, intentional visual identity. Do NOT use default shadcn styling, generic gradients, or the typical "AI-generated SaaS landing page" look.
@@ -104,7 +124,7 @@ rules: [
 
 Every app MUST ping the MCP server on page load to track views for the portfolio dashboard.
 
-Add this to the `PostHogProvider` (or root layout client component):
+**Next.js** — add to `PostHogProvider` (or root layout client component):
 
 ```tsx
 useEffect(() => {
@@ -122,8 +142,26 @@ useEffect(() => {
 }, []);
 ```
 
-- Env var: `NEXT_PUBLIC_MCP_READ_KEY` — same key used across all apps, get from existing MCP deployment
-- The `app` field must be a short lowercase slug (e.g. "meeplematch", "tennisapp")
+**Vite / non-Next.js** — same pattern, different env var prefix:
+
+```jsx
+useEffect(() => {
+  fetch("https://azoni-mcp.onrender.com/launchpad/view", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${import.meta.env.VITE_MCP_READ_KEY}`,
+    },
+    body: JSON.stringify({
+      app: "APP_NAME_HERE",
+      page: window.location.pathname,
+    }),
+  }).catch(() => {});
+}, []);
+```
+
+- Env var: `NEXT_PUBLIC_MCP_READ_KEY` (Next.js) or `VITE_MCP_READ_KEY` (Vite) — same key value, different prefix
+- The `app` field must be a short lowercase slug (e.g. "meeplematch", "benchmark")
 - Fire-and-forget — `.catch(() => {})` ensures it never blocks the UI
 
 ## UI — Navbar
@@ -207,7 +245,9 @@ Always include the code, gated by env vars. If the env var isn't set, the script
 
 ## Netlify Config
 
-Every `netlify.toml` MUST include:
+Every `netlify.toml` MUST include security headers. Use the correct template for your framework:
+
+**Next.js apps:**
 
 ```toml
 [build]
@@ -227,6 +267,33 @@ Every `netlify.toml` MUST include:
 
 [[headers]]
   for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+```
+
+**Vite / non-Next.js apps:**
+
+```toml
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 ```
@@ -262,7 +329,7 @@ When a project needs a database, run these steps via CLI:
 2. **Remove inner `.git`** — if `create-next-app` initialized a nested git repo, run `rm -rf myapp/.git` before committing. Otherwise git treats it as a submodule and the files won't be pushed.
 3. `netlify sites:create --name [name] --account-slug azoni` — note the **Site ID** from the output
 4. `netlify link --id [site-id]` (from inside the app subdirectory)
-5. **Set Netlify base directory via API** — this is required so git-triggered builds build the correct app, not the repo root:
+5. **Set Netlify base directory via API** — this is required so git-triggered builds build the correct app, not the repo root. Set `dir` to `.next` for Next.js or `dist` for Vite:
    ```bash
    netlify api updateSite --data '{"site_id": "[site-id]", "body": {"repo": {"repo": "azoni/launchpad", "provider": "github", "branch": "main", "base": "[app-folder-name]", "cmd": "npm run build", "dir": ".next"}}}'
    ```

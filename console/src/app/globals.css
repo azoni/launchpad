@@ -186,3 +186,11 @@
   color: #34D399;
   border: 1px solid rgba(52, 211, 153, 0.2);
 }
+
+/* Cost badge — 30-day LLM spend */
+.badge-cost {
+  @apply text-xs font-mono px-2 py-0.5 rounded-full;
+  background: rgba(251, 191, 36, 0.1);
+  color: #FBBF24;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}

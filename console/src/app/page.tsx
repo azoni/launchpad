@@ -13,10 +13,33 @@ interface App {
   tags: string[];
 }
 
+interface CostBySource {
+  [source: string]: { events: number; cost: string; tokens: number };
+}
+
 function getApps(): App[] {
   const filePath = join(process.cwd(), "..", "apps.json");
   const data = readFileSync(filePath, "utf-8");
   return JSON.parse(data);
+}
+
+async function getCosts(): Promise<CostBySource> {
+  try {
+    const res = await fetch(
+      "https://azoni-mcp.onrender.com/activity/cost-summary?days=30",
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.MCP_ADMIN_KEY || process.env.NEXT_PUBLIC_MCP_READ_KEY}`,
+        },
+        next: { revalidate: 300 }, // refresh every 5 minutes
+      }
+    );
+    if (!res.ok) return {};
+    const data = await res.json();
+    return data.bySource || {};
+  } catch {
+    return {};
+  }
 }
 
 export const metadata: Metadata = {
@@ -42,8 +65,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
+export default async function Home() {
   const APPS = getApps();
+  const costs = await getCosts();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -89,7 +113,13 @@ export default function Home() {
 
           {/* App Gallery */}
           <div className="grid gap-3">
-            {APPS.map((app) => (
+            {APPS.map((app) => {
+              const source = `launchpad:${app.slug}`;
+              const appCost = costs[source];
+              const costStr = appCost?.cost; // e.g. "$0.001234"
+              const calls = appCost?.events || 0;
+
+              return (
               <a
                 key={app.slug}
                 href={app.url}
@@ -113,6 +143,11 @@ export default function Home() {
                             {app.name}
                           </h2>
                           <span className="badge-live">live</span>
+                          {costStr && (
+                            <span className="badge-cost" title={`${calls} LLM calls (30d)`}>
+                              {costStr}
+                            </span>
+                          )}
                         </div>
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         {app.description}
@@ -133,7 +168,8 @@ export default function Home() {
                   </div>
                 </div>
               </a>
-            ))}
+              );
+            })}
           </div>
 
           {/* Build CTA */}
