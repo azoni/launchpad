@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { readFileSync } from "fs";
 import { join } from "path";
 import Link from "next/link";
+import Image from "next/image";
 import { ExternalLink, Rocket } from "lucide-react";
 
 interface App {
@@ -98,13 +99,21 @@ export default function Home() {
               >
                 <div className="card-glow card-app p-5">
                   <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-2 min-w-0">
-                      <div className="flex items-center gap-2.5">
-                        <h2 className="text-lg font-semibold group-hover:text-neon transition-colors">
-                          {app.name}
-                        </h2>
-                        <span className="badge-live">live</span>
-                      </div>
+                    <div className="flex items-start gap-4 min-w-0">
+                      <Image
+                        src={`${app.url}/icon.svg`}
+                        alt={`${app.name} icon`}
+                        width={36}
+                        height={36}
+                        className="rounded-lg shrink-0 mt-0.5"
+                      />
+                      <div className="space-y-2 min-w-0">
+                        <div className="flex items-center gap-2.5">
+                          <h2 className="text-lg font-semibold group-hover:text-neon transition-colors">
+                            {app.name}
+                          </h2>
+                          <span className="badge-live">live</span>
+                        </div>
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         {app.description}
                       </p>
@@ -117,6 +126,7 @@ export default function Home() {
                             {tag}
                           </span>
                         ))}
+                      </div>
                       </div>
                     </div>
                     <ExternalLink className="w-4 h-4 text-muted-foreground/40 group-hover:text-neon transition-colors shrink-0 mt-1.5" />

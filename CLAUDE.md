@@ -244,14 +244,28 @@ When a project needs a database, run these steps via CLI:
 
 ## Git & Deployment
 
+**CRITICAL:** Every new app lives in a subdirectory of the `azoni/launchpad` monorepo. Follow ALL steps below — skipping any step (especially base directory or git push) will break the deploy.
+
 1. Create app directory in the launchpad repo (e.g. `myapp/`)
-2. `netlify sites:create --name [name] --account-slug azoni`
-3. Link the Netlify site to `azoni/launchpad` with **base directory** set to the app folder name
-4. Set all env vars: `netlify env:set KEY "value"` — pipe secret output to `/dev/null`
-5. `netlify deploy --build --prod`
-6. Verify the live URL loads correctly
-7. **Update the root `README.md`** — add a row to the Apps table with the app name, description, and live URL
-8. **Update `apps.json`** at the repo root — add an entry with `name`, `slug`, `description`, `url`, and `tags` fields. This powers the console dashboard at `console/`.
+2. **Remove inner `.git`** — if `create-next-app` initialized a nested git repo, run `rm -rf myapp/.git` before committing. Otherwise git treats it as a submodule and the files won't be pushed.
+3. `netlify sites:create --name [name] --account-slug azoni` — note the **Site ID** from the output
+4. `netlify link --id [site-id]` (from inside the app subdirectory)
+5. **Set Netlify base directory via API** — this is required so git-triggered builds build the correct app, not the repo root:
+   ```bash
+   netlify api updateSite --data '{"site_id": "[site-id]", "body": {"repo": {"repo": "azoni/launchpad", "provider": "github", "branch": "main", "base": "[app-folder-name]", "cmd": "npm run build", "dir": ".next"}}}'
+   ```
+6. Set all env vars: `netlify env:set KEY "value"` — pipe secret output to `/dev/null`
+7. `netlify deploy --build --prod`
+8. Verify the live URL loads correctly
+9. **Update the root `README.md`** — add a row to the Apps table with the app name, description, and live URL
+10. **Update `apps.json`** at the repo root — add an entry with `name`, `slug`, `description`, `url`, and `tags` fields. This powers the console dashboard at `console/`.
+11. **Commit and push to GitHub:**
+    ```bash
+    cd /path/to/launchpad
+    git add README.md apps.json [app-folder-name]/
+    git commit -m "Add [app-name] — [short description]"
+    git push origin main
+    ```
 
 ## Amazon Affiliate (If Applicable)
 
