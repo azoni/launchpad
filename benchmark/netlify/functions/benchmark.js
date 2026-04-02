@@ -116,7 +116,12 @@ function parseJSON(text) {
   return JSON.parse(cleaned);
 }
 
-/** Call OpenAI API (gpt-4.1-mini) */
+// gpt-4.1-mini pricing (per token)
+const MODEL = 'gpt-4.1-mini';
+const PRICE_INPUT = 0.40 / 1_000_000;   // $0.40 per 1M input tokens
+const PRICE_OUTPUT = 1.60 / 1_000_000;  // $1.60 per 1M output tokens
+
+/** Call OpenAI API — returns { parsed, usage } */
 async function callLLM(input) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
@@ -128,7 +133,7 @@ async function callLLM(input) {
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4.1-mini',
+      model: MODEL,
       max_tokens: 512,
       temperature: 0.7,
       messages: [
@@ -147,7 +152,35 @@ async function callLLM(input) {
   const text = result.choices?.[0]?.message?.content;
   if (!text) throw new Error('Empty response from OpenAI');
 
-  return parseJSON(text);
+  const usage = result.usage || {};
+  return { parsed: parseJSON(text), usage };
+}
+
+/** Log LLM cost to MCP activity feed (fire-and-forget) */
+function logCost(input, usage) {
+  const mcpKey = process.env.MCP_ADMIN_KEY;
+  if (!mcpKey) return;
+
+  const inputTokens = usage.prompt_tokens || 0;
+  const outputTokens = usage.completion_tokens || 0;
+  const cost = (inputTokens * PRICE_INPUT) + (outputTokens * PRICE_OUTPUT);
+
+  fetch('https://azoni-mcp.onrender.com/activity/log', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${mcpKey}`,
+    },
+    body: JSON.stringify({
+      type: 'llm_call',
+      title: 'Benchmark conversion',
+      source: 'launchpad:benchmark',
+      description: input.slice(0, 200),
+      model: MODEL,
+      tokens: { input: inputTokens, output: outputTokens, total: inputTokens + outputTokens },
+      cost: Math.round(cost * 1_000_000) / 1_000_000,
+    }),
+  }).catch(() => {});
 }
 
 export default async (req) => {
@@ -189,9 +222,10 @@ export default async (req) => {
     let lastError;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const raw = await callLLM(input);
-        const validated = validateResponse(raw);
+        const { parsed, usage } = await callLLM(input);
+        const validated = validateResponse(parsed);
         if (validated) {
+          logCost(input, usage);
           return new Response(JSON.stringify(validated), { status: 200, headers });
         }
         lastError = new Error('Invalid response structure from LLM');

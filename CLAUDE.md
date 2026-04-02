@@ -278,6 +278,61 @@ When a project needs a database, run these steps via CLI:
     git commit -m "Add [app-name] — [short description]"
     git push origin main
     ```
+12. **Trigger a console rebuild** — the console gallery reads `apps.json` at build time, so it won't show the new app until it rebuilds. After pushing, trigger a rebuild of the console site:
+    ```bash
+    cd console && netlify deploy --build --prod
+    ```
+    Or push a change to `console/` to trigger a git-based rebuild. The new app will not appear in the gallery until this step is done.
+
+## LLM Cost Logging
+
+Every app that calls an LLM API MUST log each call to the MCP activity feed so costs are tracked across the portfolio.
+
+### How to log
+
+After each successful LLM call, fire-and-forget a POST to the MCP server:
+
+```js
+fetch('https://azoni-mcp.onrender.com/activity/log', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.MCP_ADMIN_KEY}`,
+  },
+  body: JSON.stringify({
+    type: 'llm_call',
+    title: 'Short description of what the call does',
+    source: 'launchpad:APP_SLUG',       // e.g. 'launchpad:benchmark'
+    description: userInput.slice(0, 200), // truncated input for context
+    model: 'gpt-4.1-mini',              // exact model ID used
+    tokens: { input: promptTokens, output: completionTokens, total: promptTokens + completionTokens },
+    cost: calculatedCostInUSD,           // float, e.g. 0.000832
+  }),
+}).catch(() => {});
+```
+
+### Requirements
+
+- **Calculate cost from token counts** using the model's published pricing. Don't estimate — use `usage` from the API response.
+- **Set `MCP_ADMIN_KEY`** as a Netlify env var (same key used across all apps: the MCP admin key).
+- **Never block the response** — logging is fire-and-forget with `.catch(() => {})`.
+- **Source format**: always `launchpad:{app-slug}` so the dashboard can filter by app.
+- **Log every call**, including retries that consume tokens, not just successful ones.
+
+### Pricing reference (update as models change)
+
+| Model | Input | Output |
+|-------|-------|--------|
+| gpt-4.1-mini | $0.40/1M tokens | $1.60/1M tokens |
+| gpt-4.1-nano | $0.10/1M tokens | $0.40/1M tokens |
+| claude-sonnet-4 | $3.00/1M tokens | $15.00/1M tokens |
+| claude-haiku-4 | $0.80/1M tokens | $4.00/1M tokens |
+
+### Dashboard
+
+Cost data is viewable via:
+- `GET https://azoni-mcp.onrender.com/activity/cost-summary?days=30` — breakdown by source, model, type
+- `GET https://azoni-mcp.onrender.com/activity/recent?limit=20&source=launchpad:benchmark` — recent events for a specific app
 
 ## Amazon Affiliate (If Applicable)
 
