@@ -90,23 +90,23 @@ function parseJSON(text) {
   return JSON.parse(cleaned);
 }
 
-/** Call Anthropic Claude API */
-async function callClaude(input) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+/** Call OpenAI API (gpt-4.1-mini) */
+async function callLLM(input) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
+      'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'gpt-4.1-mini',
       max_tokens: 512,
-      system: SYSTEM_PROMPT,
+      temperature: 0.7,
       messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: input }
       ]
     })
@@ -114,12 +114,12 @@ async function callClaude(input) {
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`Claude API error ${response.status}: ${err}`);
+    throw new Error(`OpenAI API error ${response.status}: ${err}`);
   }
 
   const result = await response.json();
-  const text = result.content?.[0]?.text;
-  if (!text) throw new Error('Empty response from Claude');
+  const text = result.choices?.[0]?.message?.content;
+  if (!text) throw new Error('Empty response from OpenAI');
 
   return parseJSON(text);
 }
@@ -163,7 +163,7 @@ export default async (req) => {
     let lastError;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const raw = await callClaude(input);
+        const raw = await callLLM(input);
         const validated = validateResponse(raw);
         if (validated) {
           return new Response(JSON.stringify(validated), { status: 200, headers });
