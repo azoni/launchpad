@@ -1,0 +1,32 @@
+# SwipeCart
+
+> SwipeCart is a swipe-based product discovery site that helps users find board games through personalized recommendations. Users answer quick preference questions, swipe through curated games (like a dating app), and get matched with their ideal picks — with affiliate links to buy on Amazon.
+
+## Pages
+
+- [Home](https://swipecart-app.netlify.app/): Landing page explaining how SwipeCart works — quick preferences, swipe to discover, get matched.
+- [Board Games](https://swipecart-app.netlify.app/board-games): Browse all 44 curated board games with ratings, player counts, complexity, and themes.
+- [Start Swiping](https://swipecart-app.netlify.app/swipe): The interactive swipe flow — answer 4 questions then swipe through game cards to build your taste profile.
+
+## Categories
+
+SwipeCart covers board games across these categories:
+- Strategy games (Terraforming Mars, Brass: Birmingham, Scythe)
+- Party games (Codenames, Wavelength, Just One, Dixit)
+- Cooperative games (Pandemic, Spirit Island, The Crew, Gloomhaven)
+- Family games (Ticket to Ride, Catan, Azul, Cascadia, Carcassonne)
+- 2-player games (7 Wonders Duel, Patchwork, Onitama, Star Realms)
+- Heavy strategy (Twilight Imperium, Through the Ages, Gaia Project)
+
+## How It Works
+
+1. Answer 4 quick-tap questions about player count, session length, complexity preference, and theme interests.
+2. Swipe through a personalized deck of board game cards — right to like, left to pass, up to super-like.
+3. After 15 swipes, see your top matches with explanations of why each game fits your taste.
+4. Create shareable bundles (e.g., "Family Game Night") and buy games via Amazon affiliate links.
+
+## Data Sources
+
+- Game metadata (player count, play time, complexity, themes, mechanics) sourced from BoardGameGeek.
+- Product data (images, ratings, reviews, pricing) sourced from the Amazon Creators API.
+- Recommendations powered by a deterministic scoring engine using attribute matching, behavior affinity, popularity, and exploration bonuses.
