@@ -1,22 +1,23 @@
 # Launchpad
 
-A monorepo of independent web apps. Each app deploys to Netlify on its own.
+A monorepo of independent web apps, each built and deployed from a single prompt using [Claude Code](https://claude.ai/claude-code) (or any LLM tool that reads `CLAUDE.md`).
 
 ## Apps
 
 | App | Description | Live URL |
 |-----|-------------|----------|
-| [swipecart](./swipecart/) | Board game discovery with swipe-based voting | [swipecart.netlify.app](https://swipecart.netlify.app) |
+| [swipecart](./swipecart/) | Board game discovery with swipe-based voting | [swipecart-app.netlify.app](https://swipecart-app.netlify.app) |
 
-## Shared Standards
+## How It Works
 
-See [CLAUDE.md](./CLAUDE.md) for the quality checklist all apps follow.
+The [`CLAUDE.md`](./CLAUDE.md) checklist tells the AI everything it needs to build a production-ready app from scratch — design system, SEO, analytics, deployment, the works.
 
-## Adding a New App
+**One prompt. One deployed app.** The checklist handles:
 
-1. Create a new directory at the repo root (e.g. `myapp/`)
-2. Scaffold with `npx create-next-app@latest myapp`
-3. Add a `netlify.toml` inside the app directory
-4. In Netlify, create a new site linked to this repo with **Base directory** set to the app folder name
-5. Follow the standards in CLAUDE.md
-6. Add your app to the **Apps** table above
+- **Opinionated design** — no generic AI aesthetic, every app gets a distinct visual identity
+- **Full SEO & GEO** — metadata, JSON-LD, sitemaps, `llms.txt`, AI crawler directives
+- **Analytics** — PostHog, GA4, AdSense, portfolio view tracking
+- **Infrastructure** — Firebase/Firestore setup, Netlify config, security headers
+- **Deployment** — GitHub repo, Netlify site creation, env vars, live URL verification
+
+Each app deploys independently to Netlify from its own subdirectory. The AI scaffolds, builds, deploys, and verifies — you get back a working link.
