@@ -8,6 +8,7 @@ A monorepo of independent web apps, each built and deployed from a single prompt
 |-----|-------------|----------|
 | [meeplematch](./meeplematch/) | Board game discovery with swipe-based voting | [meeplematch-app.netlify.app](https://meeplematch-app.netlify.app) |
 | [blackdiamond](./blackdiamond/) | Exterior cleaning company site with quote form | [blackdiamond-alpine-wash.netlify.app](https://blackdiamond-alpine-wash.netlify.app) |
+| [console](./console/) | Launchpad dashboard — app gallery and AI builder | [launchpad-console.netlify.app](https://launchpad-console.netlify.app) |
 
 ## How It Works
 

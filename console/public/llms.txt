@@ -1,0 +1,24 @@
+# Launchpad
+
+> Launchpad is a platform that builds and deploys full-stack web apps from a single prompt. Powered by Claude Code and a shared quality checklist (CLAUDE.md), each app gets a unique design, full SEO, analytics, Firebase backend, and Netlify deployment — all automated.
+
+## Pages
+
+- [Home](https://launchpad-console.netlify.app/): Gallery of all apps built on the Launchpad platform, with live URLs and descriptions.
+- [Console](https://launchpad-console.netlify.app/console): Invite-gated builder interface. Enter a prompt describing an app and get a deployed URL in 5-15 minutes.
+
+## How It Works
+
+1. Enter an invite code to access the builder console.
+2. Describe the app you want in plain English — design, features, data sources.
+3. Claude Code reads the CLAUDE.md quality checklist and builds the entire app: Next.js + TypeScript + Tailwind + shadcn/ui + Firebase + Netlify.
+4. The app is deployed to Netlify with a live URL, complete with SEO, analytics, security headers, and a custom design.
+
+## Apps Built on Launchpad
+
+- **MeepleMatch**: Board game discovery with swipe-based voting and Amazon affiliate links.
+- **Black Diamond Alpine Wash**: Exterior cleaning company site with quote request form for Whitefish, Montana.
+
+## Tech Stack
+
+Every Launchpad app uses: Next.js App Router, TypeScript, Tailwind CSS v4, shadcn/ui, Firebase/Firestore, Netlify, PostHog analytics, and Claude Code for generation.
