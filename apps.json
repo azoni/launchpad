@@ -12,5 +12,12 @@
     "description": "Exterior cleaning company site with service pages, quote request form, and local SEO.",
     "url": "https://blackdiamond-alpine-wash.netlify.app",
     "tags": ["Next.js", "Firebase"]
+  },
+  {
+    "name": "Benchmark",
+    "slug": "benchmark",
+    "description": "Turn any achievement into a bench press max. A memeable, shareable universal achievement-to-bench-press translator powered by AI.",
+    "url": "https://benchmark-app-azoni.netlify.app",
+    "tags": ["React", "Vite", "Claude API", "Netlify Functions"]
   }
 ]

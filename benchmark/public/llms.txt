@@ -1,0 +1,11 @@
+# Benchmark
+
+> Turn any achievement, accomplishment, or identity into an estimated bench press max in pounds. A memeable, shareable "universal achievement to bench press translator."
+
+## Pages
+
+- [Home](https://benchmark-app-azoni.netlify.app/) — Enter any statement and get a bench press estimate with a witty explanation
+
+## API
+
+- POST /api/benchmark — Accepts `{ "input": "string" }`, returns structured JSON with bench_estimate (135-405 lbs), explanation, and scoring dimensions (prestige, physicality, competitiveness, discipline)

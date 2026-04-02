@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0d0d1a"/>
+  <rect x="24" y="24" width="464" height="464" rx="80" fill="#141428" stroke="#2a2a4a" stroke-width="4"/>
+  <!-- Barbell bar -->
+  <rect x="96" y="240" width="320" height="32" rx="8" fill="#6c63ff"/>
+  <!-- Left plate -->
+  <rect x="112" y="192" width="48" height="128" rx="10" fill="#a78bfa"/>
+  <rect x="72" y="208" width="48" height="96" rx="8" fill="#7b73ff"/>
+  <!-- Right plate -->
+  <rect x="352" y="192" width="48" height="128" rx="10" fill="#a78bfa"/>
+  <rect x="392" y="208" width="48" height="96" rx="8" fill="#7b73ff"/>
+  <!-- Accent glow -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#6c63ff" stroke-width="2" opacity="0.15"/>
+  <!-- BM text -->
+  <text x="256" y="420" text-anchor="middle" fill="#6c63ff" font-family="Inter, system-ui, sans-serif" font-weight="900" font-size="64" letter-spacing="-2" opacity="0.6">BM</text>
+</svg>
