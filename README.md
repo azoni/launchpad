@@ -7,6 +7,7 @@ A monorepo of independent web apps, each built and deployed from a single prompt
 | App | Description | Live URL |
 |-----|-------------|----------|
 | [meeplematch](./meeplematch/) | Board game discovery with swipe-based voting | [meeplematch-app.netlify.app](https://meeplematch-app.netlify.app) |
+| [blackdiamond](./blackdiamond/) | Exterior cleaning company site with quote form | [blackdiamond-alpine-wash.netlify.app](https://blackdiamond-alpine-wash.netlify.app) |
 
 ## How It Works
 

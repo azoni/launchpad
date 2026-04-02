@@ -1,0 +1,20 @@
+# Black Diamond Alpine Wash
+
+> Black Diamond Alpine Wash is a professional exterior cleaning company based in Whitefish, Montana. We specialize in driveway pressure washing, window soft washing, and roof cleaning for residential and commercial properties across the Flathead Valley.
+
+## Pages
+
+- [Home](https://blackdiamond-alpine-wash.netlify.app/): Landing page with an overview of our exterior cleaning services, trust signals, and service area coverage across the Flathead Valley.
+- [Services](https://blackdiamond-alpine-wash.netlify.app/services): Detailed breakdown of our three core services — driveway pressure washing, window soft washing, and roof cleaning — including what's included, surfaces we clean, and frequently asked questions.
+- [Get a Quote](https://blackdiamond-alpine-wash.netlify.app/quote): Free quote request form where customers can select services, describe their property, and provide contact information.
+- [About](https://blackdiamond-alpine-wash.netlify.app/about): Our story, values, and commitment to the Whitefish and Flathead Valley community.
+
+## Services
+
+- **Driveway Pressure Washing**: Hot water pressure washing up to 4,000 PSI for concrete, pavers, asphalt, and walkways. Includes pre-treatment of stains and edge detailing.
+- **Window Soft Washing**: Low-pressure cleaning for residential and commercial windows up to 3 stories. Includes frame/sill detailing, screen cleaning, and hard water stain removal.
+- **Roof Cleaning**: Soft wash treatment to kill and remove algae, moss, and lichen from asphalt shingles, metal, cedar shake, and tile roofs. Includes 90-day re-growth guarantee.
+
+## Service Area
+
+Whitefish, Kalispell, Columbia Falls, Bigfork, Lakeside, and communities throughout the Flathead Valley in northwestern Montana.
