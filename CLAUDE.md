@@ -30,7 +30,7 @@ Every site must have a distinct, intentional visual identity. Do NOT use default
 - If the user doesn't specify a style, ask them what vibe they want. If they say "just pick something", choose something bold and opinionated for the vertical — a fishing gear site should feel different from a skincare site
 - The favicon, OG image, color palette, and component style should all feel like the same brand
 
-**Reference:** SwipeCart uses Comic Neue + Lilita One, kraft/cardboard cards, candy colors, and chunky offset-shadow buttons. That's the level of intentionality expected — not necessarily that style, but that level of commitment to a theme.
+**Reference:** MeepleMatch uses Comic Neue + Lilita One, kraft/cardboard cards, candy colors, and chunky offset-shadow buttons. That's the level of intentionality expected — not necessarily that style, but that level of commitment to a theme.
 
 ## SEO — Every Public Page
 
@@ -115,7 +115,7 @@ useEffect(() => {
       "Authorization": `Bearer ${process.env.NEXT_PUBLIC_MCP_READ_KEY}`,
     },
     body: JSON.stringify({
-      app: "APP_NAME_HERE",  // e.g. "swipecart" — lowercase, no spaces
+      app: "APP_NAME_HERE",  // e.g. "meeplematch" — lowercase, no spaces
       page: window.location.pathname,
     }),
   }).catch(() => {});
@@ -123,7 +123,7 @@ useEffect(() => {
 ```
 
 - Env var: `NEXT_PUBLIC_MCP_READ_KEY` — same key used across all apps, get from existing MCP deployment
-- The `app` field must be a short lowercase slug (e.g. "swipecart", "tennisapp")
+- The `app` field must be a short lowercase slug (e.g. "meeplematch", "tennisapp")
 - Fire-and-forget — `.catch(() => {})` ensures it never blocks the UI
 
 ## UI — Navbar
@@ -232,7 +232,7 @@ When a project needs a database, run these steps via CLI:
    curl -s -X POST "https://serviceusage.googleapis.com/v1/projects/[project-number]/services/firestore.googleapis.com:enable" -H "Authorization: Bearer $ACCESS_TOKEN"
    ```
 5. Wait ~10s, then: `firebase firestore:databases:create "(default)" --project [project-id] --location us-east1`
-6. Create service account + key via REST (see swipecart/scripts for pattern)
+6. Create service account + key via REST (see meeplematch/scripts for pattern)
 7. Grant `roles/datastore.user` via IAM policy update
 8. Write `.env.local` with all Firebase config + service account key JSON
 9. Create:
@@ -260,7 +260,7 @@ Only include this if the project involves product recommendations or affiliate l
   - `AMAZON_CLIENT_ID`
   - `AMAZON_CLIENT_SECRET`
   - `AMAZON_PARTNER_TAG`
-- Port the TypeScript API client from `swipecart/src/lib/amazon/` (client.ts, parser.ts, asin.ts, types.ts)
+- Port the TypeScript API client from `meeplematch/src/lib/amazon/` (client.ts, parser.ts, asin.ts, types.ts)
 - Footer on every page must include: "As an Amazon Associate, we earn from qualifying purchases."
 - Every affiliate link must include the partner tag from `AMAZON_PARTNER_TAG` env var
 - Track affiliate clicks in PostHog with `affiliate_click` event

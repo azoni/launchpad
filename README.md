@@ -6,7 +6,7 @@ A monorepo of independent web apps, each built and deployed from a single prompt
 
 | App | Description | Live URL |
 |-----|-------------|----------|
-| [swipecart](./swipecart/) | Board game discovery with swipe-based voting | [swipecart-app.netlify.app](https://swipecart-app.netlify.app) |
+| [meeplematch](./meeplematch/) | Board game discovery with swipe-based voting | [meeplematch-app.netlify.app](https://meeplematch-app.netlify.app) |
 
 ## How It Works
 
