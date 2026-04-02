@@ -1,0 +1,16 @@
+[
+  {
+    "name": "MeepleMatch",
+    "slug": "meeplematch",
+    "description": "Board game discovery with swipe-based voting. Swipe through curated games, get personalized recommendations, buy on Amazon.",
+    "url": "https://meeplematch.netlify.app",
+    "tags": ["Next.js", "Firebase", "Amazon API"]
+  },
+  {
+    "name": "Black Diamond Alpine Wash",
+    "slug": "blackdiamond",
+    "description": "Exterior cleaning company site with service pages, quote request form, and local SEO.",
+    "url": "https://blackdiamond-alpine-wash.netlify.app",
+    "tags": ["Next.js", "Firebase"]
+  }
+]

@@ -251,6 +251,7 @@ When a project needs a database, run these steps via CLI:
 5. `netlify deploy --build --prod`
 6. Verify the live URL loads correctly
 7. **Update the root `README.md`** — add a row to the Apps table with the app name, description, and live URL
+8. **Update `apps.json`** at the repo root — add an entry with `name`, `slug`, `description`, `url`, and `tags` fields. This powers the console dashboard at `console/`.
 
 ## Amazon Affiliate (If Applicable)
 
