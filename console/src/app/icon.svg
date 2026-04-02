@@ -1,6 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#0A0A0B"/>
-  <rect x="2" y="2" width="28" height="28" rx="5" fill="#111113" stroke="#A78BFA" stroke-width="0.5" stroke-opacity="0.4"/>
-  <path d="M9 14 L14 10 L14 18 Z" fill="#A78BFA"/>
-  <rect x="17" y="15" width="8" height="2" rx="1" fill="#A78BFA" opacity="0.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Dark background -->
+  <rect width="512" height="512" rx="96" fill="#0A0A0B"/>
+
+  <!-- Inner panel -->
+  <rect x="32" y="32" width="448" height="448" rx="72" fill="#111113" stroke="#A78BFA" stroke-width="2" stroke-opacity="0.25"/>
+
+  <!-- Terminal window dots -->
+  <circle cx="100" cy="100" r="14" fill="#EF4444" opacity="0.7"/>
+  <circle cx="148" cy="100" r="14" fill="#FBBF24" opacity="0.7"/>
+  <circle cx="196" cy="100" r="14" fill="#34D399" opacity="0.7"/>
+
+  <!-- Play/prompt triangle -->
+  <g transform="translate(180, 260)">
+    <path d="M0 -60 L80 0 L0 60 Z" fill="#A78BFA"/>
+    <!-- Highlight edge -->
+    <path d="M0 -60 L80 0 L0 0 Z" fill="#FFFFFF" opacity="0.1"/>
+  </g>
+
+  <!-- Command line cursor -->
+  <rect x="290" y="236" width="120" height="8" rx="4" fill="#A78BFA" opacity="0.4"/>
+  <rect x="290" y="260" width="80" height="8" rx="4" fill="#A78BFA" opacity="0.2"/>
+  <rect x="290" y="284" width="100" height="8" rx="4" fill="#A78BFA" opacity="0.15"/>
+
+  <!-- Blinking cursor -->
+  <rect x="290" y="308" width="4" height="20" rx="2" fill="#A78BFA" opacity="0.8"/>
+
+  <!-- Bottom accent line -->
+  <rect x="100" y="420" width="312" height="4" rx="2" fill="#A78BFA" opacity="0.3"/>
 </svg>

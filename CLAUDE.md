@@ -145,7 +145,7 @@ Keep it subtle — small text, muted color, in the existing footer alongside any
 
 Every site MUST ship with:
 
-- [ ] `src/app/icon.svg` — custom SVG favicon, unique to the project (not generic)
+- [ ] `src/app/icon.svg` — custom SVG favicon (see quality rules below)
 - [ ] `src/app/apple-icon.png` — 180x180 PNG version
 - [ ] `src/app/manifest.ts` exporting:
   ```ts
@@ -154,6 +154,18 @@ Every site MUST ship with:
   ```
 - [ ] Generate 192 and 512 PNG icons and place in `public/`
 - [ ] `themeColor` in root layout metadata
+
+### Icon Quality Rules
+
+The favicon is the first thing users see in their browser tab and bookmarks. Low-effort icons make the whole site feel cheap. Follow these rules:
+
+1. **Use a 512x512 viewBox** (`viewBox="0 0 512 512"`), not 32x32. This ensures the icon has enough detail to look crisp at any size — PWA icons, apple-touch, bookmark grids, and the console gallery all render at 192px+.
+2. **Design for recognition at 16px AND 512px.** The shape should be simple enough to read as a tiny favicon but detailed enough to not look like a placeholder at large sizes. Test it mentally at both extremes.
+3. **Use the brand's primary color** as the icon background or dominant element. The icon should feel like it belongs to the site, not like a generic symbol.
+4. **Include visual weight and depth.** Use at least 2-3 elements: a background shape, a foreground symbol, and a subtle accent (shadow, gradient, secondary color, or stroke detail). Flat single-shape icons look like placeholders.
+5. **Round the corners** of the background rect to match platform conventions (`rx="80"` to `rx="110"` on a 512 viewBox).
+6. **No generic symbols.** Don't use a plain circle, square, or single letter. The icon should hint at what the app does or reference the brand name visually.
+7. **Copy `icon.svg` to `public/icon.svg`** so the console gallery and SiteLogo components can reference it at the app's live URL.
 
 ## OG Image
 
