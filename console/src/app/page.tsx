@@ -39,7 +39,7 @@ async function getCosts(): Promise<CostBySource> {
         headers: {
           Authorization: `Bearer ${process.env.MCP_ADMIN_KEY || process.env.NEXT_PUBLIC_MCP_READ_KEY}`,
         },
-        next: { revalidate: 300 }, // refresh every 5 minutes
+        signal: AbortSignal.timeout(5000),
       }
     );
     if (!res.ok) return {};
@@ -62,7 +62,7 @@ async function getViews(): Promise<ViewStats> {
         headers: {
           Authorization: `Bearer ${process.env.MCP_ADMIN_KEY || process.env.NEXT_PUBLIC_MCP_READ_KEY}`,
         },
-        cache: "no-store",
+        signal: AbortSignal.timeout(5000),
       }
     );
     if (!res.ok) return {};
@@ -77,7 +77,7 @@ async function getViews(): Promise<ViewStats> {
   }
 }
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // ISR: rebuild in background every 60 seconds
 
 export const metadata: Metadata = {
   title: "Launchpad — AI-Built Web Apps",
