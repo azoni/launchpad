@@ -11,7 +11,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Launchpad analytics beacon
+  // Launchpad analytics beacon — total views
   useEffect(() => {
     fetch("https://azoni-mcp.onrender.com/launchpad/view", {
       method: "POST",
@@ -24,6 +24,26 @@ export default function App() {
         page: window.location.pathname,
       }),
     }).catch(() => {});
+  }, []);
+
+  // Unique session beacon
+  useEffect(() => {
+    const key = import.meta.env.VITE_MCP_READ_KEY;
+    if (!key) return;
+    try { if (sessionStorage.getItem("lp_unique_benchmark")) return; } catch { return; }
+    fetch("https://azoni-mcp.onrender.com/launchpad/view", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        app: "benchmark:unique",
+        page: window.location.pathname,
+      }),
+    })
+      .then(() => { try { sessionStorage.setItem("lp_unique_benchmark", "1"); } catch {} })
+      .catch(() => {});
   }, []);
 
   const handleSubmit = useCallback(async (input) => {
