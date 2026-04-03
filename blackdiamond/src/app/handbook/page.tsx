@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { HandbookChat } from "@/components/HandbookChat";
 import {
   Lock,
   Loader2,
@@ -689,5 +690,10 @@ export default function HandbookPage() {
     return <PasswordGate onUnlock={() => setUnlocked(true)} />;
   }
 
-  return <HandbookContent />;
+  return (
+    <>
+      <HandbookContent />
+      <HandbookChat />
+    </>
+  );
 }
