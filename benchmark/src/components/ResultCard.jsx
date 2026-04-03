@@ -3,63 +3,94 @@ import { useRef, useState, useCallback } from 'react';
 export default function ResultCard({ result, onReset }) {
   const cardRef = useRef(null);
   const [copied, setCopied] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   const shareResult = useCallback(async () => {
     try {
       const blob = await renderCardToBlob(result);
-      await navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': blob })
-      ]);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+
+      // Copy to clipboard in background
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      } catch {
+        // Clipboard failed but preview still shows
+      }
     } catch {
-      // Fallback: copy text if image clipboard fails
-      const text = `Benchmark: "${result.normalized_input}" = ${result.bench_estimate} lbs. ${result.explanation}`;
+      const text = `Benchmark: "${result.normalized_input}" = ${result.bench_estimate} lbs. ${result.explanation}\n\nbenchmark-app-azoni.netlify.app`;
       navigator.clipboard.writeText(text).catch(() => {});
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   }, [result]);
 
+  const closePreview = useCallback(() => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  }, [previewUrl]);
+
   const tier = getTier(result.bench_estimate);
 
   return (
-    <div className="result-card fade-in" ref={cardRef}>
-      <div className="result-header">
-        <span className="result-label">Benchmark</span>
-        <span className="result-domain">{result.domain}</span>
+    <>
+      <div className="result-card fade-in" ref={cardRef}>
+        <div className="result-header">
+          <span className="result-label">Benchmark</span>
+          <span className="result-domain">{result.domain}</span>
+        </div>
+
+        <p className="result-input">"{result.normalized_input}"</p>
+
+        <div className="result-number">
+          <span className="result-lbs">{result.bench_estimate}</span>
+          <span className="result-unit">lbs</span>
+        </div>
+
+        <div className="result-tier">{tier}</div>
+
+        <p className="result-explanation">"{result.explanation}"</p>
+
+        <div className="result-stats">
+          <StatBar label="Prestige" value={result.prestige} />
+          <StatBar label="Physicality" value={result.physicality} />
+          <StatBar label="Competitive" value={result.competitiveness} />
+          <StatBar label="Discipline" value={result.discipline} />
+        </div>
+
+        <div className="result-actions">
+          <button className="btn btn-secondary" onClick={onReset}>
+            Try another
+          </button>
+          <button
+            className={`btn btn-share${copied ? ' copied' : ''}`}
+            onClick={shareResult}
+          >
+            {copied ? 'Copied!' : 'Share'}
+          </button>
+        </div>
       </div>
 
-      <p className="result-input">"{result.normalized_input}"</p>
-
-      <div className="result-number">
-        <span className="result-lbs">{result.bench_estimate}</span>
-        <span className="result-unit">lbs</span>
-      </div>
-
-      <div className="result-tier">{tier}</div>
-
-      <p className="result-explanation">"{result.explanation}"</p>
-
-      <div className="result-stats">
-        <StatBar label="Prestige" value={result.prestige} />
-        <StatBar label="Physicality" value={result.physicality} />
-        <StatBar label="Competitive" value={result.competitiveness} />
-        <StatBar label="Discipline" value={result.discipline} />
-      </div>
-
-      <div className="result-actions">
-        <button className="btn btn-secondary" onClick={onReset}>
-          Try another
-        </button>
-        <button
-          className={`btn btn-share${copied ? ' copied' : ''}`}
-          onClick={shareResult}
-        >
-          {copied ? 'Copied!' : 'Share'}
-        </button>
-      </div>
-    </div>
+      {previewUrl && (
+        <div className="share-overlay" onClick={closePreview}>
+          <div className="share-modal" onClick={(e) => e.stopPropagation()}>
+            <img src={previewUrl} alt="Share card" className="share-preview" />
+            <p className="share-hint">
+              {copied ? 'Image copied to clipboard!' : 'Long-press or right-click to save'}
+            </p>
+            <button className="btn btn-secondary" onClick={closePreview}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -86,12 +117,14 @@ function getTier(lbs) {
   return 'Beginner';
 }
 
+const SITE_URL = 'benchmark-app-azoni.netlify.app';
+
 /** Render the result as a PNG blob using Canvas */
 async function renderCardToBlob(result) {
   const canvas = document.createElement('canvas');
   const scale = 2;
   const W = 600;
-  const H = 380;
+  const H = 420;
   canvas.width = W * scale;
   canvas.height = H * scale;
   const ctx = canvas.getContext('2d');
@@ -115,11 +148,9 @@ async function renderCardToBlob(result) {
   // "BENCHMARK" label
   ctx.fillStyle = '#ff6b35';
   ctx.font = '500 13px "DM Mono", monospace';
-  ctx.letterSpacing = '2px';
   ctx.fillText('BENCHMARK', 36, 42);
 
   // Domain tag
-  ctx.fillStyle = '#5e5b53';
   ctx.font = '12px "DM Mono", monospace';
   const domainWidth = ctx.measureText(result.domain).width;
   ctx.fillStyle = '#242320';
@@ -154,10 +185,33 @@ async function renderCardToBlob(result) {
   ctx.font = '500 14px "Plus Jakarta Sans", system-ui, sans-serif';
   wrapText(ctx, `"${result.explanation}"`, 36, 255, W - 72, 20);
 
-  // Watermark
-  ctx.fillStyle = '#33322e';
-  ctx.font = '11px "DM Mono", monospace';
-  ctx.fillText('benchmark-app-azoni.netlify.app', 36, H - 20);
+  // Bottom bar with site branding
+  ctx.fillStyle = '#141210';
+  roundRect(ctx, 0, H - 52, W, 52, 0);
+  ctx.fill();
+  // Re-draw bottom corners
+  ctx.fillStyle = '#141210';
+  roundRect(ctx, 0, H - 52, W, 52, 16);
+  ctx.fill();
+  // Separator line
+  ctx.strokeStyle = '#33322e';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, H - 52);
+  ctx.lineTo(W, H - 52);
+  ctx.stroke();
+
+  // Site URL - prominent
+  ctx.fillStyle = '#ff6b35';
+  ctx.font = '600 14px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillText(SITE_URL, 36, H - 24);
+
+  // "Try yours" CTA
+  ctx.fillStyle = '#5e5b53';
+  ctx.font = '500 12px "Plus Jakarta Sans", system-ui, sans-serif';
+  const ctaText = 'Try yours →';
+  const ctaW = ctx.measureText(ctaText).width;
+  ctx.fillText(ctaText, W - 36 - ctaW, H - 24);
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), 'image/png');
