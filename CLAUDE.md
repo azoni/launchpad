@@ -398,7 +398,7 @@ fetch('https://azoni-mcp.onrender.com/activity/log', {
 ### Dashboard
 
 Cost data is viewable via:
-- `GET https://azoni-mcp.onrender.com/activity/cost-summary?days=30` — breakdown by source, model, type
+- `GET https://azoni-mcp.onrender.com/activity/costs?days=30` — breakdown by source, model, type
 - `GET https://azoni-mcp.onrender.com/activity/recent?limit=20&source=launchpad:benchmark` — recent events for a specific app
 
 ## Amazon Affiliate (If Applicable)

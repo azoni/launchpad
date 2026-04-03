@@ -26,7 +26,7 @@ function getApps(): App[] {
 async function getCosts(): Promise<CostBySource> {
   try {
     const res = await fetch(
-      "https://azoni-mcp.onrender.com/activity/cost-summary?days=30",
+      "https://azoni-mcp.onrender.com/activity/costs?days=30",
       {
         headers: {
           Authorization: `Bearer ${process.env.MCP_ADMIN_KEY || process.env.NEXT_PUBLIC_MCP_READ_KEY}`,
