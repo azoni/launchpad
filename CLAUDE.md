@@ -27,6 +27,7 @@ When building with Vite, plain React, or other non-Next.js frameworks:
 
 The monorepo root `.env.local` contains shared API keys reused across apps:
 - `OPENAI_API_KEY` — for apps using OpenAI models
+- `ANTHROPIC_API_KEY` — for apps using Claude/Anthropic models
 - `NEXT_PUBLIC_MCP_READ_KEY` — analytics beacon + MCP admin key (same value)
 - `AMAZON_CLIENT_ID`, `AMAZON_CLIENT_SECRET`, `AMAZON_PARTNER_TAG` — affiliate API
 
@@ -122,47 +123,52 @@ rules: [
 
 ## Analytics Beacon — Launchpad View Tracking
 
-Every app MUST ping the MCP server on page load to track views for the portfolio dashboard.
+Every app MUST send **two** view beacons — one for total page views and one for unique sessions. Both are tracked on the launchpad console dashboard.
 
-**Next.js** — add to `PostHogProvider` (or root layout client component):
+**Next.js** — add both beacons to `PostHogProvider` (or root layout client component). Replace `APP_SLUG` with your app's slug (e.g. `"meeplematch"`):
 
 ```tsx
+const APP_SLUG = "APP_NAME_HERE"; // e.g. "meeplematch" — lowercase, no spaces
+
+// Beacon 1: Total page views — fires on every navigation
 useEffect(() => {
+  const key = process.env.NEXT_PUBLIC_MCP_READ_KEY;
+  if (!key) return;
   fetch("https://azoni-mcp.onrender.com/launchpad/view", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${process.env.NEXT_PUBLIC_MCP_READ_KEY}`,
+      Authorization: `Bearer ${key}`,
     },
-    body: JSON.stringify({
-      app: "APP_NAME_HERE",  // e.g. "meeplematch" — lowercase, no spaces
-      page: window.location.pathname,
-    }),
+    body: JSON.stringify({ app: APP_SLUG, page: pathname }),
   }).catch(() => {});
-}, []);
-```
+}, [pathname]);
 
-**Vite / non-Next.js** — same pattern, different env var prefix:
-
-```jsx
+// Beacon 2: Unique session views — fires once per browser session
 useEffect(() => {
+  const key = process.env.NEXT_PUBLIC_MCP_READ_KEY;
+  if (!key) return;
+  const storageKey = `lp_unique_${APP_SLUG}`;
+  try { if (sessionStorage.getItem(storageKey)) return; } catch { return; }
   fetch("https://azoni-mcp.onrender.com/launchpad/view", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${import.meta.env.VITE_MCP_READ_KEY}`,
+      Authorization: `Bearer ${key}`,
     },
-    body: JSON.stringify({
-      app: "APP_NAME_HERE",
-      page: window.location.pathname,
-    }),
-  }).catch(() => {});
-}, []);
+    body: JSON.stringify({ app: `${APP_SLUG}:unique`, page: pathname }),
+  })
+    .then(() => { try { sessionStorage.setItem(storageKey, "1"); } catch {} })
+    .catch(() => {});
+}, []); // eslint-disable-line react-hooks/exhaustive-deps
 ```
+
+**Vite / non-Next.js** — same pattern, use `import.meta.env.VITE_MCP_READ_KEY` instead and `window.location.pathname` for the page.
 
 - Env var: `NEXT_PUBLIC_MCP_READ_KEY` (Next.js) or `VITE_MCP_READ_KEY` (Vite) — same key value, different prefix
 - The `app` field must be a short lowercase slug (e.g. "meeplematch", "benchmark")
-- Fire-and-forget — `.catch(() => {})` ensures it never blocks the UI
+- The unique beacon posts to `{slug}:unique` and uses `sessionStorage` to deduplicate
+- Fire-and-forget — `.catch(() => {})` ensures neither beacon blocks the UI
 
 ## UI — Navbar
 

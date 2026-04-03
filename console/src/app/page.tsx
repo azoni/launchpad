@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import Link from "next/link";
 import Image from "next/image";
-import { ExternalLink, Rocket } from "lucide-react";
+import { ExternalLink, Rocket, Eye } from "lucide-react";
 
 interface App {
   name: string;
@@ -50,6 +50,33 @@ async function getCosts(): Promise<CostBySource> {
   }
 }
 
+interface ViewStats {
+  [appName: string]: { viewsTotal: number; views24h: number };
+}
+
+async function getViews(): Promise<ViewStats> {
+  try {
+    const res = await fetch(
+      "https://azoni-mcp.onrender.com/launchpad/stats",
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.MCP_ADMIN_KEY || process.env.NEXT_PUBLIC_MCP_READ_KEY}`,
+        },
+        cache: "no-store",
+      }
+    );
+    if (!res.ok) return {};
+    const data = await res.json();
+    const map: ViewStats = {};
+    for (const app of data.apps || []) {
+      map[app.name] = { viewsTotal: app.viewsTotal, views24h: app.views24h };
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -77,7 +104,7 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   const APPS = getApps();
-  const costs = await getCosts();
+  const [costs, views] = await Promise.all([getCosts(), getViews()]);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -126,8 +153,10 @@ export default async function Home() {
             {APPS.map((app) => {
               const source = `launchpad:${app.slug}`;
               const appCost = costs[source];
-              const costStr = appCost?.cost; // e.g. "$0.001234"
+              const costStr = appCost?.cost;
               const calls = appCost?.events || 0;
+              const totalViews = views[app.slug]?.viewsTotal || 0;
+              const uniqueViews = views[`${app.slug}:unique`]?.viewsTotal || 0;
 
               return (
               <a
@@ -162,15 +191,27 @@ export default async function Home() {
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         {app.description}
                       </p>
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {app.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="text-xs font-mono text-muted-foreground/60 bg-secondary px-2 py-0.5 rounded"
-                          >
-                            {tag}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1">
+                        <div className="flex flex-wrap gap-1.5">
+                          {app.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="text-xs font-mono text-muted-foreground/60 bg-secondary px-2 py-0.5 rounded"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                        {totalViews > 0 && (
+                          <span className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground/50">
+                            <Eye className="w-3 h-3" />
+                            {uniqueViews > 0 ? (
+                              <>{uniqueViews} unique &middot; {totalViews} total</>
+                            ) : (
+                              <>{totalViews} views</>
+                            )}
                           </span>
-                        ))}
+                        )}
                       </div>
                       </div>
                     </div>
