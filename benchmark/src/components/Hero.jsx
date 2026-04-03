@@ -1,13 +1,5 @@
 import { useState } from 'react';
 
-const EXAMPLES = [
-  "I'm an SDE3 at Amazon",
-  "Grandmaster in StarCraft as Zerg",
-  "I run marathons",
-  "I built a startup",
-  "Diamond in League of Legends",
-];
-
 const PLACEHOLDERS = [
   "I'm an SDE3 at Amazon",
   "Grandmaster in StarCraft as Zerg",
@@ -26,16 +18,6 @@ export default function Hero({ onSubmit, loading }) {
     const val = input.trim();
     if (!val || loading) return;
     onSubmit(val);
-  };
-
-  const handleExample = (text) => {
-    setInput(text);
-    if (!loading) onSubmit(text);
-  };
-
-  const handleRandom = () => {
-    const pick = EXAMPLES[Math.floor(Math.random() * EXAMPLES.length)];
-    handleExample(pick);
   };
 
   return (
@@ -64,26 +46,6 @@ export default function Hero({ onSubmit, loading }) {
           {loading ? 'Converting...' : 'Convert to Bench'}
         </button>
       </form>
-
-      <div className="chips">
-        {EXAMPLES.map((ex) => (
-          <button
-            key={ex}
-            className="chip"
-            onClick={() => handleExample(ex)}
-            disabled={loading}
-          >
-            {ex}
-          </button>
-        ))}
-        <button
-          className="chip chip-random"
-          onClick={handleRandom}
-          disabled={loading}
-        >
-          Random
-        </button>
-      </div>
     </section>
   );
 }
