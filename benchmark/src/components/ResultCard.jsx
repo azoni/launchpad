@@ -29,10 +29,26 @@ export default function ResultCard({ result, onReset }) {
     }
   }, [result]);
 
+  const copyImage = useCallback(async () => {
+    if (!previewUrl) return;
+    try {
+      const res = await fetch(previewUrl);
+      const blob = await res.blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob })
+      ]);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      // fallback
+    }
+  }, [previewUrl]);
+
   const closePreview = useCallback(() => {
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
+      setCopied(false);
     }
   }, [previewUrl]);
 
@@ -81,12 +97,17 @@ export default function ResultCard({ result, onReset }) {
         <div className="share-overlay" onClick={closePreview}>
           <div className="share-modal" onClick={(e) => e.stopPropagation()}>
             <img src={previewUrl} alt="Share card" className="share-preview" />
-            <p className="share-hint">
-              {copied ? 'Image copied to clipboard!' : 'Long-press or right-click to save'}
-            </p>
-            <button className="btn btn-secondary" onClick={closePreview}>
-              Close
-            </button>
+            <div className="share-actions">
+              <button
+                className={`btn btn-copy-image${copied ? ' copied' : ''}`}
+                onClick={copyImage}
+              >
+                {copied ? 'Copied!' : 'Copy Image'}
+              </button>
+              <button className="btn btn-ghost" onClick={closePreview}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
