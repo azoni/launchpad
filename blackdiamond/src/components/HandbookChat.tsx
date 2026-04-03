@@ -92,13 +92,13 @@ export function HandbookChat() {
 
       {/* Chat Panel */}
       {open && (
-        <div className="fixed bottom-24 right-4 left-4 sm:left-auto sm:right-6 sm:w-96 z-50 bg-card border border-border rounded-xl shadow-2xl flex flex-col max-h-[70vh] overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-card flex flex-col sm:inset-auto sm:bottom-24 sm:right-6 sm:w-96 sm:max-h-[70vh] sm:rounded-xl sm:border sm:border-border sm:shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3">
+          <div className="px-4 py-3 border-b border-border bg-card flex items-center gap-3 shrink-0">
             <div className="w-8 h-8 rounded-lg bg-teal/10 flex items-center justify-center">
               <MessageCircle className="w-4 h-4 text-teal" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="font-heading text-sm uppercase tracking-wide">
                 Field Assistant
               </p>
@@ -106,6 +106,13 @@ export function HandbookChat() {
                 Ask about procedures, safety, or equipment
               </p>
             </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="sm:hidden w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground"
+              aria-label="Close chat"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           {/* Messages */}
@@ -167,7 +174,7 @@ export function HandbookChat() {
           </div>
 
           {/* Input */}
-          <div className="px-3 py-3 border-t border-border bg-card">
+          <div className="px-3 py-3 pb-[env(safe-area-inset-bottom,12px)] sm:pb-3 border-t border-border bg-card shrink-0">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
