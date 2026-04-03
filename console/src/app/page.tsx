@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { readFileSync } from "fs";
+import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import Link from "next/link";
 import Image from "next/image";
@@ -18,9 +18,17 @@ interface CostBySource {
 }
 
 function getApps(): App[] {
-  const filePath = join(process.cwd(), "..", "apps.json");
-  const data = readFileSync(filePath, "utf-8");
-  return JSON.parse(data);
+  const candidates = [
+    join(process.cwd(), "apps.json"),                 // copied by build script
+    join(process.cwd(), "..", "apps.json"),            // local dev (monorepo root)
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) {
+      return JSON.parse(readFileSync(p, "utf-8"));
+    }
+  }
+  console.error("apps.json not found, tried:", candidates);
+  return [];
 }
 
 async function getCosts(): Promise<CostBySource> {

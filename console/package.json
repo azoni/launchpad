@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "cp ../apps.json ./apps.json 2>/dev/null; next build",
     "start": "next start",
     "lint": "eslint"
   },
