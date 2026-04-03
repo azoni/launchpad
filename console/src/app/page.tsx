@@ -42,6 +42,8 @@ async function getCosts(): Promise<CostBySource> {
   }
 }
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Launchpad — AI-Built Web Apps",
   description:
