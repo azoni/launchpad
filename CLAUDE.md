@@ -123,32 +123,18 @@ rules: [
 
 ## Analytics Beacon — Launchpad View Tracking
 
-Every app MUST send **two** view beacons — one for total page views and one for unique sessions. Both are tracked on the launchpad console dashboard.
+Every app MUST send a **single** view beacon, once per browser session. Uses `sessionStorage` to deduplicate — same user browsing multiple pages only counts once. This keeps Firestore writes low.
 
-**Next.js** — add both beacons to `PostHogProvider` (or root layout client component). Replace `APP_SLUG` with your app's slug (e.g. `"meeplematch"`):
+**Next.js** — add to `PostHogProvider` (or root layout client component). Replace `APP_SLUG` with your app's slug:
 
 ```tsx
 const APP_SLUG = "APP_NAME_HERE"; // e.g. "meeplematch" — lowercase, no spaces
 
-// Beacon 1: Total page views — fires on every navigation
+// View beacon — fires once per browser session
 useEffect(() => {
   const key = process.env.NEXT_PUBLIC_MCP_READ_KEY;
   if (!key) return;
-  fetch("https://azoni-mcp.onrender.com/launchpad/view", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify({ app: APP_SLUG, page: pathname }),
-  }).catch(() => {});
-}, [pathname]);
-
-// Beacon 2: Unique session views — fires once per browser session
-useEffect(() => {
-  const key = process.env.NEXT_PUBLIC_MCP_READ_KEY;
-  if (!key) return;
-  const storageKey = `lp_unique_${APP_SLUG}`;
+  const storageKey = `lp_view_${APP_SLUG}`;
   try { if (sessionStorage.getItem(storageKey)) return; } catch { return; }
   fetch("https://azoni-mcp.onrender.com/launchpad/view", {
     method: "POST",
@@ -156,19 +142,20 @@ useEffect(() => {
       "Content-Type": "application/json",
       Authorization: `Bearer ${key}`,
     },
-    body: JSON.stringify({ app: `${APP_SLUG}:unique`, page: pathname }),
+    body: JSON.stringify({ app: APP_SLUG, page: pathname }),
   })
     .then(() => { try { sessionStorage.setItem(storageKey, "1"); } catch {} })
     .catch(() => {});
 }, []); // eslint-disable-line react-hooks/exhaustive-deps
 ```
 
-**Vite / non-Next.js** — same pattern, use `import.meta.env.VITE_MCP_READ_KEY` instead and `window.location.pathname` for the page.
+**Vite / non-Next.js** — same pattern, use `import.meta.env.VITE_MCP_READ_KEY` and `window.location.pathname`.
 
 - Env var: `NEXT_PUBLIC_MCP_READ_KEY` (Next.js) or `VITE_MCP_READ_KEY` (Vite) — same key value, different prefix
 - The `app` field must be a short lowercase slug (e.g. "meeplematch", "benchmark")
-- The unique beacon posts to `{slug}:unique` and uses `sessionStorage` to deduplicate
-- Fire-and-forget — `.catch(() => {})` ensures neither beacon blocks the UI
+- **One beacon per session** — `sessionStorage` resets when the tab closes, so returning visitors get counted again
+- Fire-and-forget — `.catch(() => {})` ensures it never blocks the UI
+- **Do NOT fire on every pathname change** — that burns Firestore quota for no value
 
 ## UI — Navbar
 

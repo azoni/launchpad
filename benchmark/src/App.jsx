@@ -11,26 +11,11 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Launchpad analytics beacon — total views
-  useEffect(() => {
-    fetch("https://azoni-mcp.onrender.com/launchpad/view", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${import.meta.env.VITE_MCP_READ_KEY}`,
-      },
-      body: JSON.stringify({
-        app: "benchmark",
-        page: window.location.pathname,
-      }),
-    }).catch(() => {});
-  }, []);
-
-  // Unique session beacon
+  // Single view beacon — fires once per browser session (unique visits)
   useEffect(() => {
     const key = import.meta.env.VITE_MCP_READ_KEY;
     if (!key) return;
-    try { if (sessionStorage.getItem("lp_unique_benchmark")) return; } catch { return; }
+    try { if (sessionStorage.getItem("lp_view_benchmark")) return; } catch { return; }
     fetch("https://azoni-mcp.onrender.com/launchpad/view", {
       method: "POST",
       headers: {
@@ -38,11 +23,11 @@ export default function App() {
         "Authorization": `Bearer ${key}`,
       },
       body: JSON.stringify({
-        app: "benchmark:unique",
+        app: "benchmark",
         page: window.location.pathname,
       }),
     })
-      .then(() => { try { sessionStorage.setItem("lp_unique_benchmark", "1"); } catch {} })
+      .then(() => { try { sessionStorage.setItem("lp_view_benchmark", "1"); } catch {} })
       .catch(() => {});
   }, []);
 

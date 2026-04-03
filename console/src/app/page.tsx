@@ -155,8 +155,7 @@ export default async function Home() {
               const appCost = costs[source];
               const costStr = appCost?.cost;
               const calls = appCost?.events || 0;
-              const totalViews = views[app.slug]?.viewsTotal || 0;
-              const uniqueViews = views[`${app.slug}:unique`]?.viewsTotal || 0;
+              const appViews = views[app.slug]?.viewsTotal || 0;
 
               return (
               <a
@@ -202,14 +201,10 @@ export default async function Home() {
                             </span>
                           ))}
                         </div>
-                        {totalViews > 0 && (
+                        {appViews > 0 && (
                           <span className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground/50">
                             <Eye className="w-3 h-3" />
-                            {uniqueViews > 0 ? (
-                              <>{uniqueViews} unique &middot; {totalViews} total</>
-                            ) : (
-                              <>{totalViews} views</>
-                            )}
+                            {appViews} views
                           </span>
                         )}
                       </div>
