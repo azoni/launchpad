@@ -1,0 +1,19 @@
+# RepMatch
+
+> Calculate equivalent barbell sets for any rep range. Input your max lift, roll a random rep count, and see what weight each lifter should use for equal relative effort. Built for friends who want to compete at the gym.
+
+## How It Works
+
+RepMatch uses the Epley formula (the most common 1RM estimator) to calculate equivalent effort across rep ranges. Enter your known max lift (weight x reps), set a rep range, and roll a random rep target. The app calculates the weight each lifter needs to match that effort level.
+
+## Features
+
+- 1-5 lifters can input their max simultaneously
+- Random rep generation within a user-defined range
+- Weights rounded to nearest 5 lb (or 2.5 kg) for practical loading
+- Percentage of 1RM shown alongside weights
+- lb/kg unit toggle
+
+## Pages
+
+- [Home](https://repmatch.netlify.app/) — The calculator tool

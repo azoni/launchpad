@@ -1,0 +1,13 @@
+{
+  "name": "RepMatch",
+  "short_name": "RepMatch",
+  "description": "Calculate equivalent barbell sets for any rep range.",
+  "theme_color": "#e63946",
+  "background_color": "#121214",
+  "display": "standalone",
+  "start_url": "/",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

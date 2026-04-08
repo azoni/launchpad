@@ -10,6 +10,7 @@ A monorepo of independent web apps, each built and deployed from a single prompt
 | [blackdiamond](./blackdiamond/) | Exterior cleaning company site with quote form | [blackdiamond-alpine-wash.netlify.app](https://blackdiamond-alpine-wash.netlify.app) |
 | [console](./console/) | Launchpad dashboard — app gallery and AI builder | [launchpad-console.netlify.app](https://launchpad-console.netlify.app) |
 | [benchmark](./benchmark/) | Turn any achievement into a bench press max | [benchmark-app-azoni.netlify.app](https://benchmark-app-azoni.netlify.app) |
+| [repmatch](./repmatch/) | Workout rep equivalence calculator for competing with friends | [repmatch-app.netlify.app](https://repmatch-app.netlify.app) |
 
 ## How It Works
 

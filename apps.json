@@ -19,5 +19,12 @@
     "description": "Turn any achievement into a bench press max. A memeable, shareable universal achievement-to-bench-press translator powered by AI.",
     "url": "https://benchmark-app-azoni.netlify.app",
     "tags": ["React", "Vite", "Claude API", "Netlify Functions"]
+  },
+  {
+    "name": "RepMatch",
+    "slug": "repmatch",
+    "description": "Workout rep equivalence calculator. Input your max, roll a random rep count, and compete with friends at equal effort.",
+    "url": "https://repmatch-app.netlify.app",
+    "tags": ["React", "Vite", "Fitness"]
   }
 ]
