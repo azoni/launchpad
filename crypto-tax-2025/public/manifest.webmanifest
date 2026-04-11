@@ -1,0 +1,12 @@
+{
+  "name": "Crypto Tax 2025",
+  "short_name": "Tax 2025",
+  "description": "Personal 2025 crypto tax reconstruction",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5ecd9",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "/icon.svg", "type": "image/svg+xml", "sizes": "any" }
+  ]
+}

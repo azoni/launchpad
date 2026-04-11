@@ -1,0 +1,69 @@
+import {
+  collection,
+  doc,
+  writeBatch,
+  query,
+  where,
+  onSnapshot,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
+import type { NormalizedTransaction, ReviewStatus, TxType } from "../types";
+import { logAudit } from "./auditLog";
+
+const colRef = () => collection(db, COLLECTIONS.normalizedTransactions);
+
+export function subscribeNormalized(cb: (txs: NormalizedTransaction[]) => void) {
+  const q = query(colRef(), where("projectId", "==", PROJECT_ID));
+  return onSnapshot(q, (snap) => {
+    const list = snap.docs.map((d) => ({ ...(d.data() as NormalizedTransaction), id: d.id }));
+    list.sort((a, b) => a.timestamp - b.timestamp);
+    cb(list);
+  });
+}
+
+export async function listNormalized(): Promise<NormalizedTransaction[]> {
+  const q = query(colRef(), where("projectId", "==", PROJECT_ID));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ ...(d.data() as NormalizedTransaction), id: d.id }))
+    .sort((a, b) => a.timestamp - b.timestamp);
+}
+
+export async function bulkInsertNormalized(txs: NormalizedTransaction[]) {
+  const chunks: NormalizedTransaction[][] = [];
+  for (let i = 0; i < txs.length; i += 400) chunks.push(txs.slice(i, i + 400));
+  for (const chunk of chunks) {
+    const batch = writeBatch(db);
+    for (const t of chunk) batch.set(doc(db, COLLECTIONS.normalizedTransactions, t.id), t);
+    await batch.commit();
+  }
+}
+
+export async function bulkDeleteNormalized() {
+  const all = await listNormalized();
+  const chunks: NormalizedTransaction[][] = [];
+  for (let i = 0; i < all.length; i += 400) chunks.push(all.slice(i, i + 400));
+  for (const chunk of chunks) {
+    const batch = writeBatch(db);
+    for (const t of chunk) batch.delete(doc(db, COLLECTIONS.normalizedTransactions, t.id));
+    await batch.commit();
+  }
+}
+
+export async function patchNormalized(
+  id: string,
+  patch: Partial<Pick<NormalizedTransaction, "txType" | "reviewStatus" | "notes" | "usdValue">> & {
+    txType?: TxType;
+    reviewStatus?: ReviewStatus;
+  }
+) {
+  await updateDoc(doc(db, COLLECTIONS.normalizedTransactions, id), patch as Record<string, unknown>);
+  await logAudit({
+    actionType: "tx_patched",
+    targetId: id,
+    after: patch,
+  });
+}

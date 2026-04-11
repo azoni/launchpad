@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+/*
+  Crypto Tax 2025 — "Receipt / Ledger Paper" identity.
+  Cream paper background, dark slate ink, hairline borders, IBM Plex Mono
+  for numbers, Inter for UI text, Playfair Display for the wordmark.
+  Subtle paper texture and faint ledger rules. Serious, financial,
+  intentionally unmodern — feels like a thing you'd hand to an accountant.
+*/
+
+@theme {
+  --color-paper: #f5ecd9;
+  --color-paper-deep: #ecdfc4;
+  --color-paper-edge: #d9c79f;
+  --color-ink: #0f172a;
+  --color-ink-soft: #334155;
+  --color-ink-faint: #64748b;
+  --color-rule: #c8b88a;
+  --color-stamp: #b91c1c;
+  --color-mint: #166534;
+  --color-mint-soft: #d1fae5;
+  --color-rose: #9f1239;
+  --color-rose-soft: #fee2e2;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", monospace;
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  font-feature-settings: "cv11", "ss01";
+}
+
+/* Cream paper background with a faint fiber texture (CSS only, no asset) */
+.ledger-bg {
+  background-color: var(--color-paper);
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(217, 199, 159, 0.18) 0, transparent 40%),
+    radial-gradient(circle at 80% 60%, rgba(217, 199, 159, 0.14) 0, transparent 50%),
+    radial-gradient(circle at 50% 90%, rgba(217, 199, 159, 0.10) 0, transparent 45%);
+}
+
+.text-ink { color: var(--color-ink); }
+
+/* Tabular numerics for tables and stat cards */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Paper card — hairline border, no shadow except a faint paper edge */
+.paper-card {
+  background: #fffaf0;
+  border: 1px solid var(--color-rule);
+  border-radius: 4px;
+  box-shadow: 0 1px 0 var(--color-paper-edge), 0 2px 4px rgba(31, 41, 55, 0.04);
+}
+
+/* Red rubber-stamp accent */
+.stamp {
+  display: inline-block;
+  border: 2px solid var(--color-stamp);
+  color: var(--color-stamp);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  transform: rotate(-3deg);
+  border-radius: 2px;
+}
+
+/* Subtle hover lift used by buttons */
+.lift {
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+}
+.lift:hover {
+  transform: translateY(-1px);
+}
+
+/* Custom scrollbar that matches the paper theme */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--color-paper); }
+::-webkit-scrollbar-thumb { background: var(--color-paper-edge); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-rule); }

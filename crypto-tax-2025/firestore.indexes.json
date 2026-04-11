@@ -1,0 +1,30 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "normalizedTransactions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "projectId", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reviewItems",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "projectId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "impactUsd", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "taxableEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "projectId", "order": "ASCENDING" },
+        { "fieldPath": "dateSold", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

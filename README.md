@@ -11,6 +11,7 @@ A monorepo of independent web apps, each built and deployed from a single prompt
 | [console](./console/) | Launchpad dashboard — app gallery and AI builder | [launchpad-console.netlify.app](https://launchpad-console.netlify.app) |
 | [benchmark](./benchmark/) | Turn any achievement into a bench press max | [benchmark-app-azoni.netlify.app](https://benchmark-app-azoni.netlify.app) |
 | [repmatch](./repmatch/) | Workout rep equivalence calculator for competing with friends | [repmatch-app.netlify.app](https://repmatch-app.netlify.app) |
+| [crypto-tax-2025](./crypto-tax-2025/) | Personal 2025 crypto tax reconstruction with FIFO + review queue | [crypto-tax-2025.netlify.app](https://crypto-tax-2025.netlify.app) |
 
 ## How It Works
 
