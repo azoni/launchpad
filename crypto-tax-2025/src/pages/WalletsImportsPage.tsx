@@ -8,6 +8,10 @@ import { CsvUploader } from "../components/wallets/CsvUploader";
 import { useDataSources } from "../hooks/useDataSources";
 import { deleteDataSource } from "../data/dataSources";
 import { runPipeline } from "../domain/pipeline";
+import { bulkDeleteNormalized } from "../data/normalizedTransactions";
+import { bulkDeleteTransferMatches } from "../data/transferMatches";
+import { replaceTaxableEvents } from "../data/taxableEvents";
+import { replaceReviewItems } from "../data/reviewItems";
 import { formatDate } from "../lib/format";
 
 export function WalletsImportsPage() {
@@ -30,6 +34,28 @@ export function WalletsImportsPage() {
     }
   }
 
+  async function clearAllData() {
+    if (!confirm("This will delete ALL imported data, transactions, review items, and tax events. Are you sure?")) return;
+    setRunning(true);
+    setMsg("Clearing all data…");
+    try {
+      // Delete all sources (which also deletes their raw transactions)
+      for (const s of sources) {
+        await deleteDataSource(s.id);
+      }
+      // Wipe all derived collections
+      await bulkDeleteNormalized();
+      await bulkDeleteTransferMatches();
+      await replaceTaxableEvents([], []);
+      await replaceReviewItems([]);
+      setMsg("All data cleared. Ready for fresh import.");
+    } catch (e) {
+      setMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setRunning(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex items-end justify-between">
@@ -39,9 +65,14 @@ export function WalletsImportsPage() {
             Add wallet addresses and upload CSV exports. Run the pipeline when you're done.
           </p>
         </div>
-        <Button onClick={rerun} disabled={running}>
-          {running ? "Running pipeline…" : "Re-run pipeline"}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="danger" onClick={clearAllData} disabled={running}>
+            Clear all data
+          </Button>
+          <Button onClick={rerun} disabled={running}>
+            {running ? "Running pipeline…" : "Re-run pipeline"}
+          </Button>
+        </div>
       </header>
 
       {msg && <div className="rounded-md bg-[color:var(--color-paper-deep)] px-3 py-2 text-xs text-[color:var(--color-ink-soft)]">{msg}</div>}
