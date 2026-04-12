@@ -10,7 +10,7 @@ import { db } from "../lib/firebase";
 import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
 import { sanitize } from "./sanitize";
 import { isGuestMode } from "../lib/guestMode";
-import { localBulkSet, localList } from "./localStore";
+import { localBulkSet, localList, localReplaceAll } from "./localStore";
 import type { RawTransaction } from "../types";
 
 const COL = COLLECTIONS.rawTransactions;
@@ -54,4 +54,21 @@ export async function listAllRaw(): Promise<RawTransaction[]> {
   const q = query(collection(db, COL), where("projectId", "==", PROJECT_ID));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ ...(d.data() as RawTransaction), id: d.id }));
+}
+
+export async function deleteRawForSource(sourceId: string): Promise<void> {
+  if (isGuestMode()) {
+    const all = localList<RawTransaction>(COL);
+    localReplaceAll(COL, all.filter((r) => r.sourceId !== sourceId));
+    return;
+  }
+  const rows = await listRawForSource(sourceId);
+  let toDelete = rows.slice();
+  while (toDelete.length > 0) {
+    const batch = writeBatch(db);
+    const slice = toDelete.slice(0, 400);
+    for (const r of slice) batch.delete(doc(db, COL, r.id));
+    await batch.commit();
+    toDelete = toDelete.slice(400);
+  }
 }
