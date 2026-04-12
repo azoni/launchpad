@@ -8,6 +8,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
+import { sanitize } from "./sanitize";
 import { isGuestMode } from "../lib/guestMode";
 import { localBulkSet, localList } from "./localStore";
 import type { RawTransaction } from "../types";
@@ -35,7 +36,7 @@ export async function bulkInsertRaw(
   for (let i = 0; i < out.length; i += 400) chunks.push(out.slice(i, i + 400));
   for (const chunk of chunks) {
     const batch = writeBatch(db);
-    for (const raw of chunk) batch.set(doc(db, COL, raw.id), raw);
+    for (const raw of chunk) batch.set(doc(db, COL, raw.id), sanitize(raw as unknown as Record<string, unknown>));
     await batch.commit();
   }
   return out;

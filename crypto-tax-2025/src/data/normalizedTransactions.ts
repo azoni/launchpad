@@ -12,6 +12,7 @@ import { db } from "../lib/firebase";
 import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
 import { isGuestMode } from "../lib/guestMode";
 import { localSubscribe, localList, localBulkSet, localReplaceAll, localUpdate } from "./localStore";
+import { sanitize } from "./sanitize";
 import type { NormalizedTransaction, ReviewStatus, TxType } from "../types";
 import { logAudit } from "./auditLog";
 
@@ -43,7 +44,7 @@ export async function bulkInsertNormalized(txs: NormalizedTransaction[]) {
   for (let i = 0; i < txs.length; i += 400) chunks.push(txs.slice(i, i + 400));
   for (const chunk of chunks) {
     const batch = writeBatch(db);
-    for (const t of chunk) batch.set(doc(db, COL, t.id), t);
+    for (const t of chunk) batch.set(doc(db, COL, t.id), sanitize(t as unknown as Record<string, unknown>));
     await batch.commit();
   }
 }

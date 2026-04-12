@@ -11,6 +11,7 @@ import { db } from "../lib/firebase";
 import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
 import { isGuestMode } from "../lib/guestMode";
 import { localSubscribe, localSet, localUpdate } from "./localStore";
+import { sanitize } from "./sanitize";
 import type { DataSource, SourceType } from "../types";
 import { logAudit } from "./auditLog";
 
@@ -39,13 +40,13 @@ export async function createDataSource(input: {
     type: input.type,
     name: input.name,
     uploadStatus: "pending",
-    metadata: input.metadata,
+    metadata: input.metadata ?? {},
     createdAt: Date.now(),
   };
   if (isGuestMode()) {
     localSet(COL, source);
   } else {
-    await setDoc(doc(db, COL, id), source);
+    await setDoc(doc(db, COL, id), sanitize(source as unknown as Record<string, unknown>));
   }
   await logAudit({ actionType: "source_created", targetId: id, after: source });
   return source;
