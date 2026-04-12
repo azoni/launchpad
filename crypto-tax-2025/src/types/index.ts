@@ -8,6 +8,7 @@ export type Platform =
   | "abstract"
   | "hyperliquid"
   | "lighter"
+  | "coinbase"
   | "nft"
   | "manual"
   | "unknown";
@@ -155,7 +156,7 @@ export interface TaxableEvent {
   gainLossUsd: number;
   holdingPeriod: "short" | "long";
   category: "spot" | "nft" | "perp" | "income";
-  form8949Box: "B" | "C" | "E" | "F"; // B/C short-term, E/F long-term; C/F = no 1099-B (most crypto)
+  form8949Box: "A" | "B" | "C" | "D" | "E" | "F"; // A/D = 1099 reported (Coinbase), C/F = no 1099 (DeFi)
   washSaleDisallowed: number; // USD amount of loss disallowed by wash sale rule
   platform: Platform;
   walletAddress: string | null;

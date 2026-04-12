@@ -66,9 +66,12 @@ function categoryFor(t: NormalizedTransaction): "spot" | "nft" | "perp" | "incom
   return "spot";
 }
 
-function box8949(hp: "short" | "long"): "C" | "F" {
-  // Most crypto has no 1099-B → Box C (short) or F (long).
-  return hp === "short" ? "C" : "F";
+// 1099-DA reported (Coinbase) → Box A (short) or D (long)
+// No 1099 (DeFi, self-custody) → Box C (short) or F (long)
+function box8949(hp: "short" | "long", platform: string): "A" | "C" | "D" | "F" {
+  const reported = platform === "coinbase";
+  if (hp === "short") return reported ? "A" : "C";
+  return reported ? "D" : "F";
 }
 
 function makeEvent(
@@ -96,7 +99,7 @@ function makeEvent(
     gainLossUsd: gain,
     holdingPeriod: hp,
     category: categoryFor(t),
-    form8949Box: box8949(hp),
+    form8949Box: box8949(hp, t.platform),
     washSaleDisallowed: 0,
     platform: t.platform,
     walletAddress: t.walletAddress,
@@ -168,7 +171,7 @@ export function runFifo(txs: NormalizedTransaction[]): FifoResult {
         gainLossUsd: pnl,
         holdingPeriod: "short",
         category: "perp",
-        form8949Box: "C",
+        form8949Box: box8949("short", t.platform),
         washSaleDisallowed: 0,
         platform: t.platform,
         walletAddress: t.walletAddress,
@@ -329,7 +332,7 @@ function consumeFifo(
       gainLossUsd: proceeds - basis,
       holdingPeriod: hp,
       category: cat,
-      form8949Box: box8949(hp),
+      form8949Box: box8949(hp, t.platform),
       washSaleDisallowed: 0,
       platform: t.platform,
       walletAddress: t.walletAddress,
@@ -357,7 +360,7 @@ function consumeFifo(
       gainLossUsd: proceeds,
       holdingPeriod: "short",
       category: cat,
-      form8949Box: "C",
+      form8949Box: box8949("short", t.platform),
       washSaleDisallowed: 0,
       platform: t.platform,
       walletAddress: t.walletAddress,

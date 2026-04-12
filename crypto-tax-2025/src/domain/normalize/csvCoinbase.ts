@@ -146,7 +146,7 @@ export function normalizeCoinbaseRow(
     id: rawId,
     projectId: PROJECT_ID,
     timestamp,
-    platform: "manual", // We'll label it coinbase via the data source
+    platform: "coinbase",
     walletId: null,
     walletAddress: null,
     txType,

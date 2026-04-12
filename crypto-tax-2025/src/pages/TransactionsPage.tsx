@@ -56,6 +56,7 @@ export function TransactionsPage() {
               <option value="metamask">MetaMask</option>
               <option value="phantom">Phantom</option>
               <option value="abstract">Abstract</option>
+              <option value="coinbase">Coinbase</option>
               <option value="hyperliquid">Hyperliquid</option>
               <option value="lighter">Lighter</option>
               <option value="manual">Manual</option>
