@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Input, Select, Label } from "../ui/Input";
 import { Button } from "../ui/Button";
 import { addWallet } from "../../data/wallets";
+import { runPipeline } from "../../domain/pipeline";
 import type { ChainId } from "../../types";
 
 export function WalletForm() {
@@ -24,6 +25,8 @@ export function WalletForm() {
           await addWallet({ address, chain, label, isOwned });
           setAddress("");
           setLabel("");
+          // Re-run pipeline — new wallet affects transfer matching
+          runPipeline().catch(() => {});
         } catch (e2) {
           setErr(e2 instanceof Error ? e2.message : String(e2));
         } finally {
