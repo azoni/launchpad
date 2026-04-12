@@ -55,6 +55,7 @@ function num(v: unknown): number | null {
 }
 
 const TYPE_KEYWORDS: Array<{ re: RegExp; type: TxType }> = [
+  { re: /^income$|staking|airdrop|reward|mining/i, type: "income" },
   { re: /buy|purchase/i, type: "buy" },
   { re: /sell|sale/i, type: "sell" },
   { re: /swap|trade/i, type: "swap" },
