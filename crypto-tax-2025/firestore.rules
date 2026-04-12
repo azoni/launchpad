@@ -1,12 +1,12 @@
 rules_version = '2';
 
 // Single-user app: only the owner UID can read/write anything.
-// Replace OWNER_UID below with your Firebase Auth UID after first sign-in,
+// Replace dQNAeA4B8DNYrc0yGvQvh1IZ16v2 below with your Firebase Auth UID after first sign-in,
 // then run `firebase deploy --only firestore:rules`.
 service cloud.firestore {
   match /databases/{database}/documents {
     function isOwner() {
-      return request.auth != null && request.auth.uid == "OWNER_UID";
+      return request.auth != null && request.auth.uid == "dQNAeA4B8DNYrc0yGvQvh1IZ16v2";
     }
 
     match /{document=**} {

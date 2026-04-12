@@ -8,51 +8,49 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
+import { isGuestMode } from "../lib/guestMode";
+import { localBulkSet, localList } from "./localStore";
 import type { RawTransaction } from "../types";
+
+const COL = COLLECTIONS.rawTransactions;
 
 export async function bulkInsertRaw(
   sourceId: string,
   rows: Array<Record<string, unknown>>
 ): Promise<RawTransaction[]> {
-  const out: RawTransaction[] = [];
-  // Firestore batches max 500 ops; chunk to be safe.
-  const chunks: Array<typeof rows> = [];
-  for (let i = 0; i < rows.length; i += 400) chunks.push(rows.slice(i, i + 400));
+  const out: RawTransaction[] = rows.map((row) => ({
+    id: crypto.randomUUID(),
+    projectId: PROJECT_ID,
+    sourceId,
+    rawPayload: row,
+    importedAt: Date.now(),
+  }));
 
+  if (isGuestMode()) {
+    localBulkSet(COL, out);
+    return out;
+  }
+
+  const chunks: RawTransaction[][] = [];
+  for (let i = 0; i < out.length; i += 400) chunks.push(out.slice(i, i + 400));
   for (const chunk of chunks) {
     const batch = writeBatch(db);
-    for (const row of chunk) {
-      const id = crypto.randomUUID();
-      const raw: RawTransaction = {
-        id,
-        projectId: PROJECT_ID,
-        sourceId,
-        rawPayload: row,
-        importedAt: Date.now(),
-      };
-      batch.set(doc(db, COLLECTIONS.rawTransactions, id), raw);
-      out.push(raw);
-    }
+    for (const raw of chunk) batch.set(doc(db, COL, raw.id), raw);
     await batch.commit();
   }
   return out;
 }
 
 export async function listRawForSource(sourceId: string): Promise<RawTransaction[]> {
-  const q = query(
-    collection(db, COLLECTIONS.rawTransactions),
-    where("projectId", "==", PROJECT_ID),
-    where("sourceId", "==", sourceId)
-  );
+  if (isGuestMode()) return localList<RawTransaction>(COL).filter((r) => r.sourceId === sourceId);
+  const q = query(collection(db, COL), where("projectId", "==", PROJECT_ID), where("sourceId", "==", sourceId));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ ...(d.data() as RawTransaction), id: d.id }));
 }
 
 export async function listAllRaw(): Promise<RawTransaction[]> {
-  const q = query(
-    collection(db, COLLECTIONS.rawTransactions),
-    where("projectId", "==", PROJECT_ID)
-  );
+  if (isGuestMode()) return localList<RawTransaction>(COL);
+  const q = query(collection(db, COL), where("projectId", "==", PROJECT_ID));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ ...(d.data() as RawTransaction), id: d.id }));
 }

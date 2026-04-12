@@ -1,13 +1,18 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { SidebarNav } from "./SidebarNav";
 import { useAuth } from "../../hooks/useAuth";
+import { useGuestMode } from "../../lib/guestMode";
 import { signOut } from "../../lib/auth";
 import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
 
 const APP_SLUG = "crypto-tax-2025";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const { isGuest, exitGuest } = useGuestMode();
+  const nav = useNavigate();
 
   // Launchpad view beacon — fires once per browser session.
   // sessionStorage dedup keeps Firestore writes minimal.
@@ -60,15 +65,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <SidebarNav />
         <div className="mt-auto border-t border-[color:var(--color-rule)] p-3">
-          <div className="mb-2 truncate text-[11px] text-[color:var(--color-ink-faint)]">
-            {user?.email}
+          <div className="mb-2 flex items-center gap-2 truncate text-[11px] text-[color:var(--color-ink-faint)]">
+            {isGuest ? (
+              <>
+                <Badge tone="amber">Guest</Badge>
+                <span>Browser storage only</span>
+              </>
+            ) : (
+              user?.email
+            )}
           </div>
           <Button
             variant="ghost"
             className="w-full justify-start"
-            onClick={() => signOut()}
+            onClick={() => {
+              if (isGuest) {
+                exitGuest();
+                nav("/login", { replace: true });
+              } else {
+                signOut();
+              }
+            }}
           >
-            Sign out
+            {isGuest ? "Exit guest mode" : "Sign out"}
           </Button>
           <div className="mt-3 border-t border-[color:var(--color-rule)] pt-2 text-center text-[10px] text-[color:var(--color-ink-faint)]">
             Built by{" "}

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
+import { useGuestMode } from "./lib/guestMode";
 import { LoginPage } from "./pages/LoginPage";
 import { OverviewPage } from "./pages/OverviewPage";
 import { WalletsImportsPage } from "./pages/WalletsImportsPage";
@@ -12,6 +13,10 @@ import { ALLOWED_UID } from "./lib/env";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const { isGuest } = useGuestMode();
+
+  // Guest mode bypasses auth entirely — everything is localStorage.
+  if (isGuest) return <AppShell>{children}</AppShell>;
 
   if (loading) {
     return (
@@ -23,8 +28,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  // Hard guard: this is a single-user app. If a stranger somehow signs in,
-  // refuse to render the app shell. (Firestore rules also enforce this.)
   if (ALLOWED_UID && user.uid !== ALLOWED_UID) {
     return (
       <div className="ledger-bg flex h-screen flex-col items-center justify-center gap-2 text-[color:var(--color-ink)]">

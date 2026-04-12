@@ -10,12 +10,16 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
+import { isGuestMode } from "../lib/guestMode";
+import { localSubscribe, localList, localReplaceAll, localUpdate } from "./localStore";
 import type { ReviewItem } from "../types";
 import { logAudit } from "./auditLog";
 
-const colRef = () => collection(db, COLLECTIONS.reviewItems);
+const COL = COLLECTIONS.reviewItems;
+const colRef = () => collection(db, COL);
 
 export function subscribeReviewItems(cb: (items: ReviewItem[]) => void) {
+  if (isGuestMode()) return localSubscribe<ReviewItem>(COL, cb);
   const q = query(colRef(), where("projectId", "==", PROJECT_ID));
   return onSnapshot(q, (snap) => {
     const list = snap.docs.map((d) => ({ ...(d.data() as ReviewItem), id: d.id }));
@@ -25,28 +29,28 @@ export function subscribeReviewItems(cb: (items: ReviewItem[]) => void) {
 }
 
 export async function listReviewItems(): Promise<ReviewItem[]> {
+  if (isGuestMode()) return localList<ReviewItem>(COL);
   const q = query(colRef(), where("projectId", "==", PROJECT_ID));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ ...(d.data() as ReviewItem), id: d.id }));
 }
 
 export async function replaceReviewItems(items: ReviewItem[]) {
+  if (isGuestMode()) { localReplaceAll(COL, items); return; }
   const existing = await listReviewItems();
-  // Wipe in chunks
   let toDelete = existing.slice();
   while (toDelete.length > 0) {
     const b = writeBatch(db);
     const slice = toDelete.slice(0, 400);
-    for (const it of slice) b.delete(doc(db, COLLECTIONS.reviewItems, it.id));
+    for (const it of slice) b.delete(doc(db, COL, it.id));
     await b.commit();
     toDelete = toDelete.slice(400);
   }
-  // Insert in chunks
   let toAdd = items.slice();
   while (toAdd.length > 0) {
     const b = writeBatch(db);
     const slice = toAdd.slice(0, 400);
-    for (const it of slice) b.set(doc(db, COLLECTIONS.reviewItems, it.id), it);
+    for (const it of slice) b.set(doc(db, COL, it.id), it);
     await b.commit();
     toAdd = toAdd.slice(400);
   }
@@ -57,11 +61,11 @@ export async function resolveReviewItem(
   resolution: string,
   status: "resolved" | "ignored" = "resolved"
 ) {
-  const patch = {
-    status,
-    userResolution: resolution,
-    resolvedAt: Date.now(),
-  };
-  await updateDoc(doc(db, COLLECTIONS.reviewItems, id), patch);
+  const patch = { status, userResolution: resolution, resolvedAt: Date.now() };
+  if (isGuestMode()) {
+    localUpdate<ReviewItem>(COL, id, patch);
+  } else {
+    await updateDoc(doc(db, COL, id), patch);
+  }
   await logAudit({ actionType: "review_resolved", targetId: id, after: patch });
 }

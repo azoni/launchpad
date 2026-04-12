@@ -9,12 +9,16 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
+import { isGuestMode } from "../lib/guestMode";
+import { localSubscribe, localSet, localUpdate } from "./localStore";
 import type { DataSource, SourceType } from "../types";
 import { logAudit } from "./auditLog";
 
-const colRef = () => collection(db, COLLECTIONS.dataSources);
+const COL = COLLECTIONS.dataSources;
+const colRef = () => collection(db, COL);
 
 export function subscribeDataSources(cb: (sources: DataSource[]) => void) {
+  if (isGuestMode()) return localSubscribe<DataSource>(COL, cb);
   const q = query(colRef(), where("projectId", "==", PROJECT_ID));
   return onSnapshot(q, (snap) => {
     const list = snap.docs.map((d) => ({ ...(d.data() as DataSource), id: d.id }));
@@ -38,11 +42,19 @@ export async function createDataSource(input: {
     metadata: input.metadata,
     createdAt: Date.now(),
   };
-  await setDoc(doc(db, COLLECTIONS.dataSources, id), source);
+  if (isGuestMode()) {
+    localSet(COL, source);
+  } else {
+    await setDoc(doc(db, COL, id), source);
+  }
   await logAudit({ actionType: "source_created", targetId: id, after: source });
   return source;
 }
 
 export async function updateDataSource(id: string, patch: Partial<DataSource>) {
-  await updateDoc(doc(db, COLLECTIONS.dataSources, id), patch as Record<string, unknown>);
+  if (isGuestMode()) {
+    localUpdate<DataSource>(COL, id, patch);
+  } else {
+    await updateDoc(doc(db, COL, id), patch as Record<string, unknown>);
+  }
 }

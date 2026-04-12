@@ -10,12 +10,16 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
+import { isGuestMode } from "../lib/guestMode";
+import { localSubscribe, localList, localSet, localDelete } from "./localStore";
 import type { Wallet, ChainId } from "../types";
 import { logAudit } from "./auditLog";
 
-const colRef = () => collection(db, COLLECTIONS.wallets);
+const COL = COLLECTIONS.wallets;
+const colRef = () => collection(db, COL);
 
 export function subscribeWallets(cb: (wallets: Wallet[]) => void) {
+  if (isGuestMode()) return localSubscribe<Wallet>(COL, cb);
   const q = query(colRef(), where("projectId", "==", PROJECT_ID));
   return onSnapshot(q, (snap) => {
     const list: Wallet[] = snap.docs.map((d) => ({ ...(d.data() as Wallet), id: d.id }));
@@ -25,6 +29,7 @@ export function subscribeWallets(cb: (wallets: Wallet[]) => void) {
 }
 
 export async function listWallets(): Promise<Wallet[]> {
+  if (isGuestMode()) return localList<Wallet>(COL);
   const q = query(colRef(), where("projectId", "==", PROJECT_ID));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ ...(d.data() as Wallet), id: d.id }));
@@ -46,16 +51,20 @@ export async function addWallet(input: {
     isOwned: input.isOwned,
     createdAt: Date.now(),
   };
-  await setDoc(doc(db, COLLECTIONS.wallets, id), wallet);
-  await logAudit({
-    actionType: "wallet_added",
-    targetId: id,
-    after: wallet,
-  });
+  if (isGuestMode()) {
+    localSet(COL, wallet);
+  } else {
+    await setDoc(doc(db, COL, id), wallet);
+  }
+  await logAudit({ actionType: "wallet_added", targetId: id, after: wallet });
   return wallet;
 }
 
 export async function removeWallet(id: string) {
-  await deleteDoc(doc(db, COLLECTIONS.wallets, id));
+  if (isGuestMode()) {
+    localDelete(COL, id);
+  } else {
+    await deleteDoc(doc(db, COL, id));
+  }
   await logAudit({ actionType: "wallet_removed", targetId: id });
 }

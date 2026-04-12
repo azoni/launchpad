@@ -9,12 +9,17 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
+import { isGuestMode } from "../lib/guestMode";
+import { localSubscribe, localList, localReplaceAll } from "./localStore";
 import type { TaxableEvent, TaxLot } from "../types";
 
-const eventsCol = () => collection(db, COLLECTIONS.taxableEvents);
-const lotsCol = () => collection(db, COLLECTIONS.taxLots);
+const EVENTS = COLLECTIONS.taxableEvents;
+const LOTS = COLLECTIONS.taxLots;
+const eventsCol = () => collection(db, EVENTS);
+const lotsCol = () => collection(db, LOTS);
 
 export function subscribeTaxableEvents(cb: (events: TaxableEvent[]) => void) {
+  if (isGuestMode()) return localSubscribe<TaxableEvent>(EVENTS, cb);
   const q = query(eventsCol(), where("projectId", "==", PROJECT_ID));
   return onSnapshot(q, (snap) => {
     const list = snap.docs.map((d) => ({ ...(d.data() as TaxableEvent), id: d.id }));
@@ -24,65 +29,58 @@ export function subscribeTaxableEvents(cb: (events: TaxableEvent[]) => void) {
 }
 
 export async function listTaxableEvents(): Promise<TaxableEvent[]> {
+  if (isGuestMode()) return localList<TaxableEvent>(EVENTS);
   const q = query(eventsCol(), where("projectId", "==", PROJECT_ID));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ ...(d.data() as TaxableEvent), id: d.id }));
 }
 
 export async function listTaxLots(): Promise<TaxLot[]> {
+  if (isGuestMode()) return localList<TaxLot>(LOTS);
   const q = query(lotsCol(), where("projectId", "==", PROJECT_ID));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ ...(d.data() as TaxLot), id: d.id }));
 }
 
 export async function replaceTaxableEvents(events: TaxableEvent[], lots: TaxLot[]) {
-  // Wipe and rewrite — taxable events are derived, never user-edited.
+  if (isGuestMode()) {
+    localReplaceAll(EVENTS, events);
+    localReplaceAll(LOTS, lots);
+    return;
+  }
+
+  // Firestore: wipe and rewrite
   const existingE = await listTaxableEvents();
   const existingL = await listTaxLots();
 
-  const wipeBatch = writeBatch(db);
-  let count = 0;
-  for (const e of existingE) {
-    wipeBatch.delete(doc(db, COLLECTIONS.taxableEvents, e.id));
-    if (++count === 400) break;
-  }
-  if (count > 0) await wipeBatch.commit();
+  for (const batch of chunkDelete(existingE, EVENTS)) await batch();
+  for (const batch of chunkDelete(existingL, LOTS)) await batch();
+  for (const batch of chunkSet(events, EVENTS)) await batch();
+  for (const batch of chunkSet(lots, LOTS)) await batch();
+}
 
-  // Repeat wipes if more than 400
-  let remaining = existingE.slice(count);
-  while (remaining.length > 0) {
-    const b = writeBatch(db);
-    const slice = remaining.slice(0, 400);
-    for (const e of slice) b.delete(doc(db, COLLECTIONS.taxableEvents, e.id));
-    await b.commit();
-    remaining = remaining.slice(400);
+function chunkDelete<T extends { id: string }>(items: T[], col: string) {
+  const ops: Array<() => Promise<void>> = [];
+  for (let i = 0; i < items.length; i += 400) {
+    const slice = items.slice(i, i + 400);
+    ops.push(async () => {
+      const b = writeBatch(db);
+      for (const it of slice) b.delete(doc(db, col, it.id));
+      await b.commit();
+    });
   }
+  return ops;
+}
 
-  let lotRemaining = existingL.slice();
-  while (lotRemaining.length > 0) {
-    const b = writeBatch(db);
-    const slice = lotRemaining.slice(0, 400);
-    for (const l of slice) b.delete(doc(db, COLLECTIONS.taxLots, l.id));
-    await b.commit();
-    lotRemaining = lotRemaining.slice(400);
+function chunkSet<T extends { id: string }>(items: T[], col: string) {
+  const ops: Array<() => Promise<void>> = [];
+  for (let i = 0; i < items.length; i += 400) {
+    const slice = items.slice(i, i + 400);
+    ops.push(async () => {
+      const b = writeBatch(db);
+      for (const it of slice) b.set(doc(db, col, it.id), it);
+      await b.commit();
+    });
   }
-
-  // Write new
-  let toAdd = events.slice();
-  while (toAdd.length > 0) {
-    const b = writeBatch(db);
-    const slice = toAdd.slice(0, 400);
-    for (const e of slice) b.set(doc(db, COLLECTIONS.taxableEvents, e.id), e);
-    await b.commit();
-    toAdd = toAdd.slice(400);
-  }
-
-  let lotsToAdd = lots.slice();
-  while (lotsToAdd.length > 0) {
-    const b = writeBatch(db);
-    const slice = lotsToAdd.slice(0, 400);
-    for (const l of slice) b.set(doc(db, COLLECTIONS.taxLots, l.id), l);
-    await b.commit();
-    lotsToAdd = lotsToAdd.slice(400);
-  }
+  return ops;
 }
