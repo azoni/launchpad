@@ -41,16 +41,12 @@ export function CsvUploader({
   async function handleFile(file: File) {
     setError(null);
     setPipelineMsg(null);
-    setStatus("uploading");
+    setStatus("parsing");
     try {
       const source = await createDataSource({ type, name: file.name });
-      const path = await uploadCsv(source.id, file);
-      await updateDataSource(source.id, {
-        uploadStatus: "uploaded",
-        ...(path ? { storagePath: path } : {}),
-      });
 
-      setStatus("parsing");
+      // Parse the CSV first — this is the critical path. Storage backup
+      // happens after, non-blocking, and failures don't stop the pipeline.
       const text = await file.text();
       const parser = PARSERS[type];
       const rows = parser(text);
@@ -68,6 +64,12 @@ export function CsvUploader({
         `${result.normalizedCount} normalized · ${result.taxableEvents} taxable · ${result.reviewItems} to review`
       );
       setStatus("done");
+
+      // Fire-and-forget: try to back up original CSV to Firebase Storage.
+      // This is non-critical — the raw rows are already in Firestore/localStorage.
+      uploadCsv(source.id, file).then((path) => {
+        if (path) updateDataSource(source.id, { storagePath: path });
+      }).catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setStatus("error");
