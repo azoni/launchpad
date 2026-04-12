@@ -52,6 +52,17 @@ export async function createDataSource(input: {
   return source;
 }
 
+export async function deleteDataSource(id: string) {
+  if (isGuestMode()) {
+    const { localDelete } = await import("./localStore");
+    localDelete(COL, id);
+  } else {
+    const { deleteDoc } = await import("firebase/firestore");
+    await deleteDoc(doc(db, COL, id));
+  }
+  await logAudit({ actionType: "source_deleted", targetId: id });
+}
+
 export async function updateDataSource(id: string, patch: Partial<DataSource>) {
   if (isGuestMode()) {
     localUpdate<DataSource>(COL, id, patch);

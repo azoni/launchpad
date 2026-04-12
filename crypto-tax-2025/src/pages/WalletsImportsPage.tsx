@@ -6,6 +6,7 @@ import { WalletForm } from "../components/wallets/WalletForm";
 import { WalletList } from "../components/wallets/WalletList";
 import { CsvUploader } from "../components/wallets/CsvUploader";
 import { useDataSources } from "../hooks/useDataSources";
+import { deleteDataSource } from "../data/dataSources";
 import { runPipeline } from "../domain/pipeline";
 import { formatDate } from "../lib/format";
 
@@ -101,6 +102,12 @@ export function WalletsImportsPage() {
                       >
                         {s.uploadStatus}
                       </Badge>
+                      <Button
+                        variant="ghost"
+                        onClick={() => deleteDataSource(s.id)}
+                      >
+                        ×
+                      </Button>
                     </div>
                   </div>
                 ))}
