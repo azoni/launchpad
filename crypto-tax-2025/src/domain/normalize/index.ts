@@ -1,6 +1,3 @@
-// Top-level normalizer router. Picks the right per-source normalizer based on
-// the data source's `type` and produces NormalizedTransaction rows.
-
 import type {
   DataSource,
   NormalizedTransaction,
@@ -8,6 +5,7 @@ import type {
 } from "../../types";
 import { normalizeHyperliquidRow } from "./csvHyperliquid";
 import { normalizeLighterRow } from "./csvLighter";
+import { normalizeCoinbaseRow } from "./csvCoinbase";
 import { normalizeGenericRow } from "./csvGeneric";
 import { normalizeEvmRow } from "./evmTx";
 import { normalizeSolanaRow } from "./solanaTx";
@@ -31,6 +29,9 @@ export function normalizeAll(
       case "lighter_csv":
         n = normalizeLighterRow(raw, raw.id);
         break;
+      case "coinbase_csv":
+        n = normalizeCoinbaseRow(raw, raw.id);
+        break;
       case "generic_csv":
         n = normalizeGenericRow(raw, raw.id);
         break;
@@ -47,4 +48,4 @@ export function normalizeAll(
   return out;
 }
 
-export { normalizeHyperliquidRow, normalizeLighterRow, normalizeGenericRow };
+export { normalizeHyperliquidRow, normalizeLighterRow, normalizeCoinbaseRow, normalizeGenericRow };

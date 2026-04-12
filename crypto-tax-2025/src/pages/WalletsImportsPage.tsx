@@ -56,6 +56,11 @@ export function WalletsImportsPage() {
 
         <section className="space-y-4">
           <CsvUploader
+            type="coinbase_csv"
+            title="Coinbase"
+            description="Export from Coinbase → Taxes → Generate report → Transaction history CSV. Includes cost basis."
+          />
+          <CsvUploader
             type="hyperliquid_csv"
             title="Hyperliquid"
             description="Export your fills + funding CSV from Hyperliquid"

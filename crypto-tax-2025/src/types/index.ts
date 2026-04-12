@@ -17,6 +17,7 @@ export type SourceType =
   | "solana_wallet"
   | "hyperliquid_csv"
   | "lighter_csv"
+  | "coinbase_csv"
   | "generic_csv";
 
 export type TxType =

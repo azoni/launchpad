@@ -4,7 +4,9 @@ import { uploadCsv } from "../../data/storageUploads";
 import { bulkInsertRaw } from "../../data/rawTransactions";
 import { parseHyperliquidCsv } from "../../domain/normalize/csvHyperliquid";
 import { parseLighterCsv } from "../../domain/normalize/csvLighter";
+import { parseCoinbaseCsv } from "../../domain/normalize/csvCoinbase";
 import { parseGenericCsv } from "../../domain/normalize/csvGeneric";
+import { runPipeline } from "../../domain/pipeline";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
@@ -13,6 +15,7 @@ import type { SourceType } from "../../types";
 const PARSERS: Record<SourceType, (text: string) => Array<Record<string, unknown>>> = {
   hyperliquid_csv: parseHyperliquidCsv,
   lighter_csv: parseLighterCsv,
+  coinbase_csv: parseCoinbaseCsv,
   generic_csv: parseGenericCsv,
   evm_wallet: () => [],
   solana_wallet: () => [],
@@ -28,12 +31,16 @@ export function CsvUploader({
   description: string;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [status, setStatus] = useState<"idle" | "uploading" | "parsing" | "done" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "uploading" | "parsing" | "running_pipeline" | "done" | "error"
+  >("idle");
   const [rowCount, setRowCount] = useState<number | null>(null);
+  const [pipelineMsg, setPipelineMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleFile(file: File) {
     setError(null);
+    setPipelineMsg(null);
     setStatus("uploading");
     try {
       const source = await createDataSource({ type, name: file.name });
@@ -53,6 +60,13 @@ export function CsvUploader({
         rowCount: rows.length,
       });
       setRowCount(rows.length);
+
+      // Auto-run pipeline after import
+      setStatus("running_pipeline");
+      const result = await runPipeline();
+      setPipelineMsg(
+        `${result.normalizedCount} normalized · ${result.taxableEvents} taxable · ${result.reviewItems} to review`
+      );
       setStatus("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -67,11 +81,11 @@ export function CsvUploader({
           <div className="text-sm font-semibold text-[color:var(--color-ink)]">{title}</div>
           <div className="text-xs text-[color:var(--color-ink-faint)]">{description}</div>
         </div>
-        {status === "done" && <Badge tone="green">Parsed</Badge>}
+        {status === "done" && <Badge tone="green">Done</Badge>}
         {status === "error" && <Badge tone="red">Error</Badge>}
-        {(status === "uploading" || status === "parsing") && (
-          <Badge tone="amber">{status === "uploading" ? "Uploading…" : "Parsing…"}</Badge>
-        )}
+        {status === "uploading" && <Badge tone="amber">Uploading…</Badge>}
+        {status === "parsing" && <Badge tone="amber">Parsing…</Badge>}
+        {status === "running_pipeline" && <Badge tone="blue">Running pipeline…</Badge>}
       </div>
 
       <input
@@ -89,6 +103,9 @@ export function CsvUploader({
       </Button>
       {rowCount !== null && (
         <div className="mt-2 text-xs text-[color:var(--color-ink-faint)]">{rowCount} rows imported</div>
+      )}
+      {pipelineMsg && (
+        <div className="mt-1 text-xs text-[color:var(--color-mint)]">{pipelineMsg}</div>
       )}
       {error && <div className="mt-2 text-xs text-red-600">{error}</div>}
     </Card>
