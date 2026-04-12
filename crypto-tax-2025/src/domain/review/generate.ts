@@ -134,6 +134,22 @@ export function generateReviewItems(input: GenerateInput): ReviewItem[] {
     }
   }
 
+  // 6) Wash sales detected by the FIFO engine
+  for (const ev of input.fifo.taxableEvents) {
+    if (ev.washSaleDisallowed > 0) {
+      const tx = txById.get(ev.normalizedTxId);
+      items.push(
+        makeItem({
+          tx: tx ?? null,
+          issueType: "wash_sale",
+          summary: `Wash sale: $${ev.washSaleDisallowed.toFixed(2)} loss on ${ev.asset} disallowed (repurchased within 30 days)`,
+          suggestion: "Loss has been automatically disallowed and added to the replacement lot's basis. Review to confirm.",
+          impact: ev.washSaleDisallowed,
+        })
+      );
+    }
+  }
+
   items.sort((a, b) => Math.abs(b.impactUsd) - Math.abs(a.impactUsd));
   return items;
 }

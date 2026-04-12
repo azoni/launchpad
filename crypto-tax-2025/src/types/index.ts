@@ -34,6 +34,7 @@ export type TxType =
   | "perp_open"
   | "perp_close"
   | "realized_pnl"
+  | "income"
   | "spam"
   | "unknown";
 
@@ -49,7 +50,8 @@ export type IssueType =
   | "junk_dust"
   | "unresolved_perp"
   | "missing_price"
-  | "duplicate_candidate";
+  | "duplicate_candidate"
+  | "wash_sale";
 
 export type ReviewItemStatus = "open" | "resolved" | "ignored";
 
@@ -151,7 +153,9 @@ export interface TaxableEvent {
   costBasisUsd: number;
   gainLossUsd: number;
   holdingPeriod: "short" | "long";
-  category: "spot" | "nft" | "perp";
+  category: "spot" | "nft" | "perp" | "income";
+  form8949Box: "B" | "C" | "E" | "F"; // B/C short-term, E/F long-term; C/F = no 1099-B (most crypto)
+  washSaleDisallowed: number; // USD amount of loss disallowed by wash sale rule
   platform: Platform;
   walletAddress: string | null;
   txHash: string | null;

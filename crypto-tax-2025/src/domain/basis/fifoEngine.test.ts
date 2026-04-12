@@ -141,4 +141,45 @@ describe("FIFO engine", () => {
     const r = runFifo(txs);
     expect(r.taxableEvents).toHaveLength(0);
   });
+
+  it("income creates a tax lot + income event", () => {
+    const txs = [
+      tx({ id: "i1", txType: "income", assetReceived: "SOL", amountReceived: 10, usdValue: 500, notes: "staking" }),
+      tx({ id: "s1", txType: "sell", assetSent: "SOL", amountSent: 10, usdValue: 800, timestamp: JAN_1_2025 + 60 * ONE_DAY }),
+    ];
+    const r = runFifo(txs);
+    // Income event recorded
+    expect(r.incomeEvents).toHaveLength(1);
+    expect(r.incomeEvents[0].fairMarketValueUsd).toBe(500);
+    // Lot created at FMV as basis, then sold for gain
+    expect(r.taxableEvents).toHaveLength(1);
+    expect(r.taxableEvents[0].costBasisUsd).toBe(500);
+    expect(r.taxableEvents[0].gainLossUsd).toBe(300);
+  });
+
+  it("Form 8949 box codes are assigned", () => {
+    const txs = [
+      tx({ id: "b1", txType: "buy", assetReceived: "ETH", amountReceived: 1, usdValue: 1000 }),
+      tx({ id: "s1", txType: "sell", assetSent: "ETH", amountSent: 1, usdValue: 1500, timestamp: JAN_1_2025 + 30 * ONE_DAY }),
+    ];
+    const r = runFifo(txs);
+    expect(r.taxableEvents[0].form8949Box).toBe("C"); // short-term, no 1099-B
+  });
+
+  it("wash sale disallows loss when repurchased within 30 days", () => {
+    const txs = [
+      tx({ id: "b1", txType: "buy", assetReceived: "ETH", amountReceived: 1, usdValue: 1000, timestamp: JAN_1_2025 }),
+      tx({ id: "s1", txType: "sell", assetSent: "ETH", amountSent: 1, usdValue: 700, timestamp: JAN_1_2025 + 10 * ONE_DAY }),
+      tx({ id: "b2", txType: "buy", assetReceived: "ETH", amountReceived: 1, usdValue: 750, timestamp: JAN_1_2025 + 15 * ONE_DAY }),
+    ];
+    const r = runFifo(txs);
+    // Sold at a $300 loss, then repurchased within 30 days → wash sale
+    const lossEvent = r.taxableEvents.find((e) => e.gainLossUsd < 0);
+    expect(lossEvent).toBeDefined();
+    expect(lossEvent!.washSaleDisallowed).toBe(300);
+    // Replacement lot's basis should be adjusted: 750 + 300 = 1050
+    const lot = r.lots.find((l) => l.asset === "ETH");
+    expect(lot).toBeDefined();
+    expect(lot!.costBasisRemaining).toBeCloseTo(1050, 2);
+  });
 });

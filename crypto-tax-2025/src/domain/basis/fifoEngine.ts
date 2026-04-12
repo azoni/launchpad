@@ -1,25 +1,12 @@
 // Deterministic FIFO cost-basis engine. Source of truth for every dollar.
 //
-// Inputs: a sorted list of normalized transactions.
-// Outputs: tax lots (the inventory state) + taxable events (one per disposed
-// quantity slice).
-//
-// Rules:
-//  - buy / transfer_in / nft_buy / nft_mint with usdValue → opens a new lot
-//  - sell / swap / nft_sell with usdValue → consumes lots in FIFO order
-//  - swap is treated as a sell of asset_sent + a buy of asset_received,
-//    using usdValue as both proceeds and new lot basis (the "fair value at
-//    swap time" approach the IRS uses)
-//  - perp_close / realized_pnl → emit a perp-category taxable event with
-//    proceeds = 0, basis = 0, gain_loss = realized_pnl, holding_period = short
-//    (perps are always short-term for individuals)
-//  - transfer_in / transfer_out are non-taxable (do not move basis between
-//    owned wallets, since transfers don't change ownership)
-//  - missing usdValue or missing prior basis → no event emitted; the row is
-//    flagged in the review queue elsewhere
-//
-// All math uses plain JS numbers. For 2025 personal use this is fine; if
-// rounding issues bite, we can swap in a Decimal lib without changing shape.
+// Now includes:
+//  - income (staking, airdrops): creates a tax lot at FMV + records income event
+//  - Form 8949 box codes: C (short, no 1099-B) or F (long, no 1099-B)
+//    for crypto — Box B/E if a 1099-B was received (rare for DeFi)
+//  - Wash sale detection: if a loss disposal is followed by a repurchase of
+//    the same asset within 30 days, the loss is disallowed and added to the
+//    replacement lot's basis
 
 import type {
   NormalizedTransaction,
@@ -32,7 +19,20 @@ import { holdingPeriod } from "./holdingPeriod";
 export interface FifoResult {
   lots: TaxLot[];
   taxableEvents: TaxableEvent[];
+  incomeEvents: IncomeEvent[];
   warnings: Array<{ txId: string; reason: string }>;
+}
+
+export interface IncomeEvent {
+  id: string;
+  date: number;
+  asset: string;
+  quantity: number;
+  fairMarketValueUsd: number;
+  source: string; // "staking", "airdrop", etc.
+  platform: string;
+  txHash: string | null;
+  normalizedTxId: string;
 }
 
 interface OpenLot {
@@ -43,6 +43,8 @@ interface OpenLot {
   basisUsd: number;
   sourceTxId: string;
 }
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 function isAcquisition(t: NormalizedTransaction): boolean {
   return ["buy", "nft_buy", "nft_mint"].includes(t.txType);
@@ -57,24 +59,100 @@ function isNonTaxableTransfer(t: NormalizedTransaction): boolean {
   return t.txType === "transfer_in" || t.txType === "transfer_out";
 }
 
-function categoryFor(t: NormalizedTransaction): "spot" | "nft" | "perp" {
+function categoryFor(t: NormalizedTransaction): "spot" | "nft" | "perp" | "income" {
+  if (t.txType === "income") return "income";
   if (t.txType.startsWith("nft_")) return "nft";
   if (isPerpRealized(t) || t.txType.startsWith("perp_")) return "perp";
   return "spot";
 }
 
+function box8949(hp: "short" | "long"): "C" | "F" {
+  // Most crypto has no 1099-B → Box C (short) or F (long).
+  return hp === "short" ? "C" : "F";
+}
+
+function makeEvent(
+  t: NormalizedTransaction,
+  dateAcquired: number,
+  dateSold: number,
+  asset: string,
+  quantity: number,
+  proceeds: number,
+  basis: number,
+  notes?: string
+): TaxableEvent {
+  const hp = holdingPeriod(dateAcquired, dateSold);
+  const gain = proceeds - basis;
+  return {
+    id: crypto.randomUUID(),
+    projectId: PROJECT_ID,
+    normalizedTxId: t.id,
+    dateAcquired,
+    dateSold,
+    asset,
+    quantity,
+    proceedsUsd: proceeds,
+    costBasisUsd: basis,
+    gainLossUsd: gain,
+    holdingPeriod: hp,
+    category: categoryFor(t),
+    form8949Box: box8949(hp),
+    washSaleDisallowed: 0,
+    platform: t.platform,
+    walletAddress: t.walletAddress,
+    txHash: t.txHash,
+    notes,
+  };
+}
+
 export function runFifo(txs: NormalizedTransaction[]): FifoResult {
-  // Inventory: asset -> queue of open lots (oldest first)
   const inventory = new Map<string, OpenLot[]>();
   const events: TaxableEvent[] = [];
+  const incomeEvents: IncomeEvent[] = [];
   const warnings: Array<{ txId: string; reason: string }> = [];
 
-  // Iterate in chronological order — caller may have sorted, but be defensive.
   const sorted = txs.slice().sort((a, b) => a.timestamp - b.timestamp);
 
   for (const t of sorted) {
     if (isNonTaxableTransfer(t)) continue;
 
+    // --- Income (staking, airdrops) ---
+    if (t.txType === "income") {
+      const asset = t.assetReceived;
+      const qty = t.amountReceived ?? 0;
+      const fmv = t.usdValue;
+      if (!asset || qty <= 0 || fmv === null || fmv === undefined) {
+        warnings.push({ txId: t.id, reason: "income row missing asset/qty/fmv" });
+        continue;
+      }
+      // Create a tax lot with basis = FMV at time of receipt
+      const lot: OpenLot = {
+        id: crypto.randomUUID(),
+        asset,
+        acquiredAt: t.timestamp,
+        qty,
+        basisUsd: fmv,
+        sourceTxId: t.id,
+      };
+      const queue = inventory.get(asset) ?? [];
+      queue.push(lot);
+      inventory.set(asset, queue);
+      // Record the income event (for Schedule 1 / Schedule C)
+      incomeEvents.push({
+        id: crypto.randomUUID(),
+        date: t.timestamp,
+        asset,
+        quantity: qty,
+        fairMarketValueUsd: fmv,
+        source: (t.notes ?? "").includes("airdrop") ? "airdrop" : "staking",
+        platform: t.platform,
+        txHash: t.txHash,
+        normalizedTxId: t.id,
+      });
+      continue;
+    }
+
+    // --- Perp realized PnL ---
     if (isPerpRealized(t)) {
       const pnl = t.usdValue ?? 0;
       events.push({
@@ -90,6 +168,8 @@ export function runFifo(txs: NormalizedTransaction[]): FifoResult {
         gainLossUsd: pnl,
         holdingPeriod: "short",
         category: "perp",
+        form8949Box: "C",
+        washSaleDisallowed: 0,
         platform: t.platform,
         walletAddress: t.walletAddress,
         txHash: t.txHash,
@@ -97,6 +177,7 @@ export function runFifo(txs: NormalizedTransaction[]): FifoResult {
       continue;
     }
 
+    // --- Acquisitions (buy, nft_buy, nft_mint) ---
     if (isAcquisition(t)) {
       const asset = t.assetReceived;
       const qty = t.amountReceived ?? 0;
@@ -119,8 +200,8 @@ export function runFifo(txs: NormalizedTransaction[]): FifoResult {
       continue;
     }
 
+    // --- Swaps (sell sent + buy received) ---
     if (t.txType === "swap") {
-      // Treat as sell(assetSent, amountSent, usdValue) + buy(assetReceived, amountReceived, usdValue)
       const sentAsset = t.assetSent;
       const sentAmt = t.amountSent;
       const recvAsset = t.assetReceived;
@@ -149,6 +230,7 @@ export function runFifo(txs: NormalizedTransaction[]): FifoResult {
       continue;
     }
 
+    // --- Disposals (sell, nft_sell) ---
     if (isDisposal(t)) {
       const asset = t.assetSent ?? t.assetReceived;
       const amt = t.amountSent ?? t.amountReceived;
@@ -161,9 +243,35 @@ export function runFifo(txs: NormalizedTransaction[]): FifoResult {
       continue;
     }
 
-    // unknown / spam / fee / bridge — no event, will be reviewed
     if (t.txType !== "fee" && t.txType !== "bridge" && t.txType !== "spam") {
       warnings.push({ txId: t.id, reason: `unhandled txType: ${t.txType}` });
+    }
+  }
+
+  // --- Wash sale pass ---
+  // For each loss event, check if the same asset was repurchased within 30 days.
+  // If so, disallow the loss and add it to the replacement lot's basis.
+  for (const ev of events) {
+    if (ev.gainLossUsd >= 0) continue; // only losses
+    const lossAmt = Math.abs(ev.gainLossUsd);
+    // Look for a repurchase of the same asset within 30 days after the sale
+    const repurchase = sorted.find(
+      (t) =>
+        (isAcquisition(t) || t.txType === "swap" || t.txType === "income") &&
+        (t.assetReceived?.toLowerCase() === ev.asset.toLowerCase()) &&
+        t.timestamp >= ev.dateSold &&
+        t.timestamp <= ev.dateSold + THIRTY_DAYS_MS &&
+        t.id !== ev.normalizedTxId
+    );
+    if (repurchase) {
+      ev.washSaleDisallowed = lossAmt;
+      // Adjust: the disallowed loss gets added to the replacement lot's basis
+      const queue = inventory.get(ev.asset) ?? [];
+      const replacementLot = queue.find((l) => l.sourceTxId === repurchase.id);
+      if (replacementLot) {
+        replacementLot.basisUsd += lossAmt;
+      }
+      ev.notes = (ev.notes ?? "") + ` [WASH SALE: $${lossAmt.toFixed(2)} loss disallowed, basis adjusted on replacement lot]`;
     }
   }
 
@@ -183,7 +291,7 @@ export function runFifo(txs: NormalizedTransaction[]): FifoResult {
     }
   }
 
-  return { lots, taxableEvents: events, warnings };
+  return { lots, taxableEvents: events, incomeEvents, warnings };
 }
 
 function consumeFifo(
@@ -206,7 +314,7 @@ function consumeFifo(
     const lotCostPerUnit = lot.basisUsd / lot.qty;
     const basis = lotCostPerUnit * consumed;
     const proceeds = proceedsPerUnit * consumed;
-    const gain = proceeds - basis;
+    const hp = holdingPeriod(lot.acquiredAt, t.timestamp);
 
     events.push({
       id: crypto.randomUUID(),
@@ -218,9 +326,11 @@ function consumeFifo(
       quantity: consumed,
       proceedsUsd: proceeds,
       costBasisUsd: basis,
-      gainLossUsd: gain,
-      holdingPeriod: holdingPeriod(lot.acquiredAt, t.timestamp),
+      gainLossUsd: proceeds - basis,
+      holdingPeriod: hp,
       category: cat,
+      form8949Box: box8949(hp),
+      washSaleDisallowed: 0,
       platform: t.platform,
       walletAddress: t.walletAddress,
       txHash: t.txHash,
@@ -233,8 +343,6 @@ function consumeFifo(
   }
 
   if (remaining > 0) {
-    // Selling more than we have basis for — emit a "missing basis" event with
-    // zero basis (the user will fix it via the review queue) and warn.
     const proceeds = proceedsPerUnit * remaining;
     events.push({
       id: crypto.randomUUID(),
@@ -249,6 +357,8 @@ function consumeFifo(
       gainLossUsd: proceeds,
       holdingPeriod: "short",
       category: cat,
+      form8949Box: "C",
+      washSaleDisallowed: 0,
       platform: t.platform,
       walletAddress: t.walletAddress,
       txHash: t.txHash,

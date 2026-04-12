@@ -66,7 +66,7 @@ export function TransactionsPage() {
             <Label htmlFor="type">Type</Label>
             <Select id="type" value={txType} onChange={(e) => setTxType(e.target.value as TxType | "all")}>
               <option value="all">All</option>
-              {(["buy","sell","swap","transfer_in","transfer_out","bridge","fee","nft_buy","nft_sell","nft_transfer","nft_mint","perp_open","perp_close","realized_pnl","spam","unknown"] as TxType[]).map((t) => (
+              {(["buy","sell","swap","transfer_in","transfer_out","bridge","fee","nft_buy","nft_sell","nft_transfer","nft_mint","perp_open","perp_close","realized_pnl","income","spam","unknown"] as TxType[]).map((t) => (
                 <option key={t} value={t}>{t}</option>
               ))}
             </Select>

@@ -11,10 +11,12 @@ export const ISSUE_LABELS: Record<IssueType, string> = {
   unresolved_perp: "Unresolved perp row",
   missing_price: "Missing USD price",
   duplicate_candidate: "Possible duplicate",
+  wash_sale: "Wash sale detected",
 };
 
 export const ISSUE_PRIORITY: Record<IssueType, number> = {
   missing_basis: 100,
+  wash_sale: 95,
   unknown_type: 90,
   transfer_mismatch: 80,
   unresolved_perp: 70,

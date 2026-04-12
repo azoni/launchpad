@@ -131,12 +131,16 @@ export interface TaxSummary {
   shortProceeds: number;
   shortBasis: number;
   shortGain: number;
+  shortWashSale: number;
   longProceeds: number;
   longBasis: number;
   longGain: number;
+  longWashSale: number;
   nftNet: number;
   perpNet: number;
+  totalWashSale: number;
   totalNet: number;
+  totalNetAfterWash: number;
 }
 
 export function summarizeTax(events: TaxableEvent[]): TaxSummary {
@@ -144,12 +148,16 @@ export function summarizeTax(events: TaxableEvent[]): TaxSummary {
     shortProceeds: 0,
     shortBasis: 0,
     shortGain: 0,
+    shortWashSale: 0,
     longProceeds: 0,
     longBasis: 0,
     longGain: 0,
+    longWashSale: 0,
     nftNet: 0,
     perpNet: 0,
+    totalWashSale: 0,
     totalNet: 0,
+    totalNetAfterWash: 0,
   };
   for (const e of events) {
     if (e.category === "perp") {
@@ -160,12 +168,16 @@ export function summarizeTax(events: TaxableEvent[]): TaxSummary {
       s.longProceeds += e.proceedsUsd;
       s.longBasis += e.costBasisUsd;
       s.longGain += e.gainLossUsd;
+      s.longWashSale += e.washSaleDisallowed;
     } else {
       s.shortProceeds += e.proceedsUsd;
       s.shortBasis += e.costBasisUsd;
       s.shortGain += e.gainLossUsd;
+      s.shortWashSale += e.washSaleDisallowed;
     }
   }
+  s.totalWashSale = s.shortWashSale + s.longWashSale;
   s.totalNet = s.shortGain + s.longGain + s.nftNet + s.perpNet;
+  s.totalNetAfterWash = s.totalNet + s.totalWashSale; // wash sale adds back disallowed losses
   return s;
 }

@@ -18,6 +18,7 @@ const ACTIONS: Array<{ label: string; type: TxType; tone?: "primary" | "secondar
   { label: "Mark swap", type: "swap" },
   { label: "Mark buy", type: "buy" },
   { label: "Mark sell", type: "sell" },
+  { label: "Mark income", type: "income" },
   { label: "Ignore as spam", type: "spam" },
 ];
 
