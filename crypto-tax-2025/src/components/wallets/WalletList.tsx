@@ -8,18 +8,21 @@ import { runPipeline } from "../../domain/pipeline";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
+import { PipelineProgress, type PipelineStage } from "./PipelineProgress";
 import { shortAddress, formatNumber } from "../../lib/format";
 import { WalletActivityBar } from "../charts/WalletActivityBar";
 import { AssetPie } from "../charts/AssetPie";
 import type { Wallet, SourceType } from "../../types";
 
 function FetchButton({ wallet }: { wallet: Wallet }) {
-  const [status, setStatus] = useState<"idle" | "fetching" | "pipeline" | "done" | "error">("idle");
-  const [msg, setMsg] = useState<string | null>(null);
+  const [status, setStatus] = useState<PipelineStage>("idle");
+  const [detail, setDetail] = useState<string | null>(null);
 
   async function fetchOnChain() {
+    setDetail(null);
+
     setStatus("fetching");
-    setMsg(null);
+    setDetail(`Fetching ${wallet.chain} transactions from chain…`);
     try {
       const endpoint = wallet.chain === "solana"
         ? "/api/fetch-solana-wallet"
@@ -31,15 +34,22 @@ function FetchButton({ wallet }: { wallet: Wallet }) {
         body: JSON.stringify({ address: wallet.address, chain: wallet.chain }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as { ok: boolean; totalRows: number; rows: Array<Record<string, unknown>> };
+      const data = (await res.json()) as {
+        ok: boolean;
+        totalRows: number;
+        totalSignatures?: number;
+        rows: Array<Record<string, unknown>>;
+      };
 
       if (!data.rows || data.rows.length === 0) {
-        setMsg("No 2025 transactions found on-chain");
+        setDetail("No 2025 transactions found on-chain");
         setStatus("done");
         return;
       }
 
-      // Create a data source + insert raw rows
+      setStatus("importing");
+      setDetail(`Found ${data.totalSignatures ?? data.totalRows} signatures → ${data.rows.length} rows. Saving…`);
+
       const sourceType: SourceType = wallet.chain === "solana" ? "solana_wallet" : "evm_wallet";
       const source = await createDataSource({
         type: sourceType,
@@ -51,31 +61,31 @@ function FetchButton({ wallet }: { wallet: Wallet }) {
         rowCount: data.rows.length,
       });
 
-      // Run pipeline
-      setStatus("pipeline");
+      setStatus("running_pipeline");
+      setDetail("Normalizing → pricing → classifying → FIFO → review…");
       const r = await runPipeline();
-      setMsg(`${data.totalRows} on-chain txs → ${r.normalizedCount} normalized · ${r.reviewItems} to review`);
+      setDetail(
+        `${data.rows.length} on-chain txs → ${r.normalizedCount} normalized · ${r.pricesFilled} prices filled · ${r.taxableEvents} taxable · ${r.reviewItems} to review`
+      );
       setStatus("done");
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : String(e));
+      setDetail(e instanceof Error ? e.message : String(e));
       setStatus("error");
     }
   }
 
-  // Fetch works for both EVM and Solana now
-
   return (
-    <div className="flex items-center gap-2">
+    <div>
       <Button
         variant="secondary"
-        disabled={status === "fetching" || status === "pipeline"}
+        disabled={status === "fetching" || status === "importing" || status === "running_pipeline"}
         onClick={fetchOnChain}
       >
-        {status === "fetching" ? "Fetching…" : status === "pipeline" ? "Running pipeline…" : "Fetch on-chain"}
+        {status === "idle" || status === "done" || status === "error"
+          ? "Fetch on-chain"
+          : "Fetching…"}
       </Button>
-      {status === "done" && <Badge tone="green">Done</Badge>}
-      {status === "error" && <Badge tone="red">Error</Badge>}
-      {msg && <span className="text-xs text-[color:var(--color-ink-faint)]">{msg}</span>}
+      <PipelineProgress status={status} mode="fetch" detail={detail} />
     </div>
   );
 }
