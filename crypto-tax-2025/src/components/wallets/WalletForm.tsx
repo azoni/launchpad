@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Input, Select, Label } from "../ui/Input";
 import { Button } from "../ui/Button";
+import { Badge } from "../ui/Badge";
 import { addWallet } from "../../data/wallets";
 import { runPipeline } from "../../domain/pipeline";
 import type { ChainId } from "../../types";
@@ -11,6 +12,8 @@ export function WalletForm() {
   const [label, setLabel] = useState("");
   const [isOwned, setIsOwned] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<"idle" | "adding" | "pipeline" | "done">("idle");
+  const [pipelineMsg, setPipelineMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   return (
@@ -21,14 +24,21 @@ export function WalletForm() {
         if (!address.trim()) return;
         setBusy(true);
         setErr(null);
+        setPipelineMsg(null);
+        setStatus("adding");
         try {
           await addWallet({ address, chain, label, isOwned });
           setAddress("");
           setLabel("");
-          // Re-run pipeline — new wallet affects transfer matching
-          runPipeline().catch(() => {});
+          setStatus("pipeline");
+          const r = await runPipeline();
+          setPipelineMsg(
+            `${r.normalizedCount} normalized · ${r.taxableEvents} taxable · ${r.reviewItems} to review`
+          );
+          setStatus("done");
         } catch (e2) {
           setErr(e2 instanceof Error ? e2.message : String(e2));
+          setStatus("idle");
         } finally {
           setBusy(false);
         }
@@ -73,9 +83,16 @@ export function WalletForm() {
         This is my wallet (used for transfer matching)
       </label>
       {err && <div className="text-xs text-red-600">{err}</div>}
-      <Button disabled={busy} type="submit">
-        {busy ? "Adding…" : "Add wallet"}
-      </Button>
+      <div className="flex items-center gap-3">
+        <Button disabled={busy} type="submit">
+          {status === "adding" ? "Adding…" : status === "pipeline" ? "Running pipeline…" : "Add wallet"}
+        </Button>
+        {status === "pipeline" && <Badge tone="blue">Running pipeline…</Badge>}
+        {status === "done" && <Badge tone="green">Done</Badge>}
+      </div>
+      {pipelineMsg && (
+        <div className="text-xs text-[color:var(--color-mint)]">{pipelineMsg}</div>
+      )}
     </form>
   );
 }
