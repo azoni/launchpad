@@ -1,12 +1,91 @@
+import { useState } from "react";
 import { useWallets } from "../../hooks/useWallets";
 import { useTransactions } from "../../hooks/useTransactions";
 import { removeWallet } from "../../data/wallets";
+import { createDataSource, updateDataSource } from "../../data/dataSources";
+import { bulkInsertRaw } from "../../data/rawTransactions";
+import { runPipeline } from "../../domain/pipeline";
 import { Card } from "../ui/Card";
 import { Badge } from "../ui/Badge";
 import { Button } from "../ui/Button";
 import { shortAddress, formatNumber } from "../../lib/format";
 import { WalletActivityBar } from "../charts/WalletActivityBar";
 import { AssetPie } from "../charts/AssetPie";
+import type { Wallet, SourceType } from "../../types";
+
+function FetchButton({ wallet }: { wallet: Wallet }) {
+  const [status, setStatus] = useState<"idle" | "fetching" | "pipeline" | "done" | "error">("idle");
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function fetchOnChain() {
+    setStatus("fetching");
+    setMsg(null);
+    try {
+      const endpoint = wallet.chain === "solana"
+        ? "/api/fetch-solana-wallet"
+        : "/api/fetch-evm-wallet";
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: wallet.address, chain: wallet.chain }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as { ok: boolean; totalRows: number; rows: Array<Record<string, unknown>> };
+
+      if (!data.rows || data.rows.length === 0) {
+        setMsg("No 2025 transactions found on-chain");
+        setStatus("done");
+        return;
+      }
+
+      // Create a data source + insert raw rows
+      const sourceType: SourceType = wallet.chain === "solana" ? "solana_wallet" : "evm_wallet";
+      const source = await createDataSource({
+        type: sourceType,
+        name: `${wallet.label} on-chain (${wallet.chain})`,
+      });
+      await bulkInsertRaw(source.id, data.rows);
+      await updateDataSource(source.id, {
+        uploadStatus: "parsed",
+        rowCount: data.rows.length,
+      });
+
+      // Run pipeline
+      setStatus("pipeline");
+      const r = await runPipeline();
+      setMsg(`${data.totalRows} on-chain txs → ${r.normalizedCount} normalized · ${r.reviewItems} to review`);
+      setStatus("done");
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+      setStatus("error");
+    }
+  }
+
+  // Only show for EVM wallets (Solana fetcher is still stubbed)
+  if (wallet.chain === "solana") {
+    return (
+      <div className="text-[10px] text-[color:var(--color-ink-faint)]">
+        Solana on-chain fetch coming soon — use CSV upload
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="secondary"
+        disabled={status === "fetching" || status === "pipeline"}
+        onClick={fetchOnChain}
+      >
+        {status === "fetching" ? "Fetching…" : status === "pipeline" ? "Running pipeline…" : "Fetch on-chain"}
+      </Button>
+      {status === "done" && <Badge tone="green">Done</Badge>}
+      {status === "error" && <Badge tone="red">Error</Badge>}
+      {msg && <span className="text-xs text-[color:var(--color-ink-faint)]">{msg}</span>}
+    </div>
+  );
+}
 
 export function WalletList() {
   const { wallets, loading } = useWallets();
@@ -46,6 +125,9 @@ export function WalletList() {
               <Button variant="ghost" onClick={() => removeWallet(w.id)}>
                 Remove
               </Button>
+            </div>
+            <div className="mb-3">
+              <FetchButton wallet={w} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

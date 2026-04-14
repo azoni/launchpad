@@ -1,12 +1,8 @@
-// EVM transaction normalizer (STUB).
-//
-// In v1 we don't actually fetch from chain. Real fetchers (Etherscan v2,
-// Alchemy, etc.) plug in via netlify/functions/fetch-evm-wallet and write
-// rawTransactions docs in the same shape; this normalizer can then ingest
-// them. For now we accept a generic "evm tx" payload and produce a normalized
-// row that lands in the review queue.
+// EVM transaction normalizer. Handles rows from the Etherscan fetcher.
+// Each row has: type, timestamp, hash, from, to, asset, amount, direction,
+// gasFee, functionName, chain, contractAddress
 
-import type { NormalizedTransaction, RawTransaction } from "../../types";
+import type { NormalizedTransaction, RawTransaction, TxType } from "../../types";
 import { PROJECT_ID } from "../../lib/collections";
 
 export function normalizeEvmRow(
@@ -15,26 +11,58 @@ export function normalizeEvmRow(
 ): NormalizedTransaction | null {
   const r = raw.rawPayload as Record<string, unknown>;
 
-  const timestamp = Number(r.timestamp ?? r.timeStamp ?? 0) * (Number(r.timestamp ?? 0) > 1e12 ? 1 : 1000);
+  const timestamp = Number(r.timestamp ?? 0);
+  const asset = (r.asset as string) ?? "ETH";
+  const amount = Number(r.amount ?? 0);
+  const direction = (r.direction as string) ?? "in";
+  const gasFee = Number(r.gasFee ?? 0);
+  const hash = (r.hash as string) ?? null;
+  const from = (r.from as string) ?? null;
+  const to = (r.to as string) ?? null;
+  const functionName = (r.functionName as string) ?? "";
+
+  if (amount === 0 && gasFee === 0) return null;
+
+  // Classify based on direction + function name
+  let txType: TxType = "unknown";
+  let confidence = 0.7;
+
+  if (direction === "out") {
+    txType = "transfer_out";
+    confidence = 0.8;
+    // If it's a swap function call, mark as swap
+    if (/swap|exchange|trade/i.test(functionName)) {
+      txType = "swap";
+      confidence = 0.75;
+    }
+  } else {
+    txType = "transfer_in";
+    confidence = 0.8;
+  }
+
+  // Determine the wallet address (the user's address)
+  const walletAddress = direction === "out" ? from : to;
+
   return {
     id: rawId,
     projectId: PROJECT_ID,
-    timestamp: timestamp || 0,
-    platform: (r.chain === "abstract" ? "abstract" : "metamask") as NormalizedTransaction["platform"],
+    timestamp,
+    platform: (r.chain === "abstract" ? "abstract" : "metamask"),
     walletId: null,
-    walletAddress: (r.from as string) ?? null,
-    txType: "unknown",
-    assetSent: (r.assetSent as string) ?? null,
-    amountSent: (r.amountSent as number) ?? null,
-    assetReceived: (r.assetReceived as string) ?? null,
-    amountReceived: (r.amountReceived as number) ?? null,
-    feeAsset: "ETH",
-    feeAmount: (r.gasFee as number) ?? null,
-    usdValue: (r.usdValue as number) ?? null,
-    txHash: (r.hash as string) ?? null,
+    walletAddress,
+    txType,
+    assetSent: direction === "out" ? asset : null,
+    amountSent: direction === "out" ? amount : null,
+    assetReceived: direction === "in" ? asset : null,
+    amountReceived: direction === "in" ? amount : null,
+    feeAsset: gasFee > 0 ? "ETH" : null,
+    feeAmount: gasFee > 0 ? gasFee : null,
+    usdValue: null, // Etherscan free API doesn't include USD — price lookup needed
+    txHash: hash,
     sourceId: raw.sourceId,
     sourceRowRef: raw.id,
-    confidenceScore: 0.2,
-    reviewStatus: "needs_review",
+    confidenceScore: confidence,
+    reviewStatus: "needs_review", // needs_review because no USD value
+    notes: functionName ? `Contract call: ${functionName}` : undefined,
   };
 }

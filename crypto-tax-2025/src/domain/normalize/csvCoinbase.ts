@@ -180,6 +180,18 @@ export function normalizeCoinbaseRow(
   // Take absolute value — Coinbase uses negative for outflows
   if (usdValue !== null) usdValue = Math.abs(usdValue);
 
+  // Extract external wallet address from notes for transfer matching.
+  // Coinbase notes contain patterns like:
+  //   "Sent 0.08 ETH to 0x81a097065CD5D555C207Bb725107aE3170ae3a6d (to 0x81a...e3a6d)"
+  //   "Received 1.15 ETH from an external account (from 81a09...e3a6d to 0x28F...A47Ae)"
+  //   "Sent 23.44 SOL to FUPXAppYuQ5gsPCcTxVA1RpbxdWYJhkbwDnAbj47XvEL (to FUPXA...7XvEL)"
+  let walletAddress: string | null = null;
+  if (notes) {
+    // Match full addresses: 0x followed by 40 hex chars, or base58 Solana (32-44 chars)
+    const addrMatch = notes.match(/(?:to|from)\s+(0x[0-9a-fA-F]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})\s/);
+    if (addrMatch) walletAddress = addrMatch[1];
+  }
+
   const confidence = txType === "unknown" ? 0.3 : 0.9;
 
   return {
@@ -188,7 +200,7 @@ export function normalizeCoinbaseRow(
     timestamp,
     platform: "coinbase",
     walletId: null,
-    walletAddress: null,
+    walletAddress,
     txType,
     assetSent,
     amountSent,
