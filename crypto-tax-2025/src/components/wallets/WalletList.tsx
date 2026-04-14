@@ -62,14 +62,7 @@ function FetchButton({ wallet }: { wallet: Wallet }) {
     }
   }
 
-  // Only show for EVM wallets (Solana fetcher is still stubbed)
-  if (wallet.chain === "solana") {
-    return (
-      <div className="text-[10px] text-[color:var(--color-ink-faint)]">
-        Solana on-chain fetch coming soon — use CSV upload
-      </div>
-    );
-  }
+  // Fetch works for both EVM and Solana now
 
   return (
     <div className="flex items-center gap-2">
