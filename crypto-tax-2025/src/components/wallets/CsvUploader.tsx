@@ -61,7 +61,7 @@ export function CsvUploader({
       setStatus("running_pipeline");
       const result = await runPipeline();
       setPipelineMsg(
-        `${result.normalizedCount} normalized · ${result.taxableEvents} taxable · ${result.reviewItems} to review`
+        `${result.normalizedCount} normalized · ${result.pricesFilled} prices filled · ${result.taxableEvents} taxable · ${result.reviewItems} to review`
       );
       setStatus("done");
 

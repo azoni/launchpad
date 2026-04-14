@@ -1,10 +1,6 @@
-// Pipeline orchestrator. Reads everything from Firestore, runs the
-// deterministic stages in memory, and writes the derived collections back.
+// Pipeline orchestrator.
 //
-// Stages: fetch -> normalize -> classify -> fifo -> review -> persist
-//
-// This is idempotent — running it twice from the same raw data produces the
-// same derived state. The only side effects are Firestore writes.
+// Stages: fetch -> normalize -> price lookup -> classify -> fifo -> review -> persist
 
 import { listAllRaw } from "../data/rawTransactions";
 import { subscribeDataSources } from "../data/dataSources";
@@ -21,6 +17,7 @@ import { replaceTaxableEvents } from "../data/taxableEvents";
 import { replaceReviewItems } from "../data/reviewItems";
 import { logAudit } from "../data/auditLog";
 import { normalizeAll } from "./normalize";
+import { fillMissingPrices } from "./priceLookup";
 import { classifyAll } from "./classify";
 import { runFifo } from "./basis/fifoEngine";
 import { generateReviewItems } from "./review/generate";
@@ -38,6 +35,7 @@ async function getDataSourcesOnce(): Promise<DataSource[]> {
 export interface PipelineResult {
   rawCount: number;
   normalizedCount: number;
+  pricesFilled: number;
   matchedTransfers: number;
   taxableEvents: number;
   reviewItems: number;
@@ -55,16 +53,22 @@ export async function runPipeline(): Promise<PipelineResult> {
   // 2) Normalize
   const normalized = normalizeAll(sources, raws);
 
-  // 3) Classify
-  const { txs: classified, transferMatches } = classifyAll(normalized, wallets);
+  // 3) Fill missing USD prices via CoinGecko
+  const missingBefore = normalized.filter((t) => t.usdValue === null).length;
+  const priced = await fillMissingPrices(normalized);
+  const missingAfter = priced.filter((t) => t.usdValue === null).length;
+  const pricesFilled = missingBefore - missingAfter;
 
-  // 4) FIFO basis engine
+  // 4) Classify
+  const { txs: classified, transferMatches } = classifyAll(priced, wallets);
+
+  // 5) FIFO basis engine
   const fifo = runFifo(classified);
 
-  // 5) Review queue
+  // 6) Review queue
   const reviewItems = generateReviewItems({ txs: classified, fifo });
 
-  // 6) Persist (wipe-and-replace derived collections)
+  // 7) Persist
   await bulkDeleteNormalized();
   await bulkInsertNormalized(classified);
   await bulkDeleteTransferMatches();
@@ -75,6 +79,7 @@ export async function runPipeline(): Promise<PipelineResult> {
   const result: PipelineResult = {
     rawCount: raws.length,
     normalizedCount: classified.length,
+    pricesFilled,
     matchedTransfers: transferMatches.length,
     taxableEvents: fifo.taxableEvents.length,
     reviewItems: reviewItems.length,

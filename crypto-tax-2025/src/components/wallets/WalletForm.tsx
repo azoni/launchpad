@@ -33,7 +33,7 @@ export function WalletForm() {
           setStatus("pipeline");
           const r = await runPipeline();
           setPipelineMsg(
-            `${r.normalizedCount} normalized · ${r.taxableEvents} taxable · ${r.reviewItems} to review`
+            `${r.normalizedCount} normalized · ${r.pricesFilled} prices filled · ${r.taxableEvents} taxable · ${r.reviewItems} to review`
           );
           setStatus("done");
         } catch (e2) {
