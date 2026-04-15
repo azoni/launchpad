@@ -1,16 +1,17 @@
-// EVM wallet fetcher. Pulls transaction history from Etherscan's free API.
+// EVM wallet fetcher. Uses Blockscout (free, no API key) as primary,
+// with Etherscan v2 as fallback if an API key is provided.
 //
 // Fetches three types:
 // 1. Normal transactions (ETH transfers + contract calls)
 // 2. ERC-20 token transfers
 // 3. Internal transactions (contract-to-contract ETH)
-//
-// Returns normalized rows ready to be inserted as rawTransactions.
-// Rate limit: 5 calls/sec with API key, 1/5sec without.
 
 import type { Handler } from "@netlify/functions";
 
-const ETHERSCAN_API = "https://api.etherscan.io/api";
+// Blockscout: free, no key needed, Etherscan-compatible API
+const BLOCKSCOUT_API = "https://eth.blockscout.com/api";
+// Etherscan v2: needs free API key
+const ETHERSCAN_V2_API = "https://api.etherscan.io/v2/api";
 
 interface EtherscanTx {
   timeStamp: string;
@@ -27,28 +28,47 @@ interface EtherscanTx {
   contractAddress?: string;
 }
 
-async function fetchEtherscan(
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function fetchApi(
   module: string,
   action: string,
   address: string,
   apiKey: string | undefined
 ): Promise<EtherscanTx[]> {
-  const params = new URLSearchParams({
-    module,
-    action,
-    address,
-    startblock: "0",
-    endblock: "99999999",
-    sort: "asc",
-    ...(apiKey ? { apikey: apiKey } : {}),
-  });
+  // Use Etherscan v2 if key available, otherwise Blockscout
+  let url: string;
+  if (apiKey) {
+    const params = new URLSearchParams({
+      chainid: "1",
+      module,
+      action,
+      address,
+      startblock: "0",
+      endblock: "99999999",
+      sort: "asc",
+      apikey: apiKey,
+    });
+    url = `${ETHERSCAN_V2_API}?${params}`;
+  } else {
+    const params = new URLSearchParams({
+      module,
+      action,
+      address,
+      startblock: "0",
+      endblock: "99999999",
+      sort: "asc",
+    });
+    url = `${BLOCKSCOUT_API}?${params}`;
+  }
 
-  const res = await fetch(`${ETHERSCAN_API}?${params}`);
-  if (!res.ok) throw new Error(`Etherscan HTTP ${res.status}`);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`API HTTP ${res.status}`);
   const data = (await res.json()) as { status: string; result: EtherscanTx[] | string };
 
   if (data.status !== "1" || !Array.isArray(data.result)) {
-    // status "0" with "No transactions found" is fine — just empty
     if (typeof data.result === "string" && /no transactions/i.test(data.result)) return [];
     return [];
   }
@@ -81,20 +101,19 @@ export const handler: Handler = async (event) => {
     return { statusCode: 400, body: JSON.stringify({ error: "address required" }) };
   }
 
-  const apiKey = process.env.ETHERSCAN_API_KEY; // optional, works without but slower
+  const apiKey = process.env.ETHERSCAN_API_KEY;
 
   try {
-    // Fetch all three tx types in parallel
-    const [normalTxs, tokenTxs, internalTxs] = await Promise.all([
-      fetchEtherscan("account", "txlist", address, apiKey),
-      fetchEtherscan("account", "tokentx", address, apiKey),
-      fetchEtherscan("account", "txlistinternal", address, apiKey),
-    ]);
+    // Fetch all three tx types sequentially with delays (Blockscout rate limits)
+    const normalTxs = await fetchApi("account", "txlist", address, apiKey);
+    await sleep(1500);
+    const tokenTxs = await fetchApi("account", "tokentx", address, apiKey);
+    await sleep(1500);
+    const internalTxs = await fetchApi("account", "txlistinternal", address, apiKey);
 
     const rows: Array<Record<string, unknown>> = [];
     const seenHashes = new Set<string>();
 
-    // Filter to 2025 only
     const start2025 = Math.floor(Date.UTC(2025, 0, 1) / 1000);
     const end2025 = Math.floor(Date.UTC(2026, 0, 1) / 1000);
     const in2025 = (ts: string) => {
@@ -102,17 +121,60 @@ export const handler: Handler = async (event) => {
       return t >= start2025 && t < end2025;
     };
 
-    // Normal transactions (ETH transfers)
+    // Group token transfers by tx hash for swap detection
+    const tokensByHash = new Map<string, EtherscanTx[]>();
+    for (const tx of tokenTxs) {
+      if (!in2025(tx.timeStamp)) continue;
+      const list = tokensByHash.get(tx.hash) ?? [];
+      list.push(tx);
+      tokensByHash.set(tx.hash, list);
+    }
+
+    // Normal transactions
     for (const tx of normalTxs) {
       if (!in2025(tx.timeStamp)) continue;
       if (tx.isError === "1") continue;
-      const ethValue = weiToEth(tx.value);
-      if (ethValue === 0 && !tx.functionName) continue; // skip zero-value non-contract calls
 
+      const ethValue = weiToEth(tx.value);
       const isOutgoing = tx.from.toLowerCase() === address.toLowerCase();
       const gasFee = tx.gasUsed && tx.gasPrice
         ? weiToEth((BigInt(tx.gasUsed) * BigInt(tx.gasPrice)).toString())
         : 0;
+
+      // Check if this tx hash also has token transfers → likely a swap
+      const relatedTokens = tokensByHash.get(tx.hash) ?? [];
+      const tokenIn = relatedTokens.find(
+        (t) => t.to.toLowerCase() === address.toLowerCase()
+      );
+      const tokenOut = relatedTokens.find(
+        (t) => t.from.toLowerCase() === address.toLowerCase()
+      );
+
+      if (tokenIn && (ethValue > 0 || tokenOut)) {
+        // DEX swap detected: ETH/token out + token in
+        rows.push({
+          type: "swap",
+          timestamp: parseInt(tx.timeStamp) * 1000,
+          hash: tx.hash,
+          from: tx.from,
+          to: tx.to,
+          assetSent: tokenOut ? (tokenOut.tokenSymbol ?? "UNKNOWN") : "ETH",
+          amountSent: tokenOut
+            ? tokenAmount(tokenOut.value, tokenOut.tokenDecimal ?? "18")
+            : ethValue,
+          assetReceived: tokenIn.tokenSymbol ?? "UNKNOWN",
+          amountReceived: tokenAmount(tokenIn.value, tokenIn.tokenDecimal ?? "18"),
+          gasFee,
+          functionName: tx.functionName || null,
+          chain: "ethereum",
+        });
+        // Mark these token transfers as handled
+        for (const rt of relatedTokens) seenHashes.add(`${rt.hash}-${rt.tokenSymbol}-${rt.from}-${rt.to}`);
+        seenHashes.add(tx.hash);
+        continue;
+      }
+
+      if (ethValue === 0 && !tx.functionName) continue;
 
       rows.push({
         type: "normal",
@@ -130,17 +192,17 @@ export const handler: Handler = async (event) => {
       seenHashes.add(tx.hash);
     }
 
-    // ERC-20 token transfers
+    // Remaining ERC-20 transfers not already handled as swaps
     for (const tx of tokenTxs) {
       if (!in2025(tx.timeStamp)) continue;
       const amount = tokenAmount(tx.value, tx.tokenDecimal ?? "18");
       if (amount === 0) continue;
 
-      const isOutgoing = tx.from.toLowerCase() === address.toLowerCase();
       const key = `${tx.hash}-${tx.tokenSymbol}-${tx.from}-${tx.to}`;
       if (seenHashes.has(key)) continue;
       seenHashes.add(key);
 
+      const isOutgoing = tx.from.toLowerCase() === address.toLowerCase();
       rows.push({
         type: "token_transfer",
         timestamp: parseInt(tx.timeStamp) * 1000,
@@ -155,18 +217,18 @@ export const handler: Handler = async (event) => {
       });
     }
 
-    // Internal transactions (ETH from contracts)
+    // Internal transactions
     for (const tx of internalTxs) {
       if (!in2025(tx.timeStamp)) continue;
       if (tx.isError === "1") continue;
       const ethValue = weiToEth(tx.value);
       if (ethValue === 0) continue;
 
-      const isOutgoing = tx.from.toLowerCase() === address.toLowerCase();
       const key = `internal-${tx.hash}-${tx.from}-${tx.to}`;
       if (seenHashes.has(key)) continue;
       seenHashes.add(key);
 
+      const isOutgoing = tx.from.toLowerCase() === address.toLowerCase();
       rows.push({
         type: "internal",
         timestamp: parseInt(tx.timeStamp) * 1000,

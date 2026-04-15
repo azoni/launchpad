@@ -8,7 +8,14 @@
 
 import type { Handler } from "@netlify/functions";
 
-const RPC_URL = "https://api.mainnet-beta.solana.com";
+// Use Helius RPC if key available (free tier: 100k credits/day),
+// otherwise fall back to public RPC (rate-limited, may fail from shared IPs)
+function getRpcUrl(): string {
+  const heliusKey = process.env.HELIUS_API_KEY;
+  if (heliusKey) return `https://mainnet.helius-rpc.com/?api-key=${heliusKey}`;
+  return "https://api.mainnet-beta.solana.com";
+}
+const RPC_URL = getRpcUrl();
 const START_2025 = Math.floor(Date.UTC(2025, 0, 1) / 1000);
 const END_2025 = Math.floor(Date.UTC(2026, 0, 1) / 1000);
 
@@ -30,15 +37,30 @@ interface RpcResponse<T> {
   error?: { code: number; message: string };
 }
 
-async function rpc<T>(method: string, params: unknown[]): Promise<T> {
-  const res = await fetch(RPC_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-  const data = (await res.json()) as RpcResponse<T>;
-  if (data.error) throw new Error(`RPC ${method}: ${data.error.message}`);
-  return data.result;
+async function rpc<T>(method: string, params: unknown[], retries = 3): Promise<T> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const res = await fetch(RPC_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+      });
+      const data = (await res.json()) as RpcResponse<T>;
+      if (data.error) {
+        // Rate limited — wait and retry
+        if (/too many requests/i.test(data.error.message) && attempt < retries - 1) {
+          await sleep(3000 * (attempt + 1));
+          continue;
+        }
+        throw new Error(`RPC ${method}: ${data.error.message}`);
+      }
+      return data.result;
+    } catch (e) {
+      if (attempt === retries - 1) throw e;
+      await sleep(2000 * (attempt + 1));
+    }
+  }
+  throw new Error(`RPC ${method}: max retries exceeded`);
 }
 
 interface Signature {
@@ -118,12 +140,12 @@ export const handler: Handler = async (event) => {
       }
       before = sigs[sigs.length - 1].signature;
       if (sigs.length < 1000) break;
-      await sleep(200);
+      await sleep(1500);
     }
 
-    // 2. Fetch transaction details in batches
+    // 2. Fetch transaction details in batches (slower to avoid rate limits)
     const rows: Array<Record<string, unknown>> = [];
-    const batchSize = 5;
+    const batchSize = 2; // small batches to stay under rate limit
 
     for (let i = 0; i < allSigs.length; i += batchSize) {
       const batch = allSigs.slice(i, i + batchSize);
@@ -230,7 +252,7 @@ export const handler: Handler = async (event) => {
         }
       }
 
-      if (i + batchSize < allSigs.length) await sleep(300);
+      if (i + batchSize < allSigs.length) await sleep(1500);
     }
 
     return {
