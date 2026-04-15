@@ -6,7 +6,7 @@
 // Run with { fillPrices: true } to explicitly fill prices.
 
 import { listAllRaw } from "../data/rawTransactions";
-import { subscribeDataSources } from "../data/dataSources";
+import { listDataSources } from "../data/dataSources";
 import { listWallets } from "../data/wallets";
 import {
   bulkDeleteNormalized,
@@ -26,15 +26,6 @@ import { runFifo } from "./basis/fifoEngine";
 import { generateReviewItems } from "./review/generate";
 import type { DataSource } from "../types";
 
-async function getDataSourcesOnce(): Promise<DataSource[]> {
-  return new Promise((resolve) => {
-    const unsub = subscribeDataSources((sources) => {
-      unsub();
-      resolve(sources);
-    });
-  });
-}
-
 export interface PipelineResult {
   rawCount: number;
   normalizedCount: number;
@@ -52,10 +43,10 @@ export interface PipelineOptions {
 export async function runPipeline(opts?: PipelineOptions): Promise<PipelineResult> {
   const { fillPrices = false } = opts ?? {};
 
-  // 1) Fetch raw + sources + wallets
+  // 1) Fetch raw + sources + wallets (direct reads, not subscriptions)
   const [raws, sources, wallets] = await Promise.all([
     listAllRaw(),
-    getDataSourcesOnce(),
+    listDataSources(),
     listWallets(),
   ]);
 

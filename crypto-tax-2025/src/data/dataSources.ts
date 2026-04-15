@@ -28,6 +28,16 @@ export function subscribeDataSources(cb: (sources: DataSource[]) => void) {
   });
 }
 
+export async function listDataSources(): Promise<DataSource[]> {
+  if (isGuestMode()) {
+    const { localList } = await import("./localStore");
+    return localList<DataSource>(COL);
+  }
+  const { getDocs, query: q, where: w } = await import("firebase/firestore");
+  const snap = await getDocs(q(collection(db, COL), w("projectId", "==", PROJECT_ID)));
+  return snap.docs.map((d) => ({ ...(d.data() as DataSource), id: d.id }));
+}
+
 export async function createDataSource(input: {
   type: SourceType;
   name: string;
