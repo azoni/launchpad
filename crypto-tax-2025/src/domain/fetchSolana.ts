@@ -88,8 +88,10 @@ export interface FetchProgress {
 
 export async function fetchSolanaWallet(
   address: string,
-  onProgress?: (p: FetchProgress) => void
+  onProgress?: (p: FetchProgress) => void,
+  onBatch?: (rows: Array<Record<string, unknown>>) => Promise<void>
 ): Promise<Array<Record<string, unknown>>> {
+  const BATCH_SIZE = 100; // save every 100 txs
   const report = (stage: string, detail: string, extra?: Partial<FetchProgress>) => {
     onProgress?.({
       stage,
@@ -134,8 +136,9 @@ export async function fetchSolanaWallet(
 
   if (allSigs.length === 0) return [];
 
-  // 2. Fetch each transaction
+  // 2. Fetch each transaction, saving in batches
   const rows: Array<Record<string, unknown>> = [];
+  let pendingBatch: Array<Record<string, unknown>> = [];
 
   for (let i = 0; i < allSigs.length; i++) {
     const sig = allSigs[i];
@@ -183,8 +186,13 @@ export async function fetchSolanaWallet(
       const gained = changes.filter((c) => c.diff > 0);
       const lost = changes.filter((c) => c.diff < 0);
 
+      const addRow = (row: Record<string, unknown>) => {
+        rows.push(row);
+        pendingBatch.push(row);
+      };
+
       if (gained.length > 0 && lost.length > 0) {
-        rows.push({
+        addRow({
           type: "swap",
           timestamp,
           hash: sig.signature,
@@ -199,18 +207,30 @@ export async function fetchSolanaWallet(
         });
       } else if (gained.length > 0) {
         for (const c of gained) {
-          rows.push({ type: "receive", timestamp, hash: sig.signature, asset: c.asset, amount: c.diff, fee, account: address, chain: "solana" });
+          addRow({ type: "receive", timestamp, hash: sig.signature, asset: c.asset, amount: c.diff, fee, account: address, chain: "solana" });
         }
       } else if (lost.length > 0) {
         for (const c of lost) {
-          rows.push({ type: "send", timestamp, hash: sig.signature, asset: c.asset, amount: Math.abs(c.diff), fee, account: address, chain: "solana" });
+          addRow({ type: "send", timestamp, hash: sig.signature, asset: c.asset, amount: Math.abs(c.diff), fee, account: address, chain: "solana" });
         }
       }
     } catch {
       // Skip failed txs, keep going
     }
 
-    await sleep(500); // Rate limit between each tx
+    // Save batch every BATCH_SIZE txs
+    if (onBatch && pendingBatch.length >= BATCH_SIZE) {
+      await onBatch(pendingBatch);
+      pendingBatch = [];
+    }
+
+    await sleep(500);
+  }
+
+  // Save any remaining rows
+  if (onBatch && pendingBatch.length > 0) {
+    await onBatch(pendingBatch);
+    pendingBatch = [];
   }
 
   report("done", `${rows.length} transactions found`, {

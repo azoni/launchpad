@@ -26,15 +26,48 @@ function FetchButton({ wallet }: { wallet: Wallet }) {
       let rows: Array<Record<string, unknown>>;
 
       if (wallet.chain === "solana") {
-        // Solana: fetch client-side (browser's IP isn't rate-limited,
-        // and no 10-second Netlify function timeout)
+        // Solana: fetch client-side with incremental saving.
+        // Rows save every 100 txs so progress isn't lost if the tab closes.
         const { fetchSolanaWallet } = await import("../../domain/fetchSolana");
-        rows = await fetchSolanaWallet(wallet.address, (p) => {
-          setDetail(p.detail);
-          if (p.totalSigs > 0) {
-            setDetail(`${p.detail} (${p.txsProcessed}/${p.totalSigs})`);
-          }
+
+        // Create the data source upfront so batches can save to it
+        const source = await createDataSource({
+          type: "solana_wallet",
+          name: `${wallet.label} on-chain (solana)`,
         });
+        let totalSaved = 0;
+
+        rows = await fetchSolanaWallet(
+          wallet.address,
+          (p) => {
+            if (p.totalSigs > 0) {
+              setDetail(`Processing tx ${p.txsProcessed}/${p.totalSigs} · ${totalSaved} saved`);
+            } else {
+              setDetail(p.detail);
+            }
+          },
+          async (batch) => {
+            // Save each batch incrementally to Firestore
+            await bulkInsertRaw(source.id, batch);
+            totalSaved += batch.length;
+          }
+        );
+
+        // Update source with final count
+        await updateDataSource(source.id, {
+          uploadStatus: "parsed",
+          rowCount: totalSaved,
+        });
+
+        // Pipeline runs after — rows are already saved
+        setStatus("running_pipeline");
+        setDetail(`${totalSaved} rows saved. Running pipeline…`);
+        const r = await runPipeline();
+        setDetail(
+          `Done: ${totalSaved} fetched → ${r.normalizedCount} normalized · ${r.taxableEvents} taxable · ${r.reviewItems} to review`
+        );
+        setStatus("done");
+        return; // skip the generic save path below
       } else {
         // EVM: use Netlify function (has Etherscan API key server-side)
         setDetail(`Fetching ${wallet.chain} transactions via Etherscan…`);
@@ -66,7 +99,7 @@ function FetchButton({ wallet }: { wallet: Wallet }) {
       setStatus("importing");
       setDetail(`Step 1/3: Saving ${rows.length} raw rows to database…`);
 
-      const sourceType: SourceType = wallet.chain === "solana" ? "solana_wallet" : "evm_wallet";
+      const sourceType: SourceType = "evm_wallet";
       const source = await createDataSource({
         type: sourceType,
         name: `${wallet.label} on-chain (${wallet.chain})`,
