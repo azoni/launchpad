@@ -53,7 +53,7 @@ export function WalletsImportsPage() {
       await replaceReviewItems([]);
       setMsg("Clearing data sources…");
       for (const s of sources) {
-        try { await deleteDataSource(s.id); } catch {} // may already be gone
+        try { await deleteDataSource(s.id, true); } catch {} // skipPipeline=true, we already cleared everything
       }
       setMsg("All data cleared. Ready for fresh import.");
     } catch (e) {

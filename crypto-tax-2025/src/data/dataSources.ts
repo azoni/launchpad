@@ -52,7 +52,7 @@ export async function createDataSource(input: {
   return source;
 }
 
-export async function deleteDataSource(id: string) {
+export async function deleteDataSource(id: string, skipPipeline = false) {
   // Delete the raw transactions that came from this source
   const { deleteRawForSource } = await import("./rawTransactions");
   await deleteRawForSource(id);
@@ -67,9 +67,11 @@ export async function deleteDataSource(id: string) {
   }
   await logAudit({ actionType: "source_deleted", targetId: id });
 
-  // Re-run pipeline to rebuild derived data without the deleted source
-  const { runPipeline } = await import("../domain/pipeline");
-  await runPipeline();
+  // Re-run pipeline unless caller is doing a bulk clear
+  if (!skipPipeline) {
+    const { runPipeline } = await import("../domain/pipeline");
+    await runPipeline();
+  }
 }
 
 export async function updateDataSource(id: string, patch: Partial<DataSource>) {

@@ -103,7 +103,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
       <main className="flex-1 overflow-auto">
-        <div className="mx-auto max-w-7xl px-8 py-8">{children}</div>
+        <div className="flex justify-end px-8 pt-3 pb-0">
+          <span className="tabular rounded-sm border border-[color:var(--color-rule)] bg-[#fffaf0] px-2 py-0.5 text-[10px] text-[color:var(--color-ink-faint)]">
+            v0.9.0
+          </span>
+        </div>
+        <div className="mx-auto max-w-7xl px-8 pb-8">{children}</div>
       </main>
     </div>
   );
