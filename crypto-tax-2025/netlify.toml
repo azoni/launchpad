@@ -6,6 +6,15 @@
 [functions]
   node_bundler = "esbuild"
 
+[functions."fetch-solana-wallet"]
+  timeout = 300
+
+[functions."fetch-evm-wallet"]
+  timeout = 120
+
+[functions."price-lookup"]
+  timeout = 120
+
 [dev]
   command = "npm run dev"
   targetPort = 5173

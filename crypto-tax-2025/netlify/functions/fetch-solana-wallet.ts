@@ -37,19 +37,24 @@ interface RpcResponse<T> {
   error?: { code: number; message: string };
 }
 
-async function rpc<T>(method: string, params: unknown[], retries = 3): Promise<T> {
+async function rpc<T>(method: string, params: unknown[], retries = 5): Promise<T> {
   for (let attempt = 0; attempt < retries; attempt++) {
+    // Add jitter to avoid thundering herd
+    if (attempt > 0) await sleep(2000 + Math.random() * 2000 * attempt);
     try {
       const res = await fetch(RPC_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
       });
+      if (res.status === 429) {
+        if (attempt < retries - 1) { await sleep(5000 * (attempt + 1)); continue; }
+        throw new Error(`RPC ${method}: rate limited after ${retries} retries`);
+      }
       const data = (await res.json()) as RpcResponse<T>;
       if (data.error) {
-        // Rate limited — wait and retry
         if (/too many requests/i.test(data.error.message) && attempt < retries - 1) {
-          await sleep(3000 * (attempt + 1));
+          await sleep(5000 * (attempt + 1));
           continue;
         }
         throw new Error(`RPC ${method}: ${data.error.message}`);
@@ -57,7 +62,6 @@ async function rpc<T>(method: string, params: unknown[], retries = 3): Promise<T
       return data.result;
     } catch (e) {
       if (attempt === retries - 1) throw e;
-      await sleep(2000 * (attempt + 1));
     }
   }
   throw new Error(`RPC ${method}: max retries exceeded`);
@@ -101,6 +105,9 @@ function tokenSymbol(mint: string): string {
   return TOKEN_SYMBOLS[mint] ?? mint.slice(0, 8) + "...";
 }
 
+// Netlify function config — Solana fetcher needs more time
+export const config = { timeout: 300 }; // 5 minutes
+
 export const handler: Handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method not allowed" };
@@ -143,9 +150,9 @@ export const handler: Handler = async (event) => {
       await sleep(1500);
     }
 
-    // 2. Fetch transaction details in batches (slower to avoid rate limits)
+    // 2. Fetch transaction details one at a time to avoid rate limits
     const rows: Array<Record<string, unknown>> = [];
-    const batchSize = 2; // small batches to stay under rate limit
+    const batchSize = 1;
 
     for (let i = 0; i < allSigs.length; i += batchSize) {
       const batch = allSigs.slice(i, i + batchSize);
@@ -252,7 +259,7 @@ export const handler: Handler = async (event) => {
         }
       }
 
-      if (i + batchSize < allSigs.length) await sleep(1500);
+      if (i + batchSize < allSigs.length) await sleep(2000);
     }
 
     return {
