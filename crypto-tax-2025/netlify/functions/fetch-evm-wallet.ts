@@ -104,11 +104,13 @@ export const handler: Handler = async (event) => {
   const apiKey = process.env.ETHERSCAN_API_KEY;
 
   try {
-    // Fetch all three tx types sequentially with delays (Blockscout rate limits)
+    // Fetch all three tx types. With API key: 5 req/sec, no sleep needed.
+    // Without key (Blockscout): add small delays.
+    const delay = apiKey ? 200 : 1500;
     const normalTxs = await fetchApi("account", "txlist", address, apiKey);
-    await sleep(1500);
+    await sleep(delay);
     const tokenTxs = await fetchApi("account", "tokentx", address, apiKey);
-    await sleep(1500);
+    await sleep(delay);
     const internalTxs = await fetchApi("account", "txlistinternal", address, apiKey);
 
     const rows: Array<Record<string, unknown>> = [];

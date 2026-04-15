@@ -1,6 +1,9 @@
 // Pipeline orchestrator.
 //
-// Stages: fetch -> normalize -> price lookup -> classify -> fifo -> review -> persist
+// Stages: fetch -> normalize -> [optional: price lookup] -> classify -> fifo -> review -> persist
+//
+// Price lookup is skipped by default on auto-runs (too slow for CoinGecko rate limits).
+// Run with { fillPrices: true } to explicitly fill prices.
 
 import { listAllRaw } from "../data/rawTransactions";
 import { subscribeDataSources } from "../data/dataSources";
@@ -42,7 +45,13 @@ export interface PipelineResult {
   warnings: number;
 }
 
-export async function runPipeline(): Promise<PipelineResult> {
+export interface PipelineOptions {
+  fillPrices?: boolean;
+}
+
+export async function runPipeline(opts?: PipelineOptions): Promise<PipelineResult> {
+  const { fillPrices = false } = opts ?? {};
+
   // 1) Fetch raw + sources + wallets
   const [raws, sources, wallets] = await Promise.all([
     listAllRaw(),
@@ -53,11 +62,15 @@ export async function runPipeline(): Promise<PipelineResult> {
   // 2) Normalize
   const normalized = normalizeAll(sources, raws);
 
-  // 3) Fill missing USD prices via CoinGecko
-  const missingBefore = normalized.filter((t) => t.usdValue === null).length;
-  const priced = await fillMissingPrices(normalized);
-  const missingAfter = priced.filter((t) => t.usdValue === null).length;
-  const pricesFilled = missingBefore - missingAfter;
+  // 3) Optionally fill missing USD prices via CoinGecko
+  let priced = normalized;
+  let pricesFilled = 0;
+  if (fillPrices) {
+    const missingBefore = normalized.filter((t) => t.usdValue === null).length;
+    priced = await fillMissingPrices(normalized);
+    const missingAfter = priced.filter((t) => t.usdValue === null).length;
+    pricesFilled = missingBefore - missingAfter;
+  }
 
   // 4) Classify
   const { txs: classified, transferMatches } = classifyAll(priced, wallets);

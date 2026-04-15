@@ -27,12 +27,12 @@ export function OverviewPage() {
     return <div className="text-[color:var(--color-ink-faint)]">Loading project…</div>;
   }
 
-  async function handleRun() {
+  async function handleRun(fillPrices = false) {
     setRunning(true);
     try {
-      const r = await runPipeline();
+      const r = await runPipeline({ fillPrices });
       setLastRun(
-        `Processed ${r.rawCount} raw → ${r.normalizedCount} normalized · ${r.taxableEvents} taxable events · ${r.reviewItems} review items`
+        `Processed ${r.rawCount} raw → ${r.normalizedCount} normalized · ${r.pricesFilled} prices filled · ${r.taxableEvents} taxable events · ${r.reviewItems} review items`
       );
     } catch (e) {
       setLastRun(`Error: ${e instanceof Error ? e.message : String(e)}`);
@@ -54,8 +54,11 @@ export function OverviewPage() {
           <Link to="/review">
             <Button variant="secondary">Review queue</Button>
           </Link>
-          <Button onClick={handleRun} disabled={running}>
-            {running ? "Running pipeline…" : "Re-run pipeline"}
+          <Button variant="secondary" onClick={() => handleRun(false)} disabled={running}>
+            {running ? "Running…" : "Re-run pipeline"}
+          </Button>
+          <Button onClick={() => handleRun(true)} disabled={running}>
+            {running ? "Running…" : "Fill prices & re-run"}
           </Button>
         </div>
       </header>
