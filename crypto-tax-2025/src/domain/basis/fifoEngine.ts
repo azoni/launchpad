@@ -257,14 +257,19 @@ export function runFifo(txs: NormalizedTransaction[]): FifoResult {
   for (const ev of events) {
     if (ev.gainLossUsd >= 0) continue; // only losses
     const lossAmt = Math.abs(ev.gainLossUsd);
-    // Look for a repurchase of the same asset within 30 days after the sale
+    // Look for a repurchase of the same asset within 30 days after the sale.
+    // A "repurchase" is any acquisition: buy, swap receiving the asset,
+    // income, or even a transfer_in (moving it back from another wallet).
     const repurchase = sorted.find(
-      (t) =>
-        (isAcquisition(t) || t.txType === "swap" || t.txType === "income") &&
-        (t.assetReceived?.toLowerCase() === ev.asset.toLowerCase()) &&
-        t.timestamp >= ev.dateSold &&
-        t.timestamp <= ev.dateSold + THIRTY_DAYS_MS &&
-        t.id !== ev.normalizedTxId
+      (t) => {
+        if (t.timestamp < ev.dateSold || t.timestamp > ev.dateSold + THIRTY_DAYS_MS) return false;
+        if (t.id === ev.normalizedTxId) return false;
+        const receivedAsset = t.assetReceived?.toLowerCase();
+        const targetAsset = ev.asset.toLowerCase();
+        if (receivedAsset !== targetAsset) return false;
+        // Must be an acquisition of the asset
+        return isAcquisition(t) || t.txType === "swap" || t.txType === "income" || t.txType === "transfer_in";
+      }
     );
     if (repurchase) {
       ev.washSaleDisallowed = lossAmt;

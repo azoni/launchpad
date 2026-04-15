@@ -10,6 +10,7 @@ import {
 import { db } from "../lib/firebase";
 import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
 import { isGuestMode } from "../lib/guestMode";
+import { sanitize } from "./sanitize";
 import { localSubscribe, localList, localReplaceAll } from "./localStore";
 import type { TaxableEvent, TaxLot } from "../types";
 
@@ -78,7 +79,7 @@ function chunkSet<T extends { id: string }>(items: T[], col: string) {
     const slice = items.slice(i, i + 400);
     ops.push(async () => {
       const b = writeBatch(db);
-      for (const it of slice) b.set(doc(db, col, it.id), it);
+      for (const it of slice) b.set(doc(db, col, it.id), sanitize(it as unknown as Record<string, unknown>));
       await b.commit();
     });
   }

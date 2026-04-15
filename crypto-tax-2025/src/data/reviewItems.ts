@@ -12,6 +12,7 @@ import { db } from "../lib/firebase";
 import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
 import { isGuestMode } from "../lib/guestMode";
 import { localSubscribe, localList, localReplaceAll, localUpdate } from "./localStore";
+import { sanitize } from "./sanitize";
 import type { ReviewItem } from "../types";
 import { logAudit } from "./auditLog";
 
@@ -50,7 +51,7 @@ export async function replaceReviewItems(items: ReviewItem[]) {
   while (toAdd.length > 0) {
     const b = writeBatch(db);
     const slice = toAdd.slice(0, 400);
-    for (const it of slice) b.set(doc(db, COL, it.id), it);
+    for (const it of slice) b.set(doc(db, COL, it.id), sanitize(it as unknown as Record<string, unknown>));
     await b.commit();
     toAdd = toAdd.slice(400);
   }

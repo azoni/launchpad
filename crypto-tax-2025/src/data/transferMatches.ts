@@ -11,6 +11,7 @@ import { db } from "../lib/firebase";
 import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
 import { isGuestMode } from "../lib/guestMode";
 import { localSubscribe, localList, localReplaceAll } from "./localStore";
+import { sanitize } from "./sanitize";
 import type { TransferMatch } from "../types";
 
 const COL = COLLECTIONS.transferMatches;
@@ -37,7 +38,7 @@ export async function bulkInsertTransferMatches(matches: TransferMatch[]) {
   for (let i = 0; i < matches.length; i += 400) chunks.push(matches.slice(i, i + 400));
   for (const chunk of chunks) {
     const batch = writeBatch(db);
-    for (const m of chunk) batch.set(doc(db, COL, m.id), m);
+    for (const m of chunk) batch.set(doc(db, COL, m.id), sanitize(m as unknown as Record<string, unknown>));
     await batch.commit();
   }
 }

@@ -6,6 +6,7 @@ import type { NormalizedTransaction, ReviewItem, TxType } from "../../types";
 import { formatUsd, formatDate, shortAddress } from "../../lib/format";
 import { resolveReviewItem } from "../../data/reviewItems";
 import { patchNormalized } from "../../data/normalizedTransactions";
+import { runPipeline } from "../../domain/pipeline";
 import { ISSUE_LABELS } from "../../domain/review/issueTypes";
 
 interface Props {
@@ -35,6 +36,8 @@ export function ReviewItemCard({ item, tx }: Props) {
         await patchNormalized(tx.id, { txType: type, reviewStatus: "resolved" });
       }
       await resolveReviewItem(item.id, `Marked as ${type}`);
+      // Re-run pipeline so FIFO, wash sales, and tax totals recalculate
+      runPipeline().catch(() => {});
     } finally {
       setBusy(false);
     }

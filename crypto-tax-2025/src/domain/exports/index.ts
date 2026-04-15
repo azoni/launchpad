@@ -22,7 +22,7 @@ function mmddyyyy(ts: number): string {
  *  Produces separate sections for Box C (short-term) and Box F (long-term). */
 export function exportForm8949(events: TaxableEvent[]): string {
   const rows: CsvRow[] = events
-    .filter((e) => e.category !== "income")
+    .filter((e) => e.category !== "income" && e.quantity > 0)
     .map((e) => ({
       "Description": `${e.quantity} ${e.asset}`,
       "Date Acquired": mmddyyyy(e.dateAcquired),

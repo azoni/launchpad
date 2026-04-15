@@ -11,6 +11,7 @@ import { db, auth } from "../lib/firebase";
 import { COLLECTIONS, PROJECT_ID } from "../lib/collections";
 import { isGuestMode } from "../lib/guestMode";
 import { localSet, localList, localSubscribe } from "./localStore";
+import { sanitize } from "./sanitize";
 import type { AuditLogEntry } from "../types";
 
 const COL = COLLECTIONS.auditLog;
@@ -37,7 +38,7 @@ export async function logAudit(entry: {
     if (isGuestMode()) {
       localSet(COL, log);
     } else {
-      await setDoc(doc(db, COL, id), log);
+      await setDoc(doc(db, COL, id), sanitize(log as unknown as Record<string, unknown>));
     }
   } catch (e) {
     // eslint-disable-next-line no-console
