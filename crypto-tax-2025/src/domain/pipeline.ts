@@ -20,7 +20,7 @@ import { replaceTaxableEvents } from "../data/taxableEvents";
 import { replaceReviewItems } from "../data/reviewItems";
 import { logAudit } from "../data/auditLog";
 import { normalizeAll } from "./normalize";
-import { fillMissingPrices } from "./priceLookup";
+import { fillMissingPrices, type PriceProgress } from "./priceLookup";
 import { classifyAll } from "./classify";
 import { runFifo } from "./basis/fifoEngine";
 import { generateReviewItems } from "./review/generate";
@@ -38,10 +38,11 @@ export interface PipelineResult {
 
 export interface PipelineOptions {
   fillPrices?: boolean;
+  onPriceProgress?: (p: PriceProgress) => void;
 }
 
 export async function runPipeline(opts?: PipelineOptions): Promise<PipelineResult> {
-  const { fillPrices = false } = opts ?? {};
+  const { fillPrices = false, onPriceProgress } = opts ?? {};
 
   // 1) Fetch raw + sources + wallets (direct reads, not subscriptions)
   const [raws, sources, wallets] = await Promise.all([
@@ -58,7 +59,7 @@ export async function runPipeline(opts?: PipelineOptions): Promise<PipelineResul
   let pricesFilled = 0;
   if (fillPrices) {
     const missingBefore = normalized.filter((t) => t.usdValue === null).length;
-    priced = await fillMissingPrices(normalized);
+    priced = await fillMissingPrices(normalized, onPriceProgress);
     const missingAfter = priced.filter((t) => t.usdValue === null).length;
     pricesFilled = missingBefore - missingAfter;
   }

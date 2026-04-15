@@ -30,7 +30,15 @@ export function OverviewPage() {
   async function handleRun(fillPrices = false) {
     setRunning(true);
     try {
-      const r = await runPipeline({ fillPrices });
+      if (fillPrices) {
+        setLastRun("Looking up prices from CoinGecko (this takes a few minutes)…");
+      }
+      const r = await runPipeline({
+        fillPrices,
+        onPriceProgress: fillPrices
+          ? (p) => setLastRun(`Pricing ${p.completed}/${p.total}: ${p.current} (${p.found} found)`)
+          : undefined,
+      });
       setLastRun(
         `Processed ${r.rawCount} raw → ${r.normalizedCount} normalized · ${r.pricesFilled} prices filled · ${r.taxableEvents} taxable events · ${r.reviewItems} review items`
       );

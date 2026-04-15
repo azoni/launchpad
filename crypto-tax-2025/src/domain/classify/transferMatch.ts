@@ -1,13 +1,17 @@
-// Transfer matching: pair an outgoing tx from one owned wallet with an incoming
-// tx into another owned wallet. Same asset, similar amount (within fee
-// tolerance), same time window. When matched, both rows get reclassified as
-// transfer_in / transfer_out (non-taxable) instead of disposals.
+// Transfer matching: pair an outgoing tx with a corresponding incoming tx.
+//
+// Strategy:
+// 1. Classic: outgoing from one owned wallet, incoming at another owned wallet
+//    (same asset, similar amount, within time window)
+// 2. Cross-platform: Coinbase "Send" matched with on-chain "Receive"
+//    (Coinbase sends have walletAddress = destination, on-chain receives
+//    have walletAddress = same destination — match by txType direction)
 
 import type { NormalizedTransaction, TransferMatch, Wallet } from "../../types";
 import { PROJECT_ID } from "../../lib/collections";
 
-const TIME_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
-const AMOUNT_TOLERANCE = 0.02; // 2% — accommodates fees
+const TIME_WINDOW_MS = 60 * 60 * 1000; // 1 hour (wider for cross-chain)
+const AMOUNT_TOLERANCE = 0.05; // 5% — accommodates fees + gas
 
 export function detectTransferMatches(
   txs: NormalizedTransaction[],
@@ -16,60 +20,64 @@ export function detectTransferMatches(
   const ownedAddresses = new Set(
     wallets.filter((w) => w.isOwned).map((w) => w.address.toLowerCase())
   );
-  if (ownedAddresses.size < 2) return [];
-
-  // Candidates: any tx with a known asset + amount + owned wallet address.
-  const candidates = txs.filter((t) => {
-    if (!t.walletAddress) return false;
-    if (!ownedAddresses.has(t.walletAddress.toLowerCase())) return false;
-    const asset = t.assetReceived ?? t.assetSent;
-    const amt = t.amountReceived ?? t.amountSent;
-    return asset && amt !== null && amt !== undefined;
-  });
 
   const matches: TransferMatch[] = [];
   const used = new Set<string>();
 
-  for (let i = 0; i < candidates.length; i++) {
-    const a = candidates[i];
-    if (used.has(a.id)) continue;
-    const aAsset = (a.assetSent ?? a.assetReceived)!;
-    const aAmt = Math.abs((a.amountSent ?? a.amountReceived ?? 0));
-    if (aAmt === 0) continue;
+  // Find all outgoing transfers (transfer_out, send)
+  const outgoing = txs.filter((t) =>
+    t.txType === "transfer_out" &&
+    !used.has(t.id) &&
+    (t.assetSent ?? t.assetReceived) &&
+    Math.abs(t.amountSent ?? t.amountReceived ?? 0) > 0
+  );
 
-    for (let j = i + 1; j < candidates.length; j++) {
-      const b = candidates[j];
-      if (used.has(b.id)) continue;
-      if (a.walletAddress?.toLowerCase() === b.walletAddress?.toLowerCase()) continue;
+  // Find all incoming transfers (transfer_in, receive)
+  const incoming = txs.filter((t) =>
+    t.txType === "transfer_in" &&
+    !used.has(t.id) &&
+    (t.assetReceived ?? t.assetSent) &&
+    Math.abs(t.amountReceived ?? t.amountSent ?? 0) > 0
+  );
 
-      const bAsset = (b.assetReceived ?? b.assetSent)!;
-      if (aAsset.toLowerCase() !== bAsset.toLowerCase()) continue;
+  for (const out of outgoing) {
+    if (used.has(out.id)) continue;
+    const outAsset = (out.assetSent ?? out.assetReceived ?? "").toLowerCase();
+    const outAmt = Math.abs(out.amountSent ?? out.amountReceived ?? 0);
+    if (!outAsset || outAmt === 0) continue;
 
-      const bAmt = Math.abs(b.amountReceived ?? b.amountSent ?? 0);
-      if (bAmt === 0) continue;
+    for (const inn of incoming) {
+      if (used.has(inn.id)) continue;
+      if (inn.id === out.id) continue;
 
-      const diff = Math.abs(aAmt - bAmt) / Math.max(aAmt, bAmt);
+      const inAsset = (inn.assetReceived ?? inn.assetSent ?? "").toLowerCase();
+      if (outAsset !== inAsset) continue;
+
+      const inAmt = Math.abs(inn.amountReceived ?? inn.amountSent ?? 0);
+      if (inAmt === 0) continue;
+
+      // Amount within tolerance
+      const diff = Math.abs(outAmt - inAmt) / Math.max(outAmt, inAmt);
       if (diff > AMOUNT_TOLERANCE) continue;
 
-      if (Math.abs(a.timestamp - b.timestamp) > TIME_WINDOW_MS) continue;
+      // Time window
+      if (Math.abs(out.timestamp - inn.timestamp) > TIME_WINDOW_MS) continue;
 
-      // We've got a candidate match.
-      const outgoingFirst = a.timestamp <= b.timestamp;
-      const out = outgoingFirst ? a : b;
-      const inn = outgoingFirst ? b : a;
+      // Must be different sources or different platforms (not the same tx counted twice)
+      if (out.sourceId === inn.sourceId && out.platform === inn.platform) continue;
 
       matches.push({
         id: crypto.randomUUID(),
         projectId: PROJECT_ID,
         outgoingTxId: out.id,
         incomingTxId: inn.id,
-        asset: aAsset,
-        amount: (aAmt + bAmt) / 2,
-        confidenceScore: diff < 0.005 ? 0.95 : 0.8,
+        asset: outAsset.toUpperCase(),
+        amount: (outAmt + inAmt) / 2,
+        confidenceScore: diff < 0.005 ? 0.95 : diff < 0.02 ? 0.85 : 0.7,
         status: "candidate",
       });
-      used.add(a.id);
-      used.add(b.id);
+      used.add(out.id);
+      used.add(inn.id);
       break;
     }
   }
