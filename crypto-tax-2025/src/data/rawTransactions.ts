@@ -56,6 +56,22 @@ export async function listAllRaw(): Promise<RawTransaction[]> {
   return snap.docs.map((d) => ({ ...(d.data() as RawTransaction), id: d.id }));
 }
 
+export async function deleteAllRaw(): Promise<void> {
+  if (isGuestMode()) {
+    localReplaceAll(COL, []);
+    return;
+  }
+  const all = await listAllRaw();
+  let toDelete = all.slice();
+  while (toDelete.length > 0) {
+    const batch = writeBatch(db);
+    const slice = toDelete.slice(0, 400);
+    for (const r of slice) batch.delete(doc(db, COL, r.id));
+    await batch.commit();
+    toDelete = toDelete.slice(400);
+  }
+}
+
 export async function deleteRawForSource(sourceId: string): Promise<void> {
   if (isGuestMode()) {
     const all = localList<RawTransaction>(COL);

@@ -8,6 +8,7 @@ import { CsvUploader } from "../components/wallets/CsvUploader";
 import { useDataSources } from "../hooks/useDataSources";
 import { deleteDataSource } from "../data/dataSources";
 import { runPipeline } from "../domain/pipeline";
+import { deleteAllRaw } from "../data/rawTransactions";
 import { bulkDeleteNormalized } from "../data/normalizedTransactions";
 import { bulkDeleteTransferMatches } from "../data/transferMatches";
 import { replaceTaxableEvents } from "../data/taxableEvents";
@@ -39,15 +40,21 @@ export function WalletsImportsPage() {
     setRunning(true);
     setMsg("Clearing all data…");
     try {
-      // Delete all sources (which also deletes their raw transactions)
-      for (const s of sources) {
-        await deleteDataSource(s.id);
-      }
-      // Wipe all derived collections
+      // Nuclear clear: wipe every collection directly
+      setMsg("Clearing raw transactions…");
+      await deleteAllRaw();
+      setMsg("Clearing normalized transactions…");
       await bulkDeleteNormalized();
+      setMsg("Clearing transfer matches…");
       await bulkDeleteTransferMatches();
+      setMsg("Clearing tax events…");
       await replaceTaxableEvents([], []);
+      setMsg("Clearing review items…");
       await replaceReviewItems([]);
+      setMsg("Clearing data sources…");
+      for (const s of sources) {
+        try { await deleteDataSource(s.id); } catch {} // may already be gone
+      }
       setMsg("All data cleared. Ready for fresh import.");
     } catch (e) {
       setMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
