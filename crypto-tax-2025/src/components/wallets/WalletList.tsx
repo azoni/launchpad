@@ -43,12 +43,17 @@ function FetchButton({ wallet }: { wallet: Wallet }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ address: wallet.address, chain: wallet.chain }),
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          throw new Error(`Etherscan fetch failed: HTTP ${res.status} — ${text.slice(0, 200)}`);
+        }
         const data = (await res.json()) as {
           ok: boolean;
           totalRows: number;
+          error?: string;
           rows: Array<Record<string, unknown>>;
         };
+        if (data.error) throw new Error(`Etherscan: ${data.error}`);
         rows = data.rows ?? [];
       }
 
@@ -59,28 +64,34 @@ function FetchButton({ wallet }: { wallet: Wallet }) {
       }
 
       setStatus("importing");
-      setDetail(`Found ${rows.length} transactions. Saving…`);
+      setDetail(`Step 1/3: Saving ${rows.length} raw rows to database…`);
 
       const sourceType: SourceType = wallet.chain === "solana" ? "solana_wallet" : "evm_wallet";
       const source = await createDataSource({
         type: sourceType,
         name: `${wallet.label} on-chain (${wallet.chain})`,
       });
+
       await bulkInsertRaw(source.id, rows);
+      setDetail(`Step 2/3: ${rows.length} rows saved. Updating source…`);
+
       await updateDataSource(source.id, {
         uploadStatus: "parsed",
         rowCount: rows.length,
       });
 
       setStatus("running_pipeline");
-      setDetail("Normalizing → pricing → classifying → FIFO → review…");
+      setDetail("Step 3/3: Running pipeline (normalize → price → classify → FIFO → review)…");
       const r = await runPipeline();
       setDetail(
-        `${rows.length} on-chain txs → ${r.normalizedCount} normalized · ${r.pricesFilled} prices filled · ${r.taxableEvents} taxable · ${r.reviewItems} to review`
+        `Done: ${rows.length} fetched → ${r.normalizedCount} normalized · ${r.pricesFilled} prices · ${r.taxableEvents} taxable · ${r.reviewItems} to review`
       );
       setStatus("done");
     } catch (e) {
-      setDetail(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      // eslint-disable-next-line no-console
+      console.error("[FetchButton] Error:", msg, e);
+      setDetail(`Error: ${msg}`);
       setStatus("error");
     }
   }

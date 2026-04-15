@@ -2,7 +2,12 @@
 // Netlify's 10-second function timeout. Calls the public Solana RPC
 // directly from the user's IP (not rate-limited like shared server IPs).
 
-const RPC_URL = "https://api.mainnet-beta.solana.com";
+// Use Helius if env var is set (configured at build time via VITE_ prefix),
+// otherwise fall back to public RPC (will fail for high-volume wallets)
+const HELIUS_KEY = import.meta.env.VITE_HELIUS_API_KEY ?? "";
+const RPC_URL = HELIUS_KEY
+  ? `https://mainnet.helius-rpc.com/?api-key=${HELIUS_KEY}`
+  : "https://api.mainnet-beta.solana.com";
 const START_2025 = Math.floor(Date.UTC(2025, 0, 1) / 1000);
 const END_2025 = Math.floor(Date.UTC(2026, 0, 1) / 1000);
 
