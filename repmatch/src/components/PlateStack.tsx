@@ -2,6 +2,7 @@ import { BAR_WEIGHT_LB, computePlatesPerSide } from '../utils/plates';
 
 interface Props {
   weightLb: number;
+  include55?: boolean;
 }
 
 const PLATE_W = 10;
@@ -13,12 +14,12 @@ const HEIGHT = 26;
 const BAR_THICKNESS = 4;
 const COLLAR_THICKNESS = 8;
 
-export default function PlateStack({ weightLb }: Props) {
+export default function PlateStack({ weightLb, include55 = false }: Props) {
   if (weightLb <= BAR_WEIGHT_LB) {
     return <div className="plate-stack-empty">Bar</div>;
   }
 
-  const plates = computePlatesPerSide(weightLb);
+  const plates = computePlatesPerSide(weightLb, { include55 });
   if (plates.length === 0) {
     return <div className="plate-stack-empty">Bar</div>;
   }

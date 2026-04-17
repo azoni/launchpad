@@ -18,11 +18,16 @@ export const PLATES: Plate[] = [
   { weight: 2.5, color: '#c0c4cc', label: '2.5', height: 7, textColor: '#1a1a1a' },
 ];
 
-export function computePlatesPerSide(totalLb: number): Plate[] {
+export interface PlateOptions {
+  include55?: boolean;
+}
+
+export function computePlatesPerSide(totalLb: number, opts: PlateOptions = {}): Plate[] {
   if (totalLb <= BAR_WEIGHT_LB) return [];
+  const available = opts.include55 ? PLATES : PLATES.filter((p) => p.weight !== 55);
   let remaining = (totalLb - BAR_WEIGHT_LB) / 2;
   const out: Plate[] = [];
-  for (const p of PLATES) {
+  for (const p of available) {
     while (remaining + 1e-9 >= p.weight) {
       out.push(p);
       remaining -= p.weight;

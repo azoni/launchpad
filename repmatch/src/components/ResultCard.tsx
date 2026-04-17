@@ -5,9 +5,10 @@ interface Props {
   result: RollResult;
   unit: 'lb' | 'kg';
   onUnitChange: (unit: 'lb' | 'kg') => void;
+  include55: boolean;
 }
 
-export default function ResultCard({ result, unit, onUnitChange }: Props) {
+export default function ResultCard({ result, unit, onUnitChange, include55 }: Props) {
   const formatWeight = (weightLb: number) => {
     if (unit === 'kg') {
       const kg = weightLb * 0.4536;
@@ -42,7 +43,7 @@ export default function ResultCard({ result, unit, onUnitChange }: Props) {
             <span className="result-lifter-weight">
               {formatWeight(l.targetWeightRounded)} <small>{u}</small>
             </span>
-            {unit === 'lb' && <PlateStack weightLb={l.targetWeightRounded} />}
+            {unit === 'lb' && <PlateStack weightLb={l.targetWeightRounded} include55={include55} />}
             <span className="result-lifter-meta">
               {l.percentOfMax.toFixed(0)}% &middot; {formatWeight(Math.round(l.oneRepMax))} {u} max
             </span>

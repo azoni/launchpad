@@ -34,7 +34,23 @@ export default function App() {
   const [unit, setUnit] = useState<'lb' | 'kg'>('lb');
   const [isRolling, setIsRolling] = useState(false);
   const [rollSeed, setRollSeed] = useState(0);
+  const [include55, setInclude55] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('repmatch_include55') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const rollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleInclude55Change = useCallback((value: boolean) => {
+    setInclude55(value);
+    try {
+      localStorage.setItem('repmatch_include55', String(value));
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -108,7 +124,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header />
+      <Header include55={include55} onInclude55Change={handleInclude55Change} />
       <main className="main">
         <div className="container">
           <LifterForm
@@ -131,7 +147,13 @@ export default function App() {
             </div>
           )}
           {results.map((r) => (
-            <ResultCard key={r.targetReps} result={r} unit={unit} onUnitChange={setUnit} />
+            <ResultCard
+              key={r.targetReps}
+              result={r}
+              unit={unit}
+              onUnitChange={setUnit}
+              include55={include55}
+            />
           ))}
         </div>
       </main>

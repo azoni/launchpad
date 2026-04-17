@@ -85,6 +85,115 @@ h1, h2, h3, h4 {
   gap: 10px;
 }
 
+.header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.header-settings {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.btn-settings {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-settings:hover,
+.btn-settings[aria-expanded="true"] {
+  color: var(--text);
+  border-color: var(--border);
+  background: var(--surface-2);
+}
+
+.settings-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  min-width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: slideIn 0.15s ease-out;
+}
+
+.settings-panel .section-label {
+  margin-bottom: 8px;
+}
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 4px 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.settings-toggle input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settings-toggle-track {
+  width: 34px;
+  height: 20px;
+  background: var(--border);
+  border-radius: 999px;
+  position: relative;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.settings-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.15s;
+}
+
+.settings-toggle input:checked + .settings-toggle-track {
+  background: var(--accent);
+}
+
+.settings-toggle input:checked + .settings-toggle-track .settings-toggle-thumb {
+  transform: translateX(14px);
+}
+
+.settings-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.settings-toggle-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
 .header-icon {
   width: 28px;
   height: 28px;
