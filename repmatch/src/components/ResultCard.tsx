@@ -38,16 +38,14 @@ export default function ResultCard({ result, unit, onUnitChange }: Props) {
               animationDelay: `${i * 0.06}s`,
             }}
           >
-            <div className="result-lifter-row">
-              <span className="result-lifter-label" style={{ color: l.color }}>{l.label}</span>
-              <span className="result-lifter-weight">
-                {formatWeight(l.targetWeightRounded)} <small>{u}</small>
-              </span>
-              <span className="result-lifter-meta">
-                {l.percentOfMax.toFixed(0)}% &middot; {formatWeight(Math.round(l.oneRepMax))} {u} max
-              </span>
-            </div>
+            <span className="result-lifter-label" style={{ color: l.color }}>{l.label}</span>
+            <span className="result-lifter-weight">
+              {formatWeight(l.targetWeightRounded)} <small>{u}</small>
+            </span>
             {unit === 'lb' && <PlateStack weightLb={l.targetWeightRounded} />}
+            <span className="result-lifter-meta">
+              {l.percentOfMax.toFixed(0)}% &middot; {formatWeight(Math.round(l.oneRepMax))} {u} max
+            </span>
           </li>
         ))}
       </ul>

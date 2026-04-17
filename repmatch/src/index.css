@@ -390,20 +390,13 @@ input::placeholder {
 
 .result-lifter {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
   padding: 10px 12px;
   border-left: 4px solid var(--border);
   background: var(--surface-2);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   margin-bottom: 4px;
-}
-
-.result-lifter-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .result-lifter-label {
@@ -436,11 +429,16 @@ input::placeholder {
 }
 
 /* ── Dice ──────────────────────────────────────────── */
+.rolling-section {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
 .dice-container {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  margin-top: 14px;
+  gap: 14px;
   perspective: 600px;
 }
 
@@ -474,7 +472,8 @@ input::placeholder {
 .plate-stack {
   display: flex;
   align-items: center;
-  padding: 2px 0 0 4px;
+  flex-shrink: 1;
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -493,17 +492,15 @@ input::placeholder {
 }
 
 .plate-stack-empty {
-  align-self: flex-start;
   font-family: var(--font-heading);
-  font-size: 0.62rem;
-  letter-spacing: 0.1em;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
   border: 1px dashed var(--border);
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: 999px;
-  margin-top: 4px;
-  margin-left: 4px;
+  white-space: nowrap;
 }
 
 /* ── Result Footer ─────────────────────────────────── */

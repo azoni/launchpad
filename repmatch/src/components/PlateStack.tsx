@@ -4,23 +4,23 @@ interface Props {
   weightLb: number;
 }
 
-const PLATE_W = 12;
+const PLATE_W = 10;
 const PLATE_GAP = 2;
-const BAR_STUB_W = 20;
-const COLLAR_W = 6;
-const SLEEVE_CAP_W = 4;
-const HEIGHT = 44;
-const BAR_THICKNESS = 6;
-const COLLAR_THICKNESS = 10;
+const BAR_STUB_W = 14;
+const COLLAR_W = 4;
+const SLEEVE_CAP_W = 3;
+const HEIGHT = 26;
+const BAR_THICKNESS = 4;
+const COLLAR_THICKNESS = 8;
 
 export default function PlateStack({ weightLb }: Props) {
   if (weightLb <= BAR_WEIGHT_LB) {
-    return <div className="plate-stack-empty">Bar Only</div>;
+    return <div className="plate-stack-empty">Bar</div>;
   }
 
   const plates = computePlatesPerSide(weightLb);
   if (plates.length === 0) {
-    return <div className="plate-stack-empty">Bar Only</div>;
+    return <div className="plate-stack-empty">Bar</div>;
   }
 
   const platesWidth = plates.length * PLATE_W + (plates.length - 1) * PLATE_GAP;
@@ -57,7 +57,7 @@ export default function PlateStack({ weightLb }: Props) {
         {plates.map((p, i) => {
           const x = BAR_STUB_W + COLLAR_W + i * (PLATE_W + PLATE_GAP);
           const y = midY - p.height / 2;
-          const fontSize = p.label.length > 2 ? 6.5 : 8.5;
+          const fontSize = p.label.length > 2 ? 5 : 6.5;
           return (
             <g key={i}>
               <rect
@@ -65,7 +65,7 @@ export default function PlateStack({ weightLb }: Props) {
                 y={y}
                 width={PLATE_W}
                 height={p.height}
-                rx={2}
+                rx={1.5}
                 fill={p.color}
                 stroke="rgba(0,0,0,0.25)"
                 strokeWidth={0.5}

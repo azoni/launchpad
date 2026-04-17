@@ -1,11 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { LifterInput, RollResult } from './types';
 import { calculate1RM, weightForReps, roundToNearest, randomRep, LIFTER_COLORS, LIFTER_LABELS } from './utils/epley';
 import Header from './components/Header';
 import LifterForm from './components/LifterForm';
 import ResultCard from './components/ResultCard';
+import Dice from './components/Dice';
 import Footer from './components/Footer';
 import './index.css';
+
+const ROLL_DELAY_MS = 750;
 
 let nextId = 1;
 function makeLifter(): LifterInput {
@@ -29,6 +32,15 @@ export default function App() {
   const [numOptions, setNumOptions] = useState<number>(1);
   const [results, setResults] = useState<RollResult[]>([]);
   const [unit, setUnit] = useState<'lb' | 'kg'>('lb');
+  const [isRolling, setIsRolling] = useState(false);
+  const [rollSeed, setRollSeed] = useState(0);
+  const rollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (rollTimerRef.current) clearTimeout(rollTimerRef.current);
+    };
+  }, []);
 
   const handleLifterChange = useCallback(
     (id: string, field: 'weight' | 'reps', value: string) => {
@@ -84,7 +96,14 @@ export default function App() {
       return { targetReps, lifters: lifterResults };
     });
 
-    setResults(rollResults);
+    setResults([]);
+    setIsRolling(true);
+    setRollSeed((s) => s + 1);
+    if (rollTimerRef.current) clearTimeout(rollTimerRef.current);
+    rollTimerRef.current = setTimeout(() => {
+      setResults(rollResults);
+      setIsRolling(false);
+    }, ROLL_DELAY_MS);
   }, [lifters, repMin, repMax, numOptions]);
 
   return (
@@ -104,8 +123,13 @@ export default function App() {
             onRepMaxChange={(v) => setRepMax(v === '' ? '' : Number(v))}
             onNumOptionsChange={setNumOptions}
             onRoll={handleRoll}
-            hasResult={results.length > 0}
+            hasResult={results.length > 0 || isRolling}
           />
+          {isRolling && (
+            <div className="rolling-section">
+              <Dice key={rollSeed} />
+            </div>
+          )}
           {results.map((r) => (
             <ResultCard key={r.targetReps} result={r} unit={unit} onUnitChange={setUnit} />
           ))}

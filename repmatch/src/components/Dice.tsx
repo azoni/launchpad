@@ -1,9 +1,3 @@
-import { useEffect, useState } from 'react';
-
-interface Props {
-  rollCount: number;
-}
-
 type Face = 1 | 2 | 3 | 4 | 5 | 6;
 
 const PIP_POSITIONS: Record<Face, [number, number][]> = {
@@ -35,18 +29,12 @@ function Die({ face, delay }: { face: Face; delay: number }) {
   );
 }
 
-export default function Dice({ rollCount }: Props) {
-  const [faces, setFaces] = useState<[Face, Face]>([randomFace(), randomFace()]);
-
-  useEffect(() => {
-    if (rollCount === 0) return;
-    setFaces([randomFace(), randomFace()]);
-  }, [rollCount]);
-
+export default function Dice() {
+  const [a, b] = [randomFace(), randomFace()];
   return (
-    <div className="dice-container" key={rollCount}>
-      <Die face={faces[0]} delay={0} />
-      <Die face={faces[1]} delay={80} />
+    <div className="dice-container">
+      <Die face={a} delay={0} />
+      <Die face={b} delay={80} />
     </div>
   );
 }
