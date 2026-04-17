@@ -1,13 +1,12 @@
 export interface LifterInput {
   id: string;
-  name: string;
   weight: number | '';
   reps: number | '';
 }
 
 export interface LifterResult {
   id: string;
-  name: string;
+  label: string;
   oneRepMax: number;
   targetWeight: number;
   targetWeightRounded: number;

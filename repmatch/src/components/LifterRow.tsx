@@ -1,32 +1,25 @@
 import type { LifterInput } from '../types';
-import { LIFTER_COLORS } from '../utils/epley';
+import { LIFTER_COLORS, LIFTER_LABELS } from '../utils/epley';
 
 interface Props {
   lifter: LifterInput;
   index: number;
   canRemove: boolean;
-  onChange: (id: string, field: keyof LifterInput, value: string) => void;
+  onChange: (id: string, field: 'weight' | 'reps', value: string) => void;
   onRemove: (id: string) => void;
 }
 
 export default function LifterRow({ lifter, index, canRemove, onChange, onRemove }: Props) {
   const color = LIFTER_COLORS[index % LIFTER_COLORS.length];
+  const label = LIFTER_LABELS[index % LIFTER_LABELS.length];
 
   return (
     <div className="lifter-row">
-      <span className="lifter-color-dot" style={{ background: color }} />
-      <div className="input-name">
-        <input
-          type="text"
-          placeholder={`Lifter ${index + 1}`}
-          value={lifter.name}
-          onChange={(e) => onChange(lifter.id, 'name', e.target.value)}
-        />
-      </div>
+      <span className="lifter-label" style={{ color }}>{label}</span>
       <div className="input-weight">
         <input
           type="number"
-          placeholder="Weight"
+          placeholder="Wt"
           inputMode="decimal"
           min={0}
           value={lifter.weight}
@@ -37,7 +30,7 @@ export default function LifterRow({ lifter, index, canRemove, onChange, onRemove
       <div className="input-reps">
         <input
           type="number"
-          placeholder="Reps"
+          placeholder="1"
           inputMode="numeric"
           min={1}
           max={100}

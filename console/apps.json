@@ -1,0 +1,37 @@
+[
+  {
+    "name": "MeepleMatch",
+    "slug": "meeplematch",
+    "description": "Board game discovery with swipe-based voting. Swipe through curated games, get personalized recommendations, buy on Amazon.",
+    "url": "https://meeplematch.netlify.app",
+    "tags": ["Next.js", "Firebase", "Amazon API"]
+  },
+  {
+    "name": "Black Diamond Alpine Wash",
+    "slug": "blackdiamond",
+    "description": "Exterior cleaning company site with service pages, quote request form, and local SEO.",
+    "url": "https://blackdiamond-alpine-wash.netlify.app",
+    "tags": ["Next.js", "Firebase"]
+  },
+  {
+    "name": "Benchmark",
+    "slug": "benchmark",
+    "description": "Turn any achievement into a bench press max. A memeable, shareable universal achievement-to-bench-press translator powered by AI.",
+    "url": "https://benchmark-app-azoni.netlify.app",
+    "tags": ["React", "Vite", "Claude API", "Netlify Functions"]
+  },
+  {
+    "name": "RepMatch",
+    "slug": "repmatch",
+    "description": "Workout rep equivalence calculator. Input your max, roll a random rep count, and compete with friends at equal effort.",
+    "url": "https://repmatch-app.netlify.app",
+    "tags": ["React", "Vite", "Fitness"]
+  },
+  {
+    "name": "Crypto Tax 2025",
+    "slug": "crypto-tax-2025",
+    "description": "Personal 2025 crypto tax reconstruction. Wallet-first imports, deterministic FIFO, audit-ready exports for TurboTax. Single-user, auth-gated.",
+    "url": "https://crypto-tax-2025.netlify.app",
+    "tags": ["React", "Vite", "Firebase", "Claude API", "Personal"]
+  }
+]

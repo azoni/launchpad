@@ -28,6 +28,9 @@ export function randomRep(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+/** Lifter labels. */
+export const LIFTER_LABELS = ['A', 'B', 'C', 'D', 'E'];
+
 /** Lifter colors — persistent by index. */
 export const LIFTER_COLORS = [
   '#e63946', // red

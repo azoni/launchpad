@@ -1,4 +1,5 @@
 import type { RollResult } from '../types';
+import PlateStack from './PlateStack';
 
 interface Props {
   result: RollResult;
@@ -15,28 +16,16 @@ export default function ResultCard({ result, unit, onUnitChange }: Props) {
     return weightLb;
   };
 
-  const unitLabel = unit === 'lb' ? 'lb' : 'kg';
+  const u = unit;
 
   return (
     <div className="card result-section">
       <div className="result-header">
-        <div className="result-reps-label">Do this many</div>
         <div className="result-reps animate-in">{result.targetReps}</div>
         <div className="result-reps-label">reps</div>
         {result.targetReps > 20 && (
-          <p className="result-disclaimer">
-            Estimates less precise above 20 reps
-          </p>
+          <p className="result-disclaimer">Estimates less precise above 20 reps</p>
         )}
-      </div>
-
-      <div className="onerm-summary">
-        {result.lifters.map((l) => (
-          <span key={l.id} className="onerm-item">
-            <span className="onerm-dot" style={{ background: l.color }} />
-            {l.name}: {formatWeight(Math.round(l.oneRepMax))} {unitLabel} 1RM
-          </span>
-        ))}
       </div>
 
       <ul className="result-list">
@@ -46,18 +35,19 @@ export default function ResultCard({ result, unit, onUnitChange }: Props) {
             className="result-lifter animate-in"
             style={{
               borderLeftColor: l.color,
-              animationDelay: `${i * 0.08}s`,
+              animationDelay: `${i * 0.06}s`,
             }}
           >
-            <span className="result-lifter-name">{l.name}</span>
-            <span className="result-lifter-right">
+            <div className="result-lifter-row">
+              <span className="result-lifter-label" style={{ color: l.color }}>{l.label}</span>
               <span className="result-lifter-weight">
-                {formatWeight(l.targetWeightRounded)} {unitLabel}
+                {formatWeight(l.targetWeightRounded)} <small>{u}</small>
               </span>
-              <span className="result-lifter-percent">
-                {l.percentOfMax.toFixed(0)}%
+              <span className="result-lifter-meta">
+                {l.percentOfMax.toFixed(0)}% &middot; {formatWeight(Math.round(l.oneRepMax))} {u} max
               </span>
-            </span>
+            </div>
+            {unit === 'lb' && <PlateStack weightLb={l.targetWeightRounded} />}
           </li>
         ))}
       </ul>
