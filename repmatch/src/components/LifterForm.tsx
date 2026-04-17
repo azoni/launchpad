@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import type { LifterInput } from '../types';
 import LifterRow from './LifterRow';
+import Dice from './Dice';
 
 interface Props {
   lifters: LifterInput[];
@@ -30,6 +32,13 @@ export default function LifterForm({
   onRoll,
   hasResult,
 }: Props) {
+  const [rollCount, setRollCount] = useState(0);
+
+  const handleRollClick = () => {
+    setRollCount((c) => c + 1);
+    onRoll();
+  };
+
   return (
     <div className="card lifter-section">
       <div className="section-row">
@@ -90,9 +99,10 @@ export default function LifterForm({
         </div>
       </div>
 
-      <button className="btn btn-primary btn-roll" onClick={onRoll}>
+      <button className="btn btn-primary btn-roll" onClick={handleRollClick}>
         {hasResult ? 'Re-roll' : 'Roll'}
       </button>
+      {rollCount > 0 && <Dice rollCount={rollCount} />}
     </div>
   );
 }
