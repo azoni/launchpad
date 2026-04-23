@@ -1,0 +1,26 @@
+# PyroGuard
+
+> PyroGuard is a mobile-first fire alarm and life-safety inspection platform for commercial inspection contractors. Device-level inventory, guided NFPA workflows, route optimization, AI-assisted deficiency drafting, and AHJ-ready PDF reports.
+
+## Pages
+
+- [/ — Home](https://pyroguard-demo.netlify.app/): product overview, "Try Demo" sandbox, feature summary
+- [/pricing](https://pyroguard-demo.netlify.app/pricing): tiered plans for solo techs, shops, and enterprise contractors
+- [/standards](https://pyroguard-demo.netlify.app/standards): overview of NFPA standards PyroGuard's workflows cover (NFPA 72, 25, 10, 17/17A, 96, 101, IFC Ch 9)
+
+## App
+
+- [/app](https://pyroguard-demo.netlify.app/app): authenticated inspection workspace — Dashboard, Jobs, Inspect, AI Assistant, Reports
+
+## Key features
+
+- Device-level inventory per building, per panel, with install-age warnings
+- Swipe Pass/Fail inspection UX with required photos on Fail
+- Signature capture, geo-tagging, and offline Firestore persistence
+- Claude-powered AI assistant for code lookup, deficiency drafting, and report narratives
+- Route optimization across Seattle inspection stops via Mapbox Directions
+- NFPA 72 Chapter 14 record-of-completion PDF reports
+
+## Disclaimer
+
+PyroGuard supports but does not replace the judgment of a NICET-certified inspector. All NFPA and IFC citations must be verified against current standards.

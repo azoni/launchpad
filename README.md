@@ -12,6 +12,7 @@ A monorepo of independent web apps, each built and deployed from a single prompt
 | [benchmark](./benchmark/) | Turn any achievement into a bench press max | [benchmark-app-azoni.netlify.app](https://benchmark-app-azoni.netlify.app) |
 | [repmatch](./repmatch/) | Workout rep equivalence calculator for competing with friends | [repmatch-app.netlify.app](https://repmatch-app.netlify.app) |
 | [crypto-tax-2025](./crypto-tax-2025/) | Personal 2025 crypto tax reconstruction with FIFO + review queue | [crypto-tax-2025.netlify.app](https://crypto-tax-2025.netlify.app) |
+| [pyroguard](./pyroguard/) | Mobile-first fire/life-safety inspection platform for commercial inspection contractors | [pyroguard-demo.netlify.app](https://pyroguard-demo.netlify.app) |
 
 ## How It Works
 
