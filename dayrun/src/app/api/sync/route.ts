@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
   let events;
   try {
-    events = await fetchEvents(body.accessToken, { back: 1, forward: 14 });
+    events = await fetchEvents(body.accessToken, { back: 30, forward: 30 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "calendar fetch failed";
     return NextResponse.json({ error: msg }, { status: 502 });

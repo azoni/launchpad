@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   collection,
   doc,
@@ -10,21 +10,26 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
+import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { useAuthUser, signInWithGoogle, signOut } from "@/lib/auth";
 import { SignInWithGoogle } from "@/components/SignInWithGoogle";
-import { WeekView } from "@/components/WeekView";
-import { COLLECTIONS, type EventDoc, type UserDoc } from "@/lib/firebase/collections";
+import { TimelineView } from "@/components/TimelineView";
+import {
+  COLLECTIONS,
+  type EventDoc,
+  type UserDoc,
+} from "@/lib/firebase/collections";
 
 export default function AppPage() {
   const { user, loading } = useAuthUser();
   const [profile, setProfile] = useState<UserDoc | null>(null);
   const [events, setEvents] = useState<EventDoc[]>([]);
   const [syncing, setSyncing] = useState(false);
-  const [syncError, setSyncError] = useState<string | null>(null);
+  const [bulkPending, setBulkPending] = useState<"public" | "private" | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
 
-  // Subscribe to profile + events when signed in.
   useEffect(() => {
     if (!user) {
       setProfile(null);
@@ -45,9 +50,7 @@ export default function AppPage() {
     });
     const unsubEvents = onSnapshot(
       query(collection(db, COLLECTIONS.events(user.uid)), orderBy("start", "asc")),
-      (snap) => {
-        setEvents(snap.docs.map((d) => d.data() as EventDoc));
-      },
+      (snap) => setEvents(snap.docs.map((d) => d.data() as EventDoc)),
     );
     return () => {
       cancelled = true;
@@ -56,15 +59,22 @@ export default function AppPage() {
     };
   }, [user]);
 
+  const stats = useMemo(() => {
+    const now = Date.now();
+    const upcoming = events.filter((e) => new Date(e.start).getTime() >= now - 86400_000);
+    const publicCount = events.filter((e) => e.isPublic).length;
+    return { total: events.length, upcoming: upcoming.length, public: publicCount };
+  }, [events]);
+
   const runSync = useCallback(
     async (accessToken: string | null) => {
       if (!user) return;
       if (!accessToken) {
-        setSyncError("No Google access token. Try signing in again.");
+        setError("No Google access token. Try signing in again.");
         return;
       }
       setSyncing(true);
-      setSyncError(null);
+      setError(null);
       try {
         const idToken = await user.getIdToken();
         const res = await fetch("/api/sync", {
@@ -75,12 +85,9 @@ export default function AppPage() {
           },
           body: JSON.stringify({ accessToken }),
         });
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || `HTTP ${res.status}`);
-        }
+        if (!res.ok) throw new Error(await res.text());
       } catch (e) {
-        setSyncError(e instanceof Error ? e.message : "Sync failed");
+        setError(e instanceof Error ? e.message : "Sync failed");
       } finally {
         setSyncing(false);
       }
@@ -89,32 +96,59 @@ export default function AppPage() {
   );
 
   async function handleSyncClick() {
-    setSyncError(null);
+    setError(null);
     try {
       const { accessToken } = await signInWithGoogle();
       await runSync(accessToken);
     } catch (e) {
-      setSyncError(e instanceof Error ? e.message : "Sync failed");
+      setError(e instanceof Error ? e.message : "Sync failed");
     }
   }
 
-  async function toggleVisibility(eventId: string, next: boolean) {
+  async function toggleOne(eventId: string, next: boolean) {
     if (!user) return;
     const idToken = await user.getIdToken();
     const res = await fetch("/api/event/visibility", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
       body: JSON.stringify({ eventId, isPublic: next }),
     });
     if (!res.ok) throw new Error(await res.text());
   }
 
-  if (loading) {
-    return <div className="chunky p-8">Loading…</div>;
+  async function toggleMany(ids: string[], next: boolean) {
+    if (!user || ids.length === 0) return;
+    const idToken = await user.getIdToken();
+    const res = await fetch("/api/events/bulk-visibility", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ ids, isPublic: next }),
+    });
+    if (!res.ok) throw new Error(await res.text());
   }
+
+  async function bulkAll(scope: "upcoming" | "all", next: boolean) {
+    if (!user) return;
+    const setKind = next ? "public" : "private";
+    setBulkPending(setKind);
+    setError(null);
+    try {
+      const now = Date.now();
+      const ids =
+        scope === "upcoming"
+          ? events
+              .filter((e) => new Date(e.start).getTime() >= now - 86400_000)
+              .map((e) => e.googleEventId)
+          : events.map((e) => e.googleEventId);
+      await toggleMany(ids, next);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Bulk update failed");
+    } finally {
+      setBulkPending(null);
+    }
+  }
+
+  if (loading) return <div className="chunky p-8">Loading…</div>;
 
   if (!user) {
     return (
@@ -122,16 +156,16 @@ export default function AppPage() {
         <div className="space-y-4">
           <h1 className="font-heading text-4xl md:text-5xl font-bold">Sign in to DayRun</h1>
           <p className="text-muted-foreground text-lg">
-            We use Google Sign-In to read your Calendar. Read-only. Nothing is public unless you flip
-            the toggle.
+            Read-only access to your Google Calendar. Nothing public unless you flip the toggle.
           </p>
           <SignInWithGoogle onSignedIn={runSync} />
         </div>
         <div className="chunky chunky-sun p-5">
           <p className="font-heading text-xl mb-2">Heads up</p>
           <p className="text-sm text-muted-foreground">
-            On first sign-in you&apos;ll grant calendar access. The popup may say &quot;unverified&quot; while we&apos;re
-            still in OAuth test mode — go ahead and continue if you trust this build.
+            On the first sign-in Google will show an &ldquo;unverified&rdquo; warning — that&apos;s expected
+            while we&apos;re in OAuth test mode. Click <strong>Advanced → Go to DayRun (unsafe)</strong>{" "}
+            to continue.
           </p>
         </div>
       </div>
@@ -142,8 +176,9 @@ export default function AppPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-1 min-w-0">
           <h1 className="font-heading text-4xl md:text-5xl font-bold">
             Hi, {user.displayName?.split(" ")[0] ?? "there"} 👋
           </h1>
@@ -152,9 +187,10 @@ export default function AppPage() {
               Your public profile:{" "}
               <Link
                 href={`/u/${profile!.username}`}
+                target="_blank"
                 className="underline decoration-2 underline-offset-4 hover:text-ink font-semibold"
               >
-                /u/{profile!.username}
+                /u/{profile!.username} ↗
               </Link>
             </p>
           ) : (
@@ -168,9 +204,6 @@ export default function AppPage() {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={handleSyncClick} disabled={syncing} className="btn-chunky">
-            {syncing ? "Syncing…" : events.length === 0 ? "Sync calendar →" : "Re-sync"}
-          </button>
           <Link href="/app/settings" className="btn-chunky btn-ghost">
             Settings
           </Link>
@@ -180,23 +213,65 @@ export default function AppPage() {
         </div>
       </div>
 
-      {syncError && (
+      {/* Action bar */}
+      <div className="chunky p-4 md:p-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <button onClick={handleSyncClick} disabled={syncing} className="btn-chunky">
+            <RefreshCw size={16} className={syncing ? "animate-spin" : ""} />
+            {syncing ? "Syncing…" : events.length === 0 ? "Sync calendar" : "Re-sync"}
+          </button>
+
+          {events.length > 0 && (
+            <>
+              <span className="text-sm text-muted-foreground font-mono">
+                {stats.upcoming} upcoming · {stats.public} public
+              </span>
+              <span className="flex-1" />
+              <button
+                onClick={() => bulkAll("upcoming", true)}
+                disabled={!!bulkPending}
+                className="btn-chunky btn-sun text-sm py-2 px-3"
+                title="Mark every upcoming event public"
+              >
+                <Eye size={14} />
+                {bulkPending === "public" ? "…" : "Share upcoming"}
+              </button>
+              <button
+                onClick={() => bulkAll("all", false)}
+                disabled={!!bulkPending}
+                className="btn-chunky btn-ghost text-sm py-2 px-3"
+                title="Mark every event private"
+              >
+                <EyeOff size={14} />
+                {bulkPending === "private" ? "…" : "Hide all"}
+              </button>
+            </>
+          )}
+        </div>
+        {profile?.lastSyncedAt && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Last synced {new Date(profile.lastSyncedAt).toLocaleString()}
+          </p>
+        )}
+      </div>
+
+      {error && (
         <div className="chunky p-4 border-red-700 text-red-700 bg-red-50">
-          <p className="font-semibold">Sync error</p>
-          <p className="text-sm">{syncError}</p>
+          <p className="font-semibold">Something went wrong</p>
+          <p className="text-sm break-all">{error}</p>
         </div>
       )}
 
       {bootstrapped && (
-        <WeekView
+        <TimelineView
           events={events}
           editable
-          onToggleVisibility={toggleVisibility}
+          actions={{ toggleOne, toggleMany }}
           emptyState={
             <div className="space-y-3">
-              <p className="font-heading text-xl">No events synced yet.</p>
+              <p className="font-heading text-2xl">No events synced yet.</p>
               <p className="text-muted-foreground">
-                Hit <strong>Sync calendar</strong> above to pull in the next two weeks.
+                Hit <strong>Sync calendar</strong> above to pull in the last 30 days and the next 30 days.
               </p>
             </div>
           }
