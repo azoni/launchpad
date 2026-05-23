@@ -259,40 +259,42 @@ export default function AppPage() {
       </div>
 
       {/* Action bar */}
-      <div className="chunky p-4 md:p-5 space-y-3">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <button onClick={handleSyncClick} disabled={syncing} className="btn-chunky">
-            <RefreshCw size={16} className={syncing ? "animate-spin" : ""} />
-            {syncing ? "Syncing…" : events.length === 0 ? "Sync calendar" : "Re-sync"}
-          </button>
+      <div className="chunky p-4 md:p-5 space-y-2">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={handleSyncClick} disabled={syncing} className="btn-chunky">
+              <RefreshCw size={16} className={syncing ? "animate-spin" : ""} />
+              {syncing ? "Syncing…" : events.length === 0 ? "Sync calendar" : "Re-sync"}
+            </button>
+            {events.length > 0 && (
+              <>
+                <button
+                  onClick={() => bulkAll("upcoming", true)}
+                  disabled={!!bulkPending}
+                  className="btn-chunky btn-sun text-sm py-2 px-3"
+                  title="Mark every upcoming event public"
+                >
+                  <Eye size={14} />
+                  {bulkPending === "public" ? "…" : "Share upcoming"}
+                </button>
+                <button
+                  onClick={() => bulkAll("all", false)}
+                  disabled={!!bulkPending}
+                  className="btn-chunky btn-ghost text-sm py-2 px-3"
+                  title="Mark every event private"
+                >
+                  <EyeOff size={14} />
+                  {bulkPending === "private" ? "…" : "Hide all"}
+                </button>
+              </>
+            )}
+          </div>
           {events.length > 0 && (
             <span className="text-xs sm:text-sm text-muted-foreground font-mono">
               {stats.upcoming} upcoming · {stats.public} public
             </span>
           )}
         </div>
-        {events.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => bulkAll("upcoming", true)}
-              disabled={!!bulkPending}
-              className="btn-chunky btn-sun text-sm py-2 px-3 flex-1 sm:flex-initial"
-              title="Mark every upcoming event public"
-            >
-              <Eye size={14} />
-              {bulkPending === "public" ? "…" : "Share upcoming"}
-            </button>
-            <button
-              onClick={() => bulkAll("all", false)}
-              disabled={!!bulkPending}
-              className="btn-chunky btn-ghost text-sm py-2 px-3 flex-1 sm:flex-initial"
-              title="Mark every event private"
-            >
-              <EyeOff size={14} />
-              {bulkPending === "private" ? "…" : "Hide all"}
-            </button>
-          </div>
-        )}
         {profile?.lastSyncedAt && (
           <p className="text-xs text-muted-foreground">
             Last synced {new Date(profile.lastSyncedAt).toLocaleString()}

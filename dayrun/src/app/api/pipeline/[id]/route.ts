@@ -3,7 +3,10 @@ import { adminDb } from "@/lib/firebase/admin";
 import { verifyUid } from "@/lib/api/auth";
 import {
   COLLECTIONS,
+  LOCATION_TYPES,
   OPPORTUNITY_STATUSES,
+  type Compensation,
+  type LocationType,
   type OpportunityDoc,
   type OpportunityStatus,
   type Contact,
@@ -17,6 +20,25 @@ function sanitizeStatus(s: unknown): OpportunityStatus | undefined {
   return (OPPORTUNITY_STATUSES as readonly string[]).includes(s as string)
     ? (s as OpportunityStatus)
     : undefined;
+}
+
+function sanitizeLocation(s: unknown): LocationType | null | undefined {
+  if (s === null || s === "") return null;
+  return (LOCATION_TYPES as readonly string[]).includes(s as string)
+    ? (s as LocationType)
+    : undefined;
+}
+
+function sanitizeCompensation(c: unknown): Compensation | undefined {
+  if (!c || typeof c !== "object") return undefined;
+  const obj = c as Record<string, unknown>;
+  const safe = (v: unknown) =>
+    typeof v === "string" ? v.trim().slice(0, 500) : "";
+  return {
+    base: safe(obj.base),
+    equity: safe(obj.equity),
+    other: safe(obj.other),
+  };
 }
 
 function clean(s: unknown, max = 2000): string | null {
@@ -81,6 +103,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if ("link" in body) safeUpdate.link = clean(body.link, 1000);
   if ("nextStep" in body) safeUpdate.nextStep = clean(body.nextStep, 500);
   if ("nextStepBy" in body) safeUpdate.nextStepBy = clean(body.nextStepBy, 40);
+  if ("locationType" in body) {
+    const v = sanitizeLocation(body.locationType);
+    if (v !== undefined) safeUpdate.locationType = v;
+  }
   const isPublicChanging = "isPublic" in body;
   const newIsPublic = body.isPublic === true;
   if (isPublicChanging) safeUpdate.isPublic = newIsPublic;
@@ -112,6 +138,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if ("contacts" in body) {
     const c = sanitizeContacts(body.contacts);
     if (c) privateUpdate.contacts = c;
+  }
+  if ("compensation" in body) {
+    const c = sanitizeCompensation(body.compensation);
+    if (c) privateUpdate.compensation = c;
   }
   if (Object.keys(privateUpdate).length > 0) {
     await adminDb

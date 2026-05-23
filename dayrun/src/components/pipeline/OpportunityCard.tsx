@@ -65,8 +65,13 @@ export function OpportunityCard({
             )}
           </p>
         )}
+        {opp.locationType && (
+          <p className="text-xs text-muted-foreground mt-1.5">
+            📍 {opp.locationType}
+          </p>
+        )}
         {opp.source && (
-          <p className="text-xs text-muted-foreground mt-2">via {opp.source}</p>
+          <p className="text-xs text-muted-foreground mt-1">via {opp.source}</p>
         )}
         {opp.link && (
           <p className="text-xs mt-1">

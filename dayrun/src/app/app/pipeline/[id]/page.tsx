@@ -15,9 +15,12 @@ import { db } from "@/lib/firebase/client";
 import { useAuthUser } from "@/lib/auth";
 import {
   COLLECTIONS,
+  LOCATION_TYPES,
   OPPORTUNITY_STATUSES,
+  type Compensation,
   type Contact,
   type EventDoc,
+  type LocationType,
   type OpportunityDoc,
   type OpportunityPrivateDoc,
   type OpportunityStatus,
@@ -62,6 +65,7 @@ export default function OpportunityDetailPage(props: PageProps) {
           feedback: d.feedback ?? "",
           contacts: d.contacts ?? [],
           brief: d.brief ?? null,
+          compensation: d.compensation ?? null,
         });
       }
     });
@@ -278,6 +282,25 @@ export default function OpportunityDetailPage(props: PageProps) {
               onSave={(v) => patch({ nextStepBy: v }, "nextStepBy")}
             />
           </FieldLabel>
+          <FieldLabel label="Location (shown publicly)">
+            <select
+              value={opp.locationType ?? ""}
+              onChange={(e) =>
+                patch(
+                  { locationType: (e.target.value || null) as LocationType | null },
+                  "locationType",
+                )
+              }
+              className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card"
+            >
+              <option value="">— unspecified —</option>
+              {LOCATION_TYPES.map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </FieldLabel>
         </div>
 
         {savedAt && (
@@ -317,6 +340,20 @@ export default function OpportunityDetailPage(props: PageProps) {
             rows={10}
           />
         </div>
+      </section>
+
+      {/* Compensation (private) */}
+      <section className="chunky p-4">
+        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+          <h2 className="font-heading text-xl font-bold">Compensation</h2>
+          <span className="inline-flex items-center gap-1 text-[0.7rem] text-muted-foreground font-semibold">
+            <EyeOff size={11} /> private
+          </span>
+        </div>
+        <CompensationEditor
+          initial={priv.compensation ?? { base: "", equity: "", other: "" }}
+          onSave={(c) => patch({ compensation: c }, "compensation")}
+        />
       </section>
 
       {/* Contacts */}
@@ -485,6 +522,69 @@ function NotesEditor({
         {savingHint ? "saving…" : local === initial ? "saved" : ""}
       </p>
     </>
+  );
+}
+
+function CompensationEditor({
+  initial,
+  onSave,
+}: {
+  initial: Compensation;
+  onSave: (c: Compensation) => void;
+}) {
+  const [base, setBase] = useState(initial.base ?? "");
+  const [equity, setEquity] = useState(initial.equity ?? "");
+  const [other, setOther] = useState(initial.other ?? "");
+
+  // Stay in sync with snapshot updates when not actively editing.
+  if (initial.base !== base && document.activeElement?.tagName !== "INPUT") {
+    setBase(initial.base ?? "");
+  }
+  if (initial.equity !== equity && document.activeElement?.tagName !== "INPUT") {
+    setEquity(initial.equity ?? "");
+  }
+  if (initial.other !== other && document.activeElement?.tagName !== "INPUT") {
+    setOther(initial.other ?? "");
+  }
+
+  function commit() {
+    if (base === initial.base && equity === initial.equity && other === initial.other) return;
+    onSave({ base, equity, other });
+  }
+
+  return (
+    <div className="grid sm:grid-cols-3 gap-2">
+      <label className="block text-xs">
+        <span className="block font-semibold mb-1">Base</span>
+        <input
+          value={base}
+          onChange={(e) => setBase(e.target.value)}
+          onBlur={commit}
+          placeholder="$180k–$220k"
+          className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card text-sm"
+        />
+      </label>
+      <label className="block text-xs">
+        <span className="block font-semibold mb-1">Equity</span>
+        <input
+          value={equity}
+          onChange={(e) => setEquity(e.target.value)}
+          onBlur={commit}
+          placeholder="0.1% / $200k RSUs 4yr"
+          className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card text-sm"
+        />
+      </label>
+      <label className="block text-xs">
+        <span className="block font-semibold mb-1">Other</span>
+        <input
+          value={other}
+          onChange={(e) => setOther(e.target.value)}
+          onBlur={commit}
+          placeholder="10% bonus, relo, signing"
+          className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card text-sm"
+        />
+      </label>
+    </div>
   );
 }
 

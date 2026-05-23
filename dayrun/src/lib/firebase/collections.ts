@@ -85,7 +85,10 @@ export function isActive(status: OpportunityStatus) {
   return ACTIVE_STATUSES.includes(status);
 }
 
-/** Public/safe fields. Notes/feedback/contacts live in the `private` subcollection. */
+export const LOCATION_TYPES = ["on-site", "hybrid", "remote"] as const;
+export type LocationType = (typeof LOCATION_TYPES)[number];
+
+/** Public/safe fields. Notes/feedback/contacts/compensation live in the `private` subcollection. */
 export type OpportunityDoc = {
   id: string;
   company: string;
@@ -95,6 +98,8 @@ export type OpportunityDoc = {
   link: string | null;
   nextStep: string | null;
   nextStepBy: string | null;
+  /** Working arrangement — visible publicly if the item is public. */
+  locationType?: LocationType | null;
   isPublic: boolean;
   createdAt: number;
   updatedAt: number;
@@ -113,12 +118,21 @@ export type Brief = {
   contextHint: string | null;
 };
 
+/** Comp lives in the private subcollection — never publicly readable. Freeform strings so
+ *  the user can write "180k base + 0.1% equity" or "$200,000–$240,000". */
+export type Compensation = {
+  base: string;
+  equity: string;
+  other: string;
+};
+
 /** Private subcollection doc: `users/{uid}/opportunities/{oppId}/private/data`. */
 export type OpportunityPrivateDoc = {
   notes: string;
   feedback: string;
   contacts: Contact[];
   brief?: Brief | null;
+  compensation?: Compensation | null;
 };
 
 export const ROUND_OUTCOMES = ["pending", "passed", "failed", "no-show"] as const;

@@ -234,6 +234,13 @@ function PublicOpportunityCard({ opp }: { opp: OpportunityDoc }) {
           {opp.nextStepBy && <span className="text-muted-foreground"> · {opp.nextStepBy}</span>}
         </p>
       )}
+      <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+        {opp.locationType && (
+          <span className="inline-flex items-center gap-1 text-[0.7rem] font-semibold border-2 border-ink rounded-full px-2 py-0.5 bg-card">
+            📍 {opp.locationType}
+          </span>
+        )}
+      </div>
       {opp.source && (
         <p className="text-xs text-muted-foreground mt-1.5">via {opp.source}</p>
       )}
