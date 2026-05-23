@@ -86,6 +86,7 @@ export async function POST(req: Request) {
       source: "google",
       opportunityId: prev?.opportunityId ?? null,
       dismissedAsInterview: prev?.dismissedAsInterview ?? false,
+      attendeeDomain: ev.attendeeDomain,
     };
     batch.set(eventsCol.doc(ev.googleEventId), doc);
   }

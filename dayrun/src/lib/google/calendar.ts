@@ -8,7 +8,48 @@ export type SimpleEvent = {
   allDay: boolean;
   location: string | null;
   description: string | null;
+  /** Second-level domain of the most-represented external corporate attendee (e.g. "geico"), or null. */
+  attendeeDomain: string | null;
 };
+
+const FREE_PROVIDERS = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "yahoo.com",
+  "hotmail.com",
+  "outlook.com",
+  "icloud.com",
+  "me.com",
+  "aol.com",
+  "protonmail.com",
+  "proton.me",
+  "live.com",
+  "msn.com",
+  "fastmail.com",
+  "duck.com",
+  "pm.me",
+]);
+
+function extractAttendeeDomain(
+  attendees: calendar_v3.Schema$EventAttendee[] | undefined,
+): string | null {
+  if (!attendees?.length) return null;
+  const counts = new Map<string, number>();
+  for (const a of attendees) {
+    if (!a.email || a.self) continue;
+    const domain = a.email.split("@")[1]?.toLowerCase();
+    if (!domain || FREE_PROVIDERS.has(domain)) continue;
+    const parts = domain.split(".");
+    if (parts.length < 2) continue;
+    // Second-level domain — handles `mail.geico.com` → `geico`,
+    // `careers.anthropic.com` → `anthropic`.
+    const slug = parts[parts.length - 2];
+    if (!slug || slug.length < 2) continue;
+    counts.set(slug, (counts.get(slug) ?? 0) + 1);
+  }
+  if (counts.size === 0) return null;
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+}
 
 export async function fetchEvents(
   accessToken: string,
@@ -51,6 +92,7 @@ export async function fetchEvents(
         allDay,
         location: e.location ?? null,
         description: e.description ?? null,
+        attendeeDomain: extractAttendeeDomain(e.attendees ?? undefined),
       } as SimpleEvent;
     });
 }

@@ -33,6 +33,8 @@ export type EventDoc = {
   opportunityId?: string | null;
   /** User dismissed this event from the "looks like an interview" suggestions list. */
   dismissedAsInterview?: boolean;
+  /** Most-common external corporate attendee domain slug (e.g. "geico") if any. Strong signal for auto-pipeline. */
+  attendeeDomain?: string | null;
 };
 
 export const OPPORTUNITY_STATUSES = [

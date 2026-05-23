@@ -25,17 +25,49 @@ const NEGATIVE_PATTERNS: RegExp[] = [
   /\bplanning\b/,
 ];
 
-export function looksLikeInterview(title: string | null | undefined): boolean {
+export function looksLikeInterview(
+  title: string | null | undefined,
+  attendeeDomain?: string | null,
+): boolean {
+  // Attendee from a corporate domain + any interview-ish keyword → almost certainly an interview.
+  // Bare corporate-domain meeting (no keyword) is NOT enough — it could be a sales call.
   if (!title) return false;
   const t = title.toLowerCase();
   if (NEGATIVE_PATTERNS.some((re) => re.test(t)) && !/\binterview\b/.test(t)) {
     return false;
   }
-  return STRONG_PATTERNS.some((re) => re.test(t));
+  if (STRONG_PATTERNS.some((re) => re.test(t))) return true;
+  // Softer: if there's a corporate attendee AND a weaker signal in the title.
+  if (attendeeDomain) {
+    const soft = /\b(chat|call|sync|meeting|round|loop|interview|prep)\b/.test(t);
+    if (soft) return true;
+  }
+  return false;
 }
 
-/** Try to extract the company name from an interview title. Returns null if no confident guess. */
-export function guessCompany(title: string | null | undefined): string | null {
+function titleCase(s: string): string {
+  // ALLCAPS domains stay ALLCAPS (e.g. "IBM" should not become "Ibm").
+  // But "geico" → "Geico". User can override in the inline form.
+  if (s === s.toUpperCase() && s.length <= 6) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+/** Try to extract the company name from an event. Prefers attendee domain over title regex. */
+export function guessCompany(
+  event:
+    | string
+    | { summary: string; attendeeDomain?: string | null }
+    | null
+    | undefined,
+): string | null {
+  if (!event) return null;
+  const title = typeof event === "string" ? event : event.summary;
+  const attendeeDomain =
+    typeof event === "object" ? (event.attendeeDomain ?? null) : null;
+
+  // 1. Attendee domain — strongest signal.
+  if (attendeeDomain) return titleCase(attendeeDomain);
+
   if (!title) return null;
   const trim = (s: string) => s.replace(/[\s\-—–:|]+$/, "").trim();
 
@@ -85,8 +117,9 @@ export function isSuggestionCandidate(ev: {
   summary: string;
   opportunityId?: string | null;
   dismissedAsInterview?: boolean;
+  attendeeDomain?: string | null;
 }): boolean {
   if (ev.opportunityId) return false;
   if (ev.dismissedAsInterview) return false;
-  return looksLikeInterview(ev.summary);
+  return looksLikeInterview(ev.summary, ev.attendeeDomain);
 }
