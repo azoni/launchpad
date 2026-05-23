@@ -1,23 +1,18 @@
-# DayRun
+# Daily
 
-> A playful, public-by-toggle calendar. Sign in with Google, sync your real calendar, and decide event-by-event what to show the world. Public profiles live at /u/[username] so friends, recruiters, or your group chat can see what you're up to.
+> An opt-in calendar. Sign in with Google, sync your calendar, decide event-by-event what the world sees. Public profiles live at /u/[username]. Includes interview/opportunity pipeline tracking with notes, contacts, and an AI prep-brief generator.
 
 ## Pages
 
-- [/](https://dayrun-app.netlify.app/) — Home. What DayRun is and how it works.
-- [/app](https://dayrun-app.netlify.app/app) — Private dashboard for signed-in users. Sync Google Calendar, toggle individual events public.
-- [/app/settings](https://dayrun-app.netlify.app/app/settings) — Choose your username and toggle whether your public profile is reachable.
-- [/u/[username]](https://dayrun-app.netlify.app/u/charltonuw) — Public profile. Shows only events the user has marked public.
+- [/](https://dayrun-app.netlify.app/) — Home.
+- [/explore](https://dayrun-app.netlify.app/explore) — Public profiles, sorted by recent activity.
+- [/app](https://dayrun-app.netlify.app/app) — Private dashboard for signed-in users.
+- [/app/pipeline](https://dayrun-app.netlify.app/app/pipeline) — Interview / referral / opportunity tracker.
+- [/app/settings](https://dayrun-app.netlify.app/app/settings) — Username + profile settings.
+- [/u/[username]](https://dayrun-app.netlify.app/u/charltonuw) — Public profile.
 - [/about](https://dayrun-app.netlify.app/about) — About the project.
-- [/privacy](https://dayrun-app.netlify.app/privacy) — Data and privacy practices.
-
-## How it works
-
-1. User signs in with Google (read-only Calendar scope).
-2. App pulls upcoming events into the user's private Firestore.
-3. Each event starts private. The user toggles individual events public.
-4. Public events show on /u/[username] — indexable, shareable.
+- [/privacy](https://dayrun-app.netlify.app/privacy) — Privacy practices.
 
 ## Built with
 
-Next.js 16, Firebase (Auth + Firestore), Google Calendar API. Part of the azoni.ai launchpad portfolio.
+Next.js 16, Firebase (Auth + Firestore), Google Calendar API, Claude API. Part of the azoni.ai launchpad portfolio.

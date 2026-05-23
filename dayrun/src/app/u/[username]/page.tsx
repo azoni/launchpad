@@ -10,15 +10,13 @@ import {
   type UserDoc,
 } from "@/lib/firebase/collections";
 import { PublicTimeline } from "@/components/PublicTimeline";
+import { StatusPill } from "@/components/pipeline/StatusPill";
 import { APP_NAME, APP_URL } from "@/lib/utils";
 
 type PageProps = { params: Promise<{ username: string }> };
 
 async function loadProfile(username: string) {
-  const lookup = await adminDb
-    .collection(COLLECTIONS.usernames)
-    .doc(username)
-    .get();
+  const lookup = await adminDb.collection(COLLECTIONS.usernames).doc(username).get();
   if (!lookup.exists) return null;
   const uid = (lookup.data() as { uid?: string }).uid;
   if (!uid) return null;
@@ -54,17 +52,16 @@ async function loadProfile(username: string) {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { username } = await params;
   const data = await loadProfile(username);
-  if (!data) {
-    return { title: `@${username}`, robots: { index: false, follow: false } };
-  }
-  const title = `${data.user.displayName ?? `@${username}`} on ${APP_NAME}`;
+  if (!data) return { title: `@${username}`, robots: { index: false, follow: false } };
   const activeCount = data.opportunities.filter((o) =>
     ["ongoing", "referral", "applied", "screen", "onsite", "offer"].includes(o.status),
   ).length;
+  const display = data.user.displayName ?? `@${username}`;
+  const title = `${display} on ${APP_NAME}`;
   const description =
     activeCount > 0
-      ? `${data.user.displayName ?? `@${username}`} is currently exploring ${activeCount} ${activeCount === 1 ? "opportunity" : "opportunities"}.`
-      : `Public profile of ${data.user.displayName ?? `@${username}`} on ${APP_NAME}.`;
+      ? `${display} is currently exploring ${activeCount} ${activeCount === 1 ? "opportunity" : "opportunities"} on ${APP_NAME}.`
+      : `Public profile of ${display} on ${APP_NAME}.`;
   const url = `${APP_URL}/u/${username}`;
   return {
     title,
@@ -82,16 +79,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 const STATUS_ORDER: Record<OpportunityStatus, number> = {
-  onsite: 0,
-  offer: 1,
-  screen: 2,
-  applied: 3,
-  ongoing: 4,
-  referral: 5,
-  accepted: 10,
-  withdrew: 11,
-  rejected: 12,
-  ghosted: 13,
+  onsite: 0, offer: 1, screen: 2, applied: 3, ongoing: 4, referral: 5,
+  accepted: 10, withdrew: 11, rejected: 12, ghosted: 13,
 };
 const NEGATIVE_CLOSED: OpportunityStatus[] = ["rejected", "withdrew", "ghosted"];
 
@@ -109,9 +98,14 @@ export default async function PublicProfilePage({ params }: PageProps) {
     return b.updatedAt - a.updatedAt;
   });
 
-  const activeOpps = sortedOpps.filter((o) => !NEGATIVE_CLOSED.includes(o.status) && o.status !== "accepted");
-  const wonOpps = sortedOpps.filter((o) => o.status === "accepted");
-  const closedNegOpps = sortedOpps.filter((o) => NEGATIVE_CLOSED.includes(o.status));
+  const nowOpps = sortedOpps.filter(
+    (o) => !NEGATIVE_CLOSED.includes(o.status) && o.status !== "accepted",
+  );
+  const accepted = sortedOpps.filter((o) => o.status === "accepted");
+  const closed = sortedOpps.filter((o) => NEGATIVE_CLOSED.includes(o.status));
+
+  const lastSyncedHuman = user.lastSyncedAt ? humanRelative(user.lastSyncedAt) : null;
+  const dateLine = todayLine();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -124,53 +118,31 @@ export default async function PublicProfilePage({ params }: PageProps) {
       image: user.photoURL ?? undefined,
       url: `${APP_URL}/u/${username}`,
     },
-    breadcrumb: {
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        { "@type": "ListItem", position: 1, name: APP_NAME, item: APP_URL },
-        { "@type": "ListItem", position: 2, name: `@${username}`, item: `${APP_URL}/u/${username}` },
-      ],
-    },
-    hasPart: events.slice(0, 12).map((ev) => ({
-      "@type": "Event",
-      name: ev.summary,
-      startDate: ev.start,
-      endDate: ev.end,
-      location: ev.location ? { "@type": "Place", name: ev.location } : undefined,
-    })),
   };
 
-  const lastSyncedHuman = user.lastSyncedAt
-    ? humanRelative(user.lastSyncedAt)
-    : null;
-
   return (
-    <div className="editorial min-h-screen">
+    <div className="min-h-screen">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* Minimal masthead */}
-      <header className="border-b border-[color:var(--ed-hairline)]">
+      {/* Slim header — same wordmark as the rest of the site */}
+      <header className="border-b border-[color:var(--hairline)]">
         <div className="mx-auto max-w-3xl px-5 sm:px-8 py-4 flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-[14px] font-medium tracking-tight"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            DayRun
+          <Link href="/" className="dy-wordmark">
+            {APP_NAME.toLowerCase()}
           </Link>
           <Link
             href="/explore"
-            className="text-[13px] text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"
+            className="dy-mono text-[color:var(--ink-soft)] hover:text-[color:var(--primary)]"
           >
-            Explore →
+            explore →
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-5 sm:px-8 py-12 sm:py-16">
+      <main className="mx-auto max-w-3xl px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
         {/* Identity */}
         <section className="flex items-start gap-5">
           {user.photoURL ? (
@@ -178,39 +150,36 @@ export default async function PublicProfilePage({ params }: PageProps) {
             <img
               src={user.photoURL}
               alt={`${user.displayName ?? username}`}
-              width={56}
-              height={56}
-              className="rounded-full border border-[color:var(--ed-hairline-strong)]"
+              width={64}
+              height={64}
+              className="rounded-full border border-[color:var(--hairline-strong)]"
             />
           ) : (
             <div
-              className="h-14 w-14 rounded-full grid place-items-center text-lg font-medium"
+              className="h-16 w-16 rounded-full grid place-items-center text-[20px] font-medium"
               style={{
-                background: "var(--ed-accent-bg)",
-                color: "var(--ed-accent)",
+                background: "var(--accent-soft)",
+                color: "var(--primary)",
                 fontFamily: "var(--font-heading)",
               }}
             >
               {(user.displayName ?? username).slice(0, 1).toUpperCase()}
             </div>
           )}
-          <div className="min-w-0 pt-0.5">
-            <h1 className="text-[28px] sm:text-[34px] font-medium leading-[1.05] tracking-tight">
+          <div className="min-w-0 pt-1">
+            <h1
+              className="dy-display text-[32px] sm:text-[40px]"
+            >
               {user.displayName ?? `@${username}`}
             </h1>
-            <p className="mt-1 text-[14px] text-[color:var(--ed-muted)]">
-              <span className="ed-mono">@{username}</span>
-              {activeOpps.length > 0 && (
-                <>
-                  <span className="ed-dot mx-2">·</span>
-                  {activeOpps.length} open
-                  {wonOpps.length > 0 ? ` · ${wonOpps.length} accepted` : ""}
-                </>
-              )}
+            <p className="mt-1.5 text-[14px] text-[color:var(--ink-soft)] flex items-center gap-2 flex-wrap">
+              <span className="dy-mono text-[color:var(--faded)]">@{username}</span>
+              <span className="text-[color:var(--faded)]">·</span>
+              <span>{dateLine}</span>
               {lastSyncedHuman && (
                 <>
-                  <span className="ed-dot mx-2">·</span>
-                  updated {lastSyncedHuman}
+                  <span className="text-[color:var(--faded)]">·</span>
+                  <span className="text-[color:var(--faded)]">synced {lastSyncedHuman}</span>
                 </>
               )}
             </p>
@@ -220,60 +189,55 @@ export default async function PublicProfilePage({ params }: PageProps) {
         {/* Pipeline */}
         {sortedOpps.length > 0 && (
           <section className="mt-14 sm:mt-16">
-            <SectionHeader eyebrow="01" title="Currently exploring" />
+            <SectionHeader title="Currently exploring" count={sortedOpps.length} />
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {activeOpps.map((o) => (
-                <OpportunityCard key={o.id} opp={o} />
-              ))}
-              {wonOpps.map((o) => (
-                <OpportunityCard key={o.id} opp={o} />
-              ))}
-              {closedNegOpps.map((o) => (
-                <OpportunityCard key={o.id} opp={o} muted />
-              ))}
+              {nowOpps.map((o) => <OppCard key={o.id} opp={o} />)}
+              {accepted.map((o) => <OppCard key={o.id} opp={o} tone="positive" />)}
+              {closed.map((o) => <OppCard key={o.id} opp={o} muted />)}
             </div>
           </section>
         )}
 
         {/* Calendar */}
         <section className="mt-14 sm:mt-16">
-          <SectionHeader
-            eyebrow={sortedOpps.length > 0 ? "02" : "01"}
-            title="Calendar"
-          />
+          <SectionHeader title="The week" count={events.length} />
           <div className="mt-6">
             <PublicTimeline
               events={events}
               opportunitiesById={oppsById}
               emptyState={
-                <span>
-                  {user.displayName ?? `@${username}`} hasn&apos;t shared any events publicly. Check
-                  back later.
+                <span className="italic text-[color:var(--faded)]">
+                  {user.displayName ?? `@${username}`} hasn&apos;t shared any events publicly yet.
                 </span>
               }
             />
           </div>
         </section>
 
-        {/* Quiet footer CTA */}
-        <footer className="mt-20 sm:mt-24 pt-8 border-t border-[color:var(--ed-hairline)]">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        {/* Footer */}
+        <footer className="mt-20 sm:mt-24 pt-8 border-t border-[color:var(--hairline)]">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
+              <p className="dy-eyebrow">about</p>
               <p
-                className="text-[15px] leading-snug max-w-md text-[color:var(--ed-ink-soft)]"
+                className="mt-2 text-[16px] leading-snug max-w-md text-[color:var(--ink-soft)]"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
-                DayRun is a public, opt-in calendar for what you&apos;re working on.
+                {APP_NAME} is an opt-in calendar — a quiet place to keep track of what
+                you&apos;re working on, and what to share.
               </p>
-              <p className="mt-1 text-[13px] text-[color:var(--ed-muted)]">
-                Built by{" "}
-                <a href="https://azoni.ai" className="ed-link">
+              <p className="mt-2 dy-mono text-[color:var(--faded)]">
+                built by{" "}
+                <a
+                  href="https://azoni.ai"
+                  className="underline decoration-[color:var(--hairline-strong)] underline-offset-2 hover:decoration-[color:var(--primary)]"
+                >
                   azoni.ai
                 </a>
               </p>
             </div>
-            <Link href="/app" className="ed-btn">
-              Make your own
+            <Link href="/app" className="btn-chunky">
+              Make yours
             </Link>
           </div>
         </footer>
@@ -282,65 +246,84 @@ export default async function PublicProfilePage({ params }: PageProps) {
   );
 }
 
-function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
+function SectionHeader({ title, count }: { title: string; count?: number }) {
   return (
-    <div className="flex items-baseline gap-4">
-      <span className="ed-eyebrow">{eyebrow}</span>
-      <h2 className="text-[22px] sm:text-[24px] font-medium tracking-tight">{title}</h2>
-      <span className="flex-1 h-px bg-[color:var(--ed-hairline)] translate-y-[-3px]" />
+    <div className="flex items-baseline justify-between gap-3 pb-2 border-b border-[color:var(--hairline)]">
+      <h2
+        className="dy-display text-[20px] sm:text-[22px]"
+        style={{ fontFamily: "var(--font-heading)", fontWeight: 500 }}
+      >
+        {title}
+      </h2>
+      {count !== undefined && (
+        <span className="dy-mono text-[color:var(--faded)]">{count}</span>
+      )}
     </div>
   );
 }
 
-function statusPillClass(s: OpportunityStatus): string {
-  if (s === "accepted" || s === "offer") return "ed-pill ed-pill-positive";
-  if (s === "rejected") return "ed-pill ed-pill-negative";
-  if (s === "withdrew" || s === "ghosted") return "ed-pill ed-pill-outline";
-  return "ed-pill ed-pill-neutral";
-}
-
-function OpportunityCard({ opp, muted }: { opp: OpportunityDoc; muted?: boolean }) {
+function OppCard({
+  opp,
+  muted,
+  tone,
+}: {
+  opp: OpportunityDoc;
+  muted?: boolean;
+  tone?: "positive" | "negative";
+}) {
+  const isStruck = NEGATIVE_CLOSED.includes(opp.status);
+  const topBorderColor =
+    tone === "positive"
+      ? "var(--positive)"
+      : opp.status === "rejected"
+        ? "var(--negative)"
+        : opp.status === "withdrew" || opp.status === "ghosted"
+          ? "var(--hairline-strong)"
+          : "var(--primary)";
   return (
     <article
-      className={`ed-card flex flex-col gap-2 ${muted ? "opacity-70" : ""}`}
+      className={`chunky p-5 ${muted ? "opacity-70" : ""}`}
+      style={{ boxShadow: `inset 0 2px 0 0 ${topBorderColor}` }}
     >
-      <header className="flex items-start justify-between gap-2">
+      <header className="flex items-start justify-between gap-2 flex-wrap mb-2">
         <div className="min-w-0">
-          <h3 className="text-[17px] font-medium leading-tight tracking-tight">
+          <h3
+            className={`text-[18px] font-medium leading-tight tracking-tight ${
+              isStruck ? "line-through text-[color:var(--faded)]" : ""
+            }`}
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
             {opp.company}
           </h3>
-          <p className="text-[13.5px] text-[color:var(--ed-muted)] mt-0.5">
+          <p className="text-[13.5px] text-[color:var(--ink-soft)] mt-0.5">
             {opp.role}
-            {opp.locationType ? (
-              <>
-                <span className="ed-dot mx-1.5">·</span>
-                {opp.locationType}
-              </>
-            ) : null}
+            {opp.locationType && (
+              <span className="text-[color:var(--faded)]"> · {opp.locationType}</span>
+            )}
           </p>
         </div>
-        <span className={statusPillClass(opp.status)}>{opp.status}</span>
+        <StatusPill status={opp.status} />
       </header>
 
       {opp.nextStep && (
-        <p className="text-[14px] text-[color:var(--ed-ink-soft)]">
-          <span className="text-[color:var(--ed-mutest)]">Next:</span> {opp.nextStep}
+        <p className="text-[14px] text-[color:var(--ink-soft)] mt-2">
+          <span className="text-[color:var(--faded)]">next:</span> {opp.nextStep}
           {opp.nextStepBy && (
-            <span className="text-[color:var(--ed-mutest)]"> · {opp.nextStepBy}</span>
+            <span className="text-[color:var(--faded)]"> · {opp.nextStepBy}</span>
           )}
         </p>
       )}
 
       {(opp.source || opp.link) && (
-        <p className="text-[12.5px] text-[color:var(--ed-mutest)] mt-auto pt-1">
+        <p className="dy-mono text-[color:var(--faded)] mt-3">
           {opp.source && <span>via {opp.source}</span>}
-          {opp.source && opp.link && <span className="ed-dot mx-1.5">·</span>}
+          {opp.source && opp.link && " · "}
           {opp.link && (
             <a
               href={opp.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="ed-link"
+              className="underline decoration-[color:var(--hairline-strong)] underline-offset-2 hover:decoration-[color:var(--primary)]"
             >
               posting
             </a>
@@ -361,4 +344,12 @@ function humanRelative(ts: number): string {
   const d = Math.round(h / 24);
   if (d < 7) return `${d}d ago`;
   return new Date(ts).toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function todayLine(): string {
+  return new Date().toLocaleDateString([], {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 }

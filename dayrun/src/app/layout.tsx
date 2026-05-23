@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Fraunces, Inter, Nunito } from "next/font/google";
+import { Courier_Prime, Fraunces, Inter } from "next/font/google";
 import { PostHogProvider } from "./PostHogProvider";
 import "./globals.css";
 import { APP_NAME, APP_TAGLINE, APP_URL } from "@/lib/utils";
@@ -8,20 +8,20 @@ import { APP_NAME, APP_TAGLINE, APP_URL } from "@/lib/utils";
 const fraunces = Fraunces({
   variable: "--font-heading",
   subsets: ["latin"],
-  weight: ["500", "700", "900"],
+  weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
 });
 
-const nunito = Nunito({
+const inter = Inter({
   variable: "--font-body",
   subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const inter = Inter({
-  variable: "--font-editorial",
+const courierPrime = Courier_Prime({
+  variable: "--font-mono",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FF8A5C",
+  themeColor: "#1A2E2E",
   width: "device-width",
   initialScale: 1,
 };
@@ -59,9 +59,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${nunito.variable} ${inter.variable} h-full antialiased`}
+      className={`${fraunces.variable} ${inter.variable} ${courierPrime.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col paper">
+      <body className="min-h-full flex flex-col">
         <PostHogProvider>{children}</PostHogProvider>
 
         {process.env.NEXT_PUBLIC_GA_ID && (

@@ -6,44 +6,72 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-body);
   --font-heading: var(--font-heading);
+  --font-mono: var(--font-mono);
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-grape: var(--grape);
-  --color-sun: var(--sun);
+  --color-accent-soft: var(--accent-soft);
+  --color-positive: var(--positive);
+  --color-positive-soft: var(--positive-soft);
+  --color-negative: var(--negative);
+  --color-negative-soft: var(--negative-soft);
+
+  /* Legacy aliases — old code paths still reference these. Map to new palette. */
+  --color-sun: var(--positive-soft);
+  --color-grape: var(--primary);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-surface: var(--surface);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-faded: var(--faded);
   --color-border: var(--border);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
   --color-ring: var(--ring);
 
-  --radius: 1.25rem;
-  --radius-2xl: calc(var(--radius) * 1.4);
+  --radius: 0.5rem;
 }
 
 :root {
-  /* Cream paper background */
-  --background: #FFF7EE;
-  --foreground: #0E1B2C;
-  --ink: #0E1B2C;
+  /* Warm bone paper background — has personality, not white */
+  --background: #F2EBDB;
+  --paper: #F2EBDB;
+  --surface: #FAF5E8;
+  --foreground: #1A2E2E;
 
-  --card: #FFFDF7;
-  --card-foreground: #0E1B2C;
+  /* Type colors */
+  --ink: #1A2E2E;          /* deep teal, near-black */
+  --ink-soft: #3F5050;     /* secondary text */
+  --faded: #8A8278;        /* tertiary / muted */
 
-  --primary: #FF8A5C;
-  --primary-foreground: #FFFFFF;
+  /* Cards */
+  --card: #FAF5E8;
+  --card-foreground: #1A2E2E;
 
-  --grape: #6C5CE7;
-  --sun: #FFD166;
+  /* Borders / lines */
+  --hairline: rgba(26, 46, 46, 0.10);
+  --hairline-strong: rgba(26, 46, 46, 0.22);
+  --border: rgba(26, 46, 46, 0.14);
 
-  --muted: #FAEBD8;
-  --muted-foreground: #6B5B47;
+  /* Single warm accent — used very sparingly */
+  --primary: #B65340;          /* warm brick */
+  --primary-foreground: #FAF5E8;
+  --accent-soft: #ECD9CE;      /* tinted accent bg */
 
-  --border: #0E1B2C;
-  --input: #E8D5B8;
-  --ring: #FF8A5C;
+  /* State tones */
+  --positive: #5F7142;         /* sage green */
+  --positive-soft: #DCE0BF;
+  --negative: #A03A2D;         /* deep brick red */
+  --negative-soft: #EBC9C0;
+
+  /* Muted bg surfaces */
+  --muted: #E6DCC6;
+  --muted-foreground: #6E6759;
+  --ring: var(--primary);
+  --input: var(--hairline-strong);
 }
 
 @layer base {
@@ -52,277 +80,223 @@
     color: var(--foreground);
   }
   body {
-    font-family: var(--font-body), system-ui, sans-serif;
+    font-family: var(--font-body), "Inter", system-ui, -apple-system, sans-serif;
+    font-feature-settings: "ss01" on, "cv11" on;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-size: 15px;
+    line-height: 1.55;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-heading), Georgia, serif;
-    font-feature-settings: "ss01" on, "ss02" on;
-    letter-spacing: -0.01em;
-  }
-  ::selection {
-    background: var(--sun);
+    font-family: var(--font-heading), Fraunces, Georgia, "Times New Roman", serif;
+    font-weight: 500;
+    letter-spacing: -0.012em;
+    line-height: 1.15;
     color: var(--ink);
   }
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+  /* Subtle paper grain across the whole site */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image:
+      radial-gradient(rgba(26, 46, 46, 0.025) 1px, transparent 1.5px),
+      radial-gradient(rgba(26, 46, 46, 0.018) 1px, transparent 1.5px);
+    background-size: 28px 28px, 19px 19px;
+    background-position: 0 0, 10px 10px;
+  }
+  /* No horizontal overflow */
+  html, body { overflow-x: hidden; }
 }
 
-/* Signature chunky card — 2px ink border + offset color shadow.
-   Smaller offset on small screens so cards never push past the viewport edge. */
+/* ──────────────────────────────────────────────────────────────────────
+   Daily — design system. Used app-wide.
+   - Cards: hairline border, no offset shadow
+   - Buttons: filled pill (ink) + ghost outline
+   - Chips: tonal, no border-2 noise
+   - One signature: cards get an optional thin colored top-edge
+   ────────────────────────────────────────────────────────────────────── */
+
+/* Card — replaces the old .chunky. Kept under the same name for backwards
+   compatibility with existing class usage across the codebase. */
 .chunky {
-  border: 2px solid var(--ink);
-  border-radius: var(--radius);
   background: var(--card);
-  box-shadow: 4px 4px 0 var(--ink);
-  transition: transform 160ms cubic-bezier(.2,.9,.3,1.2), box-shadow 160ms;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 1rem;
+  transition: border-color 160ms ease;
 }
 .chunky:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0 var(--ink);
+  border-color: var(--hairline-strong);
 }
-.chunky-coral { box-shadow: 4px 4px 0 var(--primary); }
-.chunky-coral:hover { box-shadow: 6px 6px 0 var(--primary); }
-.chunky-grape  { box-shadow: 4px 4px 0 var(--grape); }
-.chunky-grape:hover  { box-shadow: 6px 6px 0 var(--grape); }
-.chunky-sun    { box-shadow: 4px 4px 0 var(--sun); }
-.chunky-sun:hover    { box-shadow: 6px 6px 0 var(--sun); }
+/* The old "tone" variants now do a thin colored top edge — the signature
+   element of the system. Subtle but distinctive. */
+.chunky-coral { box-shadow: inset 0 2px 0 0 var(--primary); }
+.chunky-coral:hover { box-shadow: inset 0 2px 0 0 var(--primary); }
+.chunky-grape  { box-shadow: inset 0 2px 0 0 var(--ink); }
+.chunky-grape:hover  { box-shadow: inset 0 2px 0 0 var(--ink); }
+.chunky-sun    { box-shadow: inset 0 2px 0 0 var(--positive); }
+.chunky-sun:hover    { box-shadow: inset 0 2px 0 0 var(--positive); }
 
-@media (min-width: 640px) {
-  .chunky { box-shadow: 6px 6px 0 var(--ink); }
-  .chunky:hover { box-shadow: 8px 8px 0 var(--ink); }
-  .chunky-coral { box-shadow: 6px 6px 0 var(--primary); }
-  .chunky-coral:hover { box-shadow: 8px 8px 0 var(--primary); }
-  .chunky-grape { box-shadow: 6px 6px 0 var(--grape); }
-  .chunky-grape:hover { box-shadow: 8px 8px 0 var(--grape); }
-  .chunky-sun { box-shadow: 6px 6px 0 var(--sun); }
-  .chunky-sun:hover { box-shadow: 8px 8px 0 var(--sun); }
-}
+/* Tilt was an old chunky-design flourish — neutralize it */
+.tilt-hover { transition: transform 160ms ease; }
+.tilt-hover:hover { transform: none; }
 
-/* Disable tilt on small screens — looks weird squished */
-@media (max-width: 640px) {
-  .tilt-hover:hover { transform: none; }
-}
+/* Paper utility (legacy, no-op since we paint paper on body) */
+.paper {}
 
-/* Make sure pages don't overflow horizontally because of chunky offsets */
-html, body { overflow-x: hidden; }
-
-/* Chunky button — same vocabulary but pressable */
+/* Pill button — replaces the old .btn-chunky. Same class name for compat. */
 .btn-chunky {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.25rem;
+  padding: 0.55rem 1rem;
   border-radius: 999px;
-  font-family: var(--font-heading), Georgia, serif;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  border: 2px solid var(--ink);
-  background: var(--primary);
-  color: var(--primary-foreground);
-  box-shadow: 4px 4px 0 var(--ink);
-  transition: transform 120ms ease, box-shadow 120ms ease;
+  font-family: var(--font-body), Inter, system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0;
+  font-size: 0.875rem;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
   cursor: pointer;
   text-decoration: none;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
 }
-.btn-chunky:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
-.btn-chunky:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
-.btn-chunky:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: 4px 4px 0 var(--ink); }
-.btn-chunky.btn-ghost { background: var(--card); color: var(--ink); }
-.btn-chunky.btn-grape { background: var(--grape); color: white; }
-.btn-chunky.btn-sun   { background: var(--sun); color: var(--ink); }
-
-/* Tilt on hover for whimsy */
-.tilt-hover { transition: transform 200ms ease; }
-.tilt-hover:hover { transform: rotate(-1.2deg); }
-
-/* Paper texture overlay (subtle) */
-.paper {
-  background-image:
-    radial-gradient(rgba(14, 27, 44, 0.04) 1px, transparent 1px),
-    radial-gradient(rgba(14, 27, 44, 0.03) 1px, transparent 1px);
-  background-size: 24px 24px, 17px 17px;
-  background-position: 0 0, 8px 8px;
+.btn-chunky:hover {
+  background: #11201F;
+  border-color: #11201F;
+}
+.btn-chunky:active { transform: translateY(1px); }
+.btn-chunky:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
-/* Sticker badge */
+.btn-chunky.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--hairline-strong);
+}
+.btn-chunky.btn-ghost:hover {
+  background: var(--surface);
+  border-color: var(--ink);
+}
+.btn-chunky.btn-grape {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+.btn-chunky.btn-grape:hover {
+  background: #9F4632;
+  border-color: #9F4632;
+}
+.btn-chunky.btn-sun {
+  background: var(--positive);
+  color: var(--paper);
+  border-color: var(--positive);
+}
+.btn-chunky.btn-sun:hover {
+  background: #506135;
+  border-color: #506135;
+}
+
+/* Chip — replaces the old .sticker. Tonal, no border-2 noise. */
 .sticker {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.65rem;
-  border: 2px solid var(--ink);
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
   border-radius: 999px;
-  background: var(--sun);
-  color: var(--ink);
-  font-weight: 700;
-  font-size: 0.8rem;
-}
-
-@keyframes pop-in {
-  0%   { transform: scale(0.92) rotate(-2deg); opacity: 0; }
-  60%  { transform: scale(1.04) rotate(1deg);  opacity: 1; }
-  100% { transform: scale(1) rotate(0); }
-}
-.pop-in { animation: pop-in 320ms cubic-bezier(.2,.9,.3,1.2) both; }
-
-/* ────────────────────────────────────────────────────────────────────
-   Editorial scope — quieter, magazine-y design for the public profile.
-   Confident, sober, generous whitespace. No chunky offsets, no stickers.
-   Single accent color (terracotta) used sparingly for warmth + signals.
-   ──────────────────────────────────────────────────────────────────── */
-.editorial {
-  --ed-bg: #FAFAF7;
-  --ed-surface: #FFFFFF;
-  --ed-ink: #1F2328;
-  --ed-ink-soft: #3F454F;
-  --ed-muted: #6E6E72;
-  --ed-mutest: #A0A0A4;
-  --ed-hairline: rgba(31, 35, 40, 0.08);
-  --ed-hairline-strong: rgba(31, 35, 40, 0.16);
-  --ed-accent: #B3573B;
-  --ed-accent-bg: #F3E7E0;
-  --ed-positive: #4A6B5A;
-  --ed-positive-bg: #E4ECE7;
-  --ed-negative: #A04848;
-  --ed-negative-bg: #F3E3E2;
-
-  background: var(--ed-bg);
-  color: var(--ed-ink);
-  font-family: var(--font-editorial), "Inter", system-ui, -apple-system, sans-serif;
-  font-feature-settings: "ss01" on, "cv11" on;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-size: 15px;
-  line-height: 1.55;
-}
-
-.editorial * { box-shadow: none; }
-.editorial ::selection { background: var(--ed-accent-bg); color: var(--ed-ink); }
-
-.editorial h1,
-.editorial h2,
-.editorial h3,
-.editorial h4 {
-  font-family: var(--font-heading), Spectral, Georgia, "Times New Roman", serif;
+  font-family: var(--font-body), Inter, sans-serif;
   font-weight: 500;
-  letter-spacing: -0.018em;
-  line-height: 1.1;
-  color: var(--ed-ink);
-}
-
-.editorial .ed-eyebrow {
-  font-family: var(--font-editorial), "Inter", system-ui, sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ed-mutest);
-}
-
-.editorial .ed-mono {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 12.5px;
-  letter-spacing: -0.005em;
-}
-
-/* Card — hairline border, ample padding, no offset shadow. Subtle hover. */
-.editorial .ed-card {
-  background: var(--ed-surface);
-  border: 1px solid var(--ed-hairline);
-  border-radius: 10px;
-  padding: 22px 24px;
-  transition: border-color 180ms ease, transform 180ms ease;
-}
-.editorial .ed-card:hover {
-  border-color: var(--ed-hairline-strong);
-}
-
-/* Status pills — tonal, no border-2, no shadow. */
-.editorial .ed-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.005em;
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+  background: var(--muted);
+  color: var(--ink-soft);
+  border: 0;
   line-height: 1.4;
 }
-.editorial .ed-pill-neutral {
-  background: #EEEEEA;
-  color: var(--ed-ink-soft);
+
+/* Pop-in stays as a nice-to-have animation for hero stickers */
+@keyframes pop-in {
+  0%   { transform: scale(0.96); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
-.editorial .ed-pill-accent {
-  background: var(--ed-accent-bg);
-  color: var(--ed-accent);
+.pop-in { animation: pop-in 240ms ease-out both; }
+
+/* ────────────────────────────────────────────────────────────────────
+   Daily wordmark + signature components used across pages
+   ──────────────────────────────────────────────────────────────────── */
+
+.dy-wordmark {
+  font-family: var(--font-heading), Fraunces, Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-size: 1.1rem;
+  color: var(--ink);
 }
-.editorial .ed-pill-positive {
-  background: var(--ed-positive-bg);
-  color: var(--ed-positive);
-}
-.editorial .ed-pill-negative {
-  background: var(--ed-negative-bg);
-  color: var(--ed-negative);
-}
-.editorial .ed-pill-outline {
-  background: transparent;
-  border: 1px solid var(--ed-hairline-strong);
-  color: var(--ed-mutest);
+.dy-wordmark::after {
+  content: ".";
+  color: var(--primary);
 }
 
-/* Hairline separator — used between days, between sections. */
-.editorial .ed-rule {
+.dy-display {
+  font-family: var(--font-heading), Fraunces, Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.018em;
+  line-height: 1.04;
+}
+
+.dy-eyebrow {
+  font-family: var(--font-body), Inter, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faded);
+}
+
+.dy-mono {
+  font-family: var(--font-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+
+.dy-rule {
   height: 1px;
-  background: var(--ed-hairline);
+  background: var(--hairline);
   border: 0;
-  margin: 0;
 }
 
-/* Inline dot used in metadata lines */
-.editorial .ed-dot { color: var(--ed-mutest); }
-
-/* Anchor links — refined underline */
-.editorial a {
-  color: var(--ed-ink);
-  text-decoration: none;
-}
-.editorial a:hover {
-  color: var(--ed-accent);
-}
-.editorial .ed-link {
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  text-decoration-color: var(--ed-hairline-strong);
-}
-.editorial .ed-link:hover {
-  text-decoration-color: var(--ed-accent);
-}
-
-/* Quiet button */
-.editorial .ed-btn {
+/* ────────────────────────────────────────────────────────────────────
+   Status pill — used in StatusPill component and inline elsewhere.
+   Replaces the heavy-border + custom-hex approach with tonal pills.
+   ──────────────────────────────────────────────────────────────────── */
+.dy-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
+  gap: 0.3rem;
+  padding: 0.18rem 0.55rem;
   border-radius: 999px;
-  font-size: 13.5px;
+  font-family: var(--font-body), Inter, sans-serif;
   font-weight: 500;
-  background: var(--ed-ink);
-  color: #FFFFFF;
-  border: 1px solid var(--ed-ink);
-  transition: background 160ms, transform 160ms;
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
 }
-.editorial .ed-btn:hover {
-  background: #0A0D12;
-  color: #FFFFFF;
-}
-.editorial .ed-btn-ghost {
-  background: transparent;
-  color: var(--ed-ink);
-  border-color: var(--ed-hairline-strong);
-}
-.editorial .ed-btn-ghost:hover {
-  background: var(--ed-surface);
-  color: var(--ed-ink);
-}
+.dy-pill-neutral  { background: var(--muted); color: var(--ink-soft); }
+.dy-pill-accent   { background: var(--accent-soft); color: var(--primary); }
+.dy-pill-positive { background: var(--positive-soft); color: var(--positive); }
+.dy-pill-negative { background: var(--negative-soft); color: var(--negative); }
+.dy-pill-outline  { background: transparent; color: var(--faded); border: 1px solid var(--hairline-strong); }
+.dy-pill-ink      { background: var(--ink); color: var(--paper); }

@@ -13,7 +13,7 @@ A monorepo of independent web apps, each built and deployed from a single prompt
 | [repmatch](./repmatch/) | Workout rep equivalence calculator for competing with friends | [repmatch-app.netlify.app](https://repmatch-app.netlify.app) |
 | [crypto-tax-2025](./crypto-tax-2025/) | Personal 2025 crypto tax reconstruction with FIFO + review queue | [crypto-tax-2025.netlify.app](https://crypto-tax-2025.netlify.app) |
 | [pyroguard](./pyroguard/) | Mobile-first fire/life-safety inspection platform for commercial inspection contractors | [pyroguard-demo.netlify.app](https://pyroguard-demo.netlify.app) |
-| [dayrun](./dayrun/) | Public, playful calendar profile — sign in with Google, sync your calendar, toggle individual events public | [dayrun-app.netlify.app](https://dayrun-app.netlify.app) |
+| [daily](./dayrun/) | An opt-in calendar — sign in with Google, sync your calendar, track interviews & opportunities, toggle what the world sees | [dayrun-app.netlify.app](https://dayrun-app.netlify.app) |
 
 ## How It Works
 

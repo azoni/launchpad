@@ -70,14 +70,15 @@
     ]
   },
   {
-    "name": "DayRun",
+    "name": "Daily",
     "slug": "dayrun",
-    "description": "A public, playful calendar. Sign in with Google, sync your real Calendar, and toggle individual events public on your /u/[username] profile.",
+    "description": "An opt-in calendar. Sign in with Google, sync your real Calendar, track interviews + opportunities in a pipeline, and toggle what the world sees on your /u/[username] profile.",
     "url": "https://dayrun-app.netlify.app",
     "tags": [
       "Next.js",
       "Firebase",
       "Google Calendar API",
+      "Claude API",
       "Social"
     ]
   }

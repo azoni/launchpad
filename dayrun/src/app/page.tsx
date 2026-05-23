@@ -51,16 +51,16 @@ export default function Home() {
         <section className="mx-auto max-w-6xl px-4 pt-10 pb-12 md:pt-20 md:pb-24">
           <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
             <div className="space-y-5 md:space-y-6">
-              <span className="sticker pop-in">📅 your week, on display</span>
-              <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05]">
-                A public, playful place for{" "}
-                <span className="inline-block bg-sun border-2 border-ink rounded-2xl px-2 -rotate-1">
-                  what you&apos;re up to.
-                </span>
+              <span className="dy-eyebrow pop-in">an opt-in calendar</span>
+              <h1
+                className="dy-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
+                style={{ fontWeight: 500 }}
+              >
+                Show people what you&apos;re actually working on.
               </h1>
-              <p className="text-base sm:text-lg md:text-xl max-w-xl text-muted-foreground">
+              <p className="text-base sm:text-lg max-w-xl text-[color:var(--ink-soft)]">
                 Sign in with Google, sync your calendar, and decide event-by-event what to share.
-                Friends, recruiters, your group chat — anyone with the link can see what you&apos;ve
+                Friends, recruiters, your group chat — anyone with the link sees what you&apos;ve
                 made public.
               </p>
               <div className="flex flex-wrap items-center gap-3">
