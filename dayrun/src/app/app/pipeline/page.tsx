@@ -90,11 +90,21 @@ export default function PipelinePage() {
       <QuickAdd />
 
       {opps.length > 0 && (
-        <div className="chunky p-4 space-y-3">
+        <div className={`chunky p-4 space-y-3 ${publicCount === 0 ? "chunky-sun" : ""}`}>
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <p className="text-sm text-muted-foreground font-mono">
-              {active.length} active · {closed.length} closed · {publicCount} public
+            <p className="text-sm font-mono">
+              <span className="text-muted-foreground">
+                {active.length} active · {closed.length} closed ·{" "}
+              </span>
+              <span className={publicCount === 0 ? "text-ink font-bold" : "text-muted-foreground"}>
+                {publicCount} public
+              </span>
             </p>
+            {publicCount === 0 && (
+              <span className="text-xs font-semibold text-ink">
+                ↓ Nothing on your public profile yet. Share something to start.
+              </span>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
             <button
