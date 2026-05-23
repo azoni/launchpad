@@ -198,7 +198,7 @@ function SuggestionGroup({
           role: role.trim(),
           status,
           source: sourceLabel,
-          isPublic: false,
+          isPublic: true,
         }),
       });
       if (!res.ok) throw new Error(await res.text());

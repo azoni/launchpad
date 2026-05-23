@@ -51,7 +51,8 @@ export async function POST(req: Request) {
     link: clean(body.link, 1000),
     nextStep: clean(body.nextStep, 500),
     nextStepBy: clean(body.nextStepBy, 40),
-    isPublic: body.isPublic === true,
+    // Public by default — users opted into a public profile, the friction belongs on hiding, not sharing.
+    isPublic: body.isPublic !== false,
     createdAt: now,
     updatedAt: now,
   };

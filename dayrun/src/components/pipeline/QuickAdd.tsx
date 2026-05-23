@@ -14,7 +14,7 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
   const [source, setSource] = useState("");
   const [link, setLink] = useState("");
   const [nextStep, setNextStep] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +25,7 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
     setSource("");
     setLink("");
     setNextStep("");
-    setIsPublic(false);
+    setIsPublic(true);
     setError(null);
   }
 

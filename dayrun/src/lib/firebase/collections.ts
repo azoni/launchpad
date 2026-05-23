@@ -126,6 +126,12 @@ export type Compensation = {
   other: string;
 };
 
+export type ChecklistItem = {
+  id: string;
+  text: string;
+  done: boolean;
+};
+
 /** Private subcollection doc: `users/{uid}/opportunities/{oppId}/private/data`. */
 export type OpportunityPrivateDoc = {
   notes: string;
@@ -133,6 +139,7 @@ export type OpportunityPrivateDoc = {
   contacts: Contact[];
   brief?: Brief | null;
   compensation?: Compensation | null;
+  checklist?: ChecklistItem[];
 };
 
 export const ROUND_OUTCOMES = ["pending", "passed", "failed", "no-show"] as const;

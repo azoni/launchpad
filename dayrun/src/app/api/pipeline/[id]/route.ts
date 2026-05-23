@@ -5,6 +5,7 @@ import {
   COLLECTIONS,
   LOCATION_TYPES,
   OPPORTUNITY_STATUSES,
+  type ChecklistItem,
   type Compensation,
   type LocationType,
   type OpportunityDoc,
@@ -27,6 +28,21 @@ function sanitizeLocation(s: unknown): LocationType | null | undefined {
   return (LOCATION_TYPES as readonly string[]).includes(s as string)
     ? (s as LocationType)
     : undefined;
+}
+
+function sanitizeChecklist(c: unknown): ChecklistItem[] | undefined {
+  if (!Array.isArray(c)) return undefined;
+  return c
+    .map((entry): ChecklistItem | null => {
+      if (!entry || typeof entry !== "object") return null;
+      const e = entry as Record<string, unknown>;
+      const id = typeof e.id === "string" ? e.id.slice(0, 60) : null;
+      const text = typeof e.text === "string" ? e.text.trim().slice(0, 500) : null;
+      if (!id || !text) return null;
+      return { id, text, done: e.done === true };
+    })
+    .filter((x): x is ChecklistItem => x !== null)
+    .slice(0, 100);
 }
 
 function sanitizeCompensation(c: unknown): Compensation | undefined {
@@ -142,6 +158,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if ("compensation" in body) {
     const c = sanitizeCompensation(body.compensation);
     if (c) privateUpdate.compensation = c;
+  }
+  if ("checklist" in body) {
+    const c = sanitizeChecklist(body.checklist);
+    if (c) privateUpdate.checklist = c;
   }
   if (Object.keys(privateUpdate).length > 0) {
     await adminDb

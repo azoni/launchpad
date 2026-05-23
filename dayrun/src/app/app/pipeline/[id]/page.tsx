@@ -10,13 +10,14 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { ArrowLeft, ExternalLink, Eye, EyeOff, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, Eye, EyeOff, Plus, Trash2, X } from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { useAuthUser } from "@/lib/auth";
 import {
   COLLECTIONS,
   LOCATION_TYPES,
   OPPORTUNITY_STATUSES,
+  type ChecklistItem,
   type Compensation,
   type Contact,
   type EventDoc,
@@ -66,6 +67,7 @@ export default function OpportunityDetailPage(props: PageProps) {
           contacts: d.contacts ?? [],
           brief: d.brief ?? null,
           compensation: d.compensation ?? null,
+          checklist: d.checklist ?? [],
         });
       }
     });
@@ -321,6 +323,20 @@ export default function OpportunityDetailPage(props: PageProps) {
         onDelete={briefDelete}
       />
 
+      {/* Checklist */}
+      <section className="chunky p-4">
+        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+          <h2 className="font-heading text-xl font-bold">Checklist</h2>
+          <span className="inline-flex items-center gap-1 text-[0.7rem] text-muted-foreground font-semibold">
+            <EyeOff size={11} /> private
+          </span>
+        </div>
+        <ChecklistEditor
+          initial={priv.checklist ?? []}
+          onSave={(c) => patch({ checklist: c }, "checklist")}
+        />
+      </section>
+
       <section className="grid md:grid-cols-2 gap-4">
         <div className="chunky p-4">
           <h2 className="font-heading text-xl font-bold mb-2">Notes</h2>
@@ -522,6 +538,129 @@ function NotesEditor({
         {savingHint ? "saving…" : local === initial ? "saved" : ""}
       </p>
     </>
+  );
+}
+
+function ChecklistEditor({
+  initial,
+  onSave,
+}: {
+  initial: ChecklistItem[];
+  onSave: (items: ChecklistItem[]) => void;
+}) {
+  const [items, setItems] = useState<ChecklistItem[]>(initial);
+  const [draftText, setDraftText] = useState("");
+
+  // Resync when snapshot updates externally (e.g. another tab) and we're not editing.
+  if (
+    items.length !== initial.length &&
+    document.activeElement?.tagName !== "INPUT"
+  ) {
+    setItems(initial);
+  }
+
+  function update(next: ChecklistItem[]) {
+    setItems(next);
+    onSave(next);
+  }
+
+  function add() {
+    const text = draftText.trim();
+    if (!text) return;
+    const id = `cl_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    update([...items, { id, text, done: false }]);
+    setDraftText("");
+  }
+
+  function toggle(id: string) {
+    update(items.map((i) => (i.id === id ? { ...i, done: !i.done } : i)));
+  }
+
+  function remove(id: string) {
+    update(items.filter((i) => i.id !== id));
+  }
+
+  function edit(id: string, text: string) {
+    setItems((cur) => cur.map((i) => (i.id === id ? { ...i, text } : i)));
+  }
+
+  function commitEdit() {
+    onSave(items);
+  }
+
+  const remaining = items.filter((i) => !i.done).length;
+
+  return (
+    <div className="space-y-2">
+      {items.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {remaining === 0
+            ? `All ${items.length} done.`
+            : `${remaining} of ${items.length} left.`}
+        </p>
+      )}
+      {items.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          Things to do for this process — research, study, follow-ups, things to ask. Hit add.
+        </p>
+      )}
+      {items.map((item) => (
+        <div
+          key={item.id}
+          className={`flex items-center gap-2 border-2 border-ink rounded-xl px-3 py-2 ${
+            item.done ? "bg-muted/60" : "bg-card"
+          }`}
+        >
+          <button
+            onClick={() => toggle(item.id)}
+            aria-pressed={item.done}
+            className={`shrink-0 h-6 w-6 rounded border-2 border-ink inline-flex items-center justify-center transition-colors ${
+              item.done ? "bg-sun" : "bg-card hover:bg-muted"
+            }`}
+            title={item.done ? "Mark not done" : "Mark done"}
+          >
+            {item.done ? <Check size={14} /> : null}
+          </button>
+          <input
+            value={item.text}
+            onChange={(e) => edit(item.id, e.target.value)}
+            onBlur={commitEdit}
+            className={`flex-1 bg-transparent text-sm outline-none ${
+              item.done ? "line-through text-muted-foreground" : ""
+            }`}
+          />
+          <button
+            onClick={() => remove(item.id)}
+            className="text-muted-foreground hover:text-red-700 p-1"
+            aria-label="Delete"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      ))}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          add();
+        }}
+        className="flex items-center gap-2"
+      >
+        <input
+          value={draftText}
+          onChange={(e) => setDraftText(e.target.value)}
+          placeholder="Add an item…"
+          className="flex-1 border-2 border-ink rounded-xl px-3 py-2 bg-card text-sm"
+        />
+        <button
+          type="submit"
+          disabled={!draftText.trim()}
+          className="btn-chunky text-sm py-2 px-3"
+        >
+          <Plus size={14} />
+          Add
+        </button>
+      </form>
+    </div>
   );
 }
 

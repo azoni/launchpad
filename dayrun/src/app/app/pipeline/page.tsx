@@ -47,14 +47,13 @@ export default function PipelinePage() {
   const closed = opps.filter((o) => CLOSED_STATUSES.includes(o.status));
   const publicCount = opps.filter((o) => o.isPublic).length;
 
-  async function bulkSetVisibility(scope: "active" | "all", next: boolean) {
+  async function bulkSetVisibility(next: boolean) {
     if (!user) return;
     setBulkPending(next ? "public" : "private");
     try {
       const idToken = await user.getIdToken();
-      const targets = scope === "active" ? active : opps;
       await Promise.all(
-        targets
+        opps
           .filter((o) => o.isPublic !== next)
           .map((o) =>
             fetch(`/api/pipeline/${o.id}`, {
@@ -108,16 +107,16 @@ export default function PipelinePage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => bulkSetVisibility("active", true)}
-              disabled={!!bulkPending || active.every((o) => o.isPublic)}
+              onClick={() => bulkSetVisibility(true)}
+              disabled={!!bulkPending || opps.every((o) => o.isPublic)}
               className="btn-chunky btn-sun text-sm py-2 px-3 flex-1 sm:flex-initial"
-              title="Mark all active pipeline items public (linked events cascade too)"
+              title="Mark every pipeline item public (linked events cascade too)"
             >
               <Eye size={14} />
-              {bulkPending === "public" ? "…" : "Share all active"}
+              {bulkPending === "public" ? "…" : "Share all"}
             </button>
             <button
-              onClick={() => bulkSetVisibility("all", false)}
+              onClick={() => bulkSetVisibility(false)}
               disabled={!!bulkPending || opps.every((o) => !o.isPublic)}
               className="btn-chunky btn-ghost text-sm py-2 px-3 flex-1 sm:flex-initial"
               title="Mark every pipeline item private"
