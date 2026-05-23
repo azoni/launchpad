@@ -85,9 +85,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
   if (!data) notFound();
 
   const { user, events, opportunities } = data;
-  const oppsById = new Map(
-    opportunities.map((o) => [o.id, { id: o.id, company: o.company, role: o.role }]),
-  );
+  const oppsById = new Map(opportunities.map((o) => [o.id, o]));
   const activeOpps = opportunities.filter((o) =>
     ["referral", "applied", "screen", "onsite", "offer"].includes(o.status),
   );

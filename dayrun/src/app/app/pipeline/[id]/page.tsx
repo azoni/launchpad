@@ -10,7 +10,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { ArrowLeft, ExternalLink, Eye, EyeOff, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, ExternalLink, Eye, EyeOff, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { useAuthUser } from "@/lib/auth";
 import {
@@ -36,6 +36,7 @@ export default function OpportunityDetailPage(props: PageProps) {
   const [savingPatch, setSavingPatch] = useState<Record<string, boolean>>({});
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [generatingBrief, setGeneratingBrief] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Subscribe to main doc.
@@ -104,6 +105,24 @@ export default function OpportunityDetailPage(props: PageProps) {
         delete next[key];
         return next;
       });
+    }
+  }
+
+  async function generateBrief() {
+    if (!user) return;
+    setGeneratingBrief(true);
+    setError(null);
+    try {
+      const idToken = await user.getIdToken();
+      const res = await fetch(`/api/pipeline/${id}/brief`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Brief generation failed");
+    } finally {
+      setGeneratingBrief(false);
     }
   }
 
@@ -248,7 +267,18 @@ export default function OpportunityDetailPage(props: PageProps) {
       {/* Notes + Feedback */}
       <section className="grid md:grid-cols-2 gap-4">
         <div className="chunky p-4">
-          <h2 className="font-heading text-xl font-bold mb-2">Notes</h2>
+          <div className="flex items-center justify-between mb-2 gap-2">
+            <h2 className="font-heading text-xl font-bold">Notes</h2>
+            <button
+              onClick={generateBrief}
+              disabled={generatingBrief}
+              className="btn-chunky btn-grape text-xs py-1.5 px-3"
+              title="Generate a tailored prep brief with Claude. Appends to your existing notes."
+            >
+              <Sparkles size={13} />
+              {generatingBrief ? "Generating…" : "Generate prep brief"}
+            </button>
+          </div>
           <NotesEditor
             initial={priv.notes}
             placeholder={`Process so far, blockers, study plan, take-home brief, anything…`}

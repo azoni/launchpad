@@ -18,6 +18,7 @@ import { TimelineView } from "@/components/TimelineView";
 import {
   COLLECTIONS,
   type EventDoc,
+  type EventNotesDoc,
   type OpportunityDoc,
   type UserDoc,
   ACTIVE_STATUSES,
@@ -28,6 +29,7 @@ export default function AppPage() {
   const [profile, setProfile] = useState<UserDoc | null>(null);
   const [events, setEvents] = useState<EventDoc[]>([]);
   const [opportunities, setOpportunities] = useState<OpportunityDoc[]>([]);
+  const [eventNotes, setEventNotes] = useState<Map<string, EventNotesDoc>>(new Map());
   const [syncing, setSyncing] = useState(false);
   const [bulkPending, setBulkPending] = useState<"public" | "private" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,11 +61,20 @@ export default function AppPage() {
       query(collection(db, COLLECTIONS.opportunities(user.uid)), orderBy("updatedAt", "desc")),
       (snap) => setOpportunities(snap.docs.map((d) => ({ id: d.id, ...d.data() } as OpportunityDoc))),
     );
+    const unsubNotes = onSnapshot(
+      collection(db, COLLECTIONS.eventNotes(user.uid)),
+      (snap) => {
+        const m = new Map<string, EventNotesDoc>();
+        for (const d of snap.docs) m.set(d.id, d.data() as EventNotesDoc);
+        setEventNotes(m);
+      },
+    );
     return () => {
       cancelled = true;
       unsubProfile();
       unsubEvents();
       unsubOpps();
+      unsubNotes();
     };
   }, [user]);
 
@@ -130,6 +141,17 @@ export default function AppPage() {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
       body: JSON.stringify({ eventId, isPublic: next }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
+  async function saveEventNotes(eventId: string, update: Partial<EventNotesDoc>) {
+    if (!user) return;
+    const idToken = await user.getIdToken();
+    const res = await fetch("/api/event/notes", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ eventId, ...update }),
     });
     if (!res.ok) throw new Error(await res.text());
   }
@@ -288,8 +310,9 @@ export default function AppPage() {
         <TimelineView
           events={events}
           editable
-          actions={{ toggleOne, toggleMany }}
+          actions={{ toggleOne, toggleMany, saveEventNotes }}
           opportunitiesById={oppsById}
+          eventNotesById={eventNotes}
           ownerView
           emptyState={
             <div className="space-y-3">

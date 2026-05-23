@@ -2,6 +2,7 @@ export const COLLECTIONS = {
   users: "users",
   usernames: "usernames",
   events: (uid: string) => `users/${uid}/events` as const,
+  eventNotes: (uid: string) => `users/${uid}/eventNotes` as const,
   opportunities: (uid: string) => `users/${uid}/opportunities` as const,
   opportunityPrivate: (uid: string, oppId: string) =>
     `users/${uid}/opportunities/${oppId}/private` as const,
@@ -91,4 +92,15 @@ export type OpportunityPrivateDoc = {
   notes: string;
   feedback: string;
   contacts: Contact[];
+};
+
+export const ROUND_OUTCOMES = ["pending", "passed", "failed", "no-show"] as const;
+export type RoundOutcome = (typeof ROUND_OUTCOMES)[number];
+
+/** Owner-private per-event metadata. Lives at users/{uid}/eventNotes/{eventDocId}. */
+export type EventNotesDoc = {
+  roundName: string | null;
+  outcome: RoundOutcome;
+  notes: string;
+  updatedAt: number;
 };

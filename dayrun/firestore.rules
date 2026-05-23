@@ -23,6 +23,12 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // Per-event private metadata (round name, outcome, notes). Owner-only.
+      match /eventNotes/{eventId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+
       // Opportunities (job-pipeline items). Only the *safe* fields live here.
       // The `private` subcollection below holds notes/feedback/contacts (never publicly readable).
       match /opportunities/{oppId} {

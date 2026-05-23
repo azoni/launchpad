@@ -2,8 +2,25 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Briefcase, ChevronDown, Eye, EyeOff } from "lucide-react";
-import type { EventDoc, OpportunityDoc } from "@/lib/firebase/collections";
+import {
+  Briefcase,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Circle,
+  Eye,
+  EyeOff,
+  MinusCircle,
+  XCircle,
+} from "lucide-react";
+import type {
+  EventDoc,
+  EventNotesDoc,
+  OpportunityDoc,
+  OpportunityStatus,
+  RoundOutcome,
+} from "@/lib/firebase/collections";
+import { ROUND_OUTCOMES } from "@/lib/firebase/collections";
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -28,6 +45,9 @@ function timeLabel(ev: EventDoc) {
   return new Date(ev.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+const CLOSED_STATUSES: OpportunityStatus[] = ["accepted", "rejected", "withdrew", "ghosted"];
+const NEGATIVE_CLOSED: OpportunityStatus[] = ["rejected", "withdrew", "ghosted"];
+
 type DayBucket = { date: Date; key: string; items: EventDoc[] };
 
 function bucketByDay(events: EventDoc[]): DayBucket[] {
@@ -44,6 +64,10 @@ function bucketByDay(events: EventDoc[]): DayBucket[] {
 export type TimelineActions = {
   toggleOne: (id: string, next: boolean) => Promise<void>;
   toggleMany: (ids: string[], next: boolean) => Promise<void>;
+  saveEventNotes?: (
+    eventId: string,
+    update: Partial<EventNotesDoc>,
+  ) => Promise<void>;
 };
 
 export function TimelineView({
@@ -52,15 +76,15 @@ export function TimelineView({
   actions,
   emptyState,
   opportunitiesById,
+  eventNotesById,
   ownerView,
 }: {
   events: EventDoc[];
   editable?: boolean;
   actions?: TimelineActions;
   emptyState?: React.ReactNode;
-  /** Map of opportunityId -> { company, role } for rendering chips. */
-  opportunitiesById?: Map<string, Pick<OpportunityDoc, "id" | "company" | "role">>;
-  /** If true, chip links to the editable /app/pipeline/[id]; else /u/[u]/... is non-link. */
+  opportunitiesById?: Map<string, OpportunityDoc>;
+  eventNotesById?: Map<string, EventNotesDoc>;
   ownerView?: boolean;
 }) {
   const today = useMemo(() => new Date(), []);
@@ -76,24 +100,17 @@ export function TimelineView({
     return <div className="chunky p-8 text-center">{emptyState ?? "No events yet."}</div>;
   }
 
+  const sharedProps = { opportunitiesById, eventNotesById, ownerView, editable, actions };
+
   return (
     <div className="space-y-8">
-      {/* TODAY */}
       <Section
         label="Today"
         sublabel={today.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}
         accent="primary"
       >
         {todayBucket ? (
-          <DayCard
-            bucket={todayBucket}
-            today={today}
-            editable={editable}
-            actions={actions}
-            highlight
-            opportunitiesById={opportunitiesById}
-            ownerView={ownerView}
-          />
+          <DayCard bucket={todayBucket} today={today} highlight {...sharedProps} />
         ) : (
           <div className="chunky chunky-coral p-6 text-center">
             <p className="font-heading text-2xl">Nothing on the books today. Enjoy it. ☕</p>
@@ -101,7 +118,6 @@ export function TimelineView({
         )}
       </Section>
 
-      {/* UPCOMING */}
       {upcoming.length > 0 && (
         <Section
           label="Upcoming"
@@ -110,21 +126,12 @@ export function TimelineView({
         >
           <div className="space-y-4">
             {upcoming.map((b) => (
-              <DayCard
-                key={b.key}
-                bucket={b}
-                today={today}
-                editable={editable}
-                actions={actions}
-                opportunitiesById={opportunitiesById}
-                ownerView={ownerView}
-              />
+              <DayCard key={b.key} bucket={b} today={today} {...sharedProps} />
             ))}
           </div>
         </Section>
       )}
 
-      {/* PAST */}
       {past.length > 0 && (
         <Section label="Past" sublabel={`${past.reduce((n, b) => n + b.items.length, 0)} events`} accent="sun">
           <button
@@ -140,16 +147,7 @@ export function TimelineView({
           {showPast && (
             <div className="space-y-4">
               {[...past].reverse().map((b) => (
-                <DayCard
-                  key={b.key}
-                  bucket={b}
-                  today={today}
-                  editable={editable}
-                  actions={actions}
-                  past
-                  opportunitiesById={opportunitiesById}
-                  ownerView={ownerView}
-                />
+                <DayCard key={b.key} bucket={b} today={today} past {...sharedProps} />
               ))}
             </div>
           )}
@@ -186,25 +184,26 @@ function Section({
   );
 }
 
+type RowSharedProps = {
+  opportunitiesById?: Map<string, OpportunityDoc>;
+  eventNotesById?: Map<string, EventNotesDoc>;
+  ownerView?: boolean;
+  editable?: boolean;
+  actions?: TimelineActions;
+};
+
 function DayCard({
   bucket,
   today,
-  editable,
-  actions,
   highlight,
   past,
-  opportunitiesById,
-  ownerView,
+  ...rest
 }: {
   bucket: DayBucket;
   today: Date;
-  editable?: boolean;
-  actions?: TimelineActions;
   highlight?: boolean;
   past?: boolean;
-  opportunitiesById?: Map<string, Pick<OpportunityDoc, "id" | "company" | "role">>;
-  ownerView?: boolean;
-}) {
+} & RowSharedProps) {
   const ids = bucket.items.map((e) => e.googleEventId);
   const allPublic = bucket.items.every((e) => e.isPublic);
   const cls = highlight ? "chunky chunky-coral p-4 md:p-5" : "chunky p-4 md:p-5";
@@ -213,15 +212,17 @@ function DayCard({
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
         <h3 className="font-heading text-xl md:text-2xl font-bold">
           {dayLabel(bucket.date, today)}
-          {dayLabel(bucket.date, today) !== bucket.date.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" }) && (
+          {dayLabel(bucket.date, today) !==
+            bucket.date.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" }) && (
             <span className="ml-2 text-sm font-normal text-muted-foreground">
-              · {bucket.date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
+              ·{" "}
+              {bucket.date.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
             </span>
           )}
         </h3>
-        {editable && actions && (
+        {rest.editable && rest.actions && (
           <button
-            onClick={() => actions.toggleMany(ids, !allPublic)}
+            onClick={() => rest.actions!.toggleMany(ids, !allPublic)}
             className="text-xs sticker bg-card hover:bg-sun transition-colors"
             title={allPublic ? "Hide whole day from public profile" : "Show whole day on public profile"}
           >
@@ -233,14 +234,7 @@ function DayCard({
 
       <div className="space-y-2">
         {bucket.items.map((ev) => (
-          <EventRow
-            key={ev.googleEventId}
-            event={ev}
-            editable={editable}
-            onToggle={(n) => actions?.toggleOne(ev.googleEventId, n)}
-            opportunitiesById={opportunitiesById}
-            ownerView={ownerView}
-          />
+          <EventRow key={ev.googleEventId} event={ev} {...rest} />
         ))}
       </div>
     </div>
@@ -251,13 +245,23 @@ function OpportunityChip({
   opp,
   ownerView,
 }: {
-  opp: Pick<OpportunityDoc, "id" | "company" | "role">;
+  opp: OpportunityDoc;
   ownerView?: boolean;
 }) {
+  const isOffer = opp.status === "offer" || opp.status === "accepted";
+  const isNegativeClosed = NEGATIVE_CLOSED.includes(opp.status);
+  const bg = isOffer
+    ? "bg-sun text-ink"
+    : isNegativeClosed
+      ? "bg-card text-muted-foreground"
+      : "bg-grape text-white";
   const inner = (
-    <span className="inline-flex items-center gap-1 text-[0.7rem] font-bold px-2 py-0.5 rounded-full border-2 border-ink bg-grape text-white">
-      <Briefcase size={11} />
+    <span
+      className={`inline-flex items-center gap-1 text-[0.7rem] font-bold px-2 py-0.5 rounded-full border-2 border-ink ${bg}`}
+    >
+      {isOffer ? "🎉" : <Briefcase size={11} />}
       {opp.company}
+      <span className="opacity-70">· {opp.status}</span>
     </span>
   );
   if (ownerView) {
@@ -274,88 +278,227 @@ function OpportunityChip({
   return inner;
 }
 
+const OUTCOME_META: Record<
+  RoundOutcome,
+  { label: string; bg: string; fg: string; icon: React.ReactNode }
+> = {
+  pending: { label: "pending", bg: "#FAEBD8", fg: "#0E1B2C", icon: <Circle size={11} /> },
+  passed: { label: "passed", bg: "#3DDC97", fg: "#0E1B2C", icon: <Check size={11} /> },
+  failed: { label: "didn't pass", bg: "#FAEBD8", fg: "#6B5B47", icon: <XCircle size={11} /> },
+  "no-show": { label: "no-show", bg: "#FAEBD8", fg: "#6B5B47", icon: <MinusCircle size={11} /> },
+};
+
+function OutcomePip({ outcome }: { outcome: RoundOutcome }) {
+  const m = OUTCOME_META[outcome];
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[0.7rem] font-bold px-2 py-0.5 rounded-full border-2 border-ink"
+      style={{ background: m.bg, color: m.fg }}
+    >
+      {m.icon}
+      {m.label}
+    </span>
+  );
+}
+
 function EventRow({
   event,
   editable,
-  onToggle,
+  actions,
   opportunitiesById,
+  eventNotesById,
   ownerView,
 }: {
   event: EventDoc;
-  editable?: boolean;
-  onToggle?: (next: boolean) => Promise<void> | void;
-  opportunitiesById?: Map<string, Pick<OpportunityDoc, "id" | "company" | "role">>;
-  ownerView?: boolean;
-}) {
-  const [pending, setPending] = useState(false);
-  const [optimistic, setOptimistic] = useState(event.isPublic);
+} & RowSharedProps) {
+  const [pendingPublic, setPendingPublic] = useState(false);
+  const [optimisticPublic, setOptimisticPublic] = useState(event.isPublic);
+  const [expanded, setExpanded] = useState(false);
 
-  // Keep in sync if the underlying prop changes (e.g. bulk toggle from parent).
-  if (event.isPublic !== optimistic && !pending) {
-    setOptimistic(event.isPublic);
+  if (event.isPublic !== optimisticPublic && !pendingPublic) {
+    setOptimisticPublic(event.isPublic);
   }
 
-  async function flip() {
-    if (!editable || !onToggle || pending) return;
-    setPending(true);
-    const next = !optimistic;
-    setOptimistic(next);
+  const opp = event.opportunityId
+    ? (opportunitiesById?.get(event.opportunityId) ?? null)
+    : null;
+  const notes = eventNotesById?.get(event.googleEventId);
+  const closedNegative = opp && NEGATIVE_CLOSED.includes(opp.status);
+
+  async function flipPublic() {
+    if (!editable || !actions || pendingPublic) return;
+    setPendingPublic(true);
+    const next = !optimisticPublic;
+    setOptimisticPublic(next);
     try {
-      await onToggle(next);
+      await actions.toggleOne(event.googleEventId, next);
     } catch {
-      setOptimistic(!next);
+      setOptimisticPublic(!next);
     } finally {
-      setPending(false);
+      setPendingPublic(false);
+    }
+  }
+
+  const rowBg =
+    optimisticPublic && !closedNegative
+      ? "bg-sun/40"
+      : closedNegative
+        ? "bg-card opacity-70"
+        : "bg-card";
+
+  return (
+    <div className={`border-2 border-ink rounded-xl p-3 transition-colors ${rowBg}`}>
+      <div className="flex items-start gap-3">
+        <span
+          className={`shrink-0 px-2 py-1 text-xs rounded-md font-bold border-2 border-ink ${
+            optimisticPublic ? "bg-primary text-white" : "bg-muted text-ink"
+          }`}
+        >
+          {timeLabel(event)}
+        </span>
+        <div className="flex-1 min-w-0">
+          <p
+            className={`font-semibold truncate ${closedNegative ? "line-through" : ""}`}
+            title={event.summary}
+          >
+            {event.summary}
+          </p>
+          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+            {event.location && (
+              <p className="text-xs text-muted-foreground truncate">📍 {event.location}</p>
+            )}
+            {opp && <OpportunityChip opp={opp} ownerView={ownerView} />}
+            {ownerView && notes?.roundName && (
+              <span className="text-[0.7rem] font-semibold text-muted-foreground border-2 border-dashed border-muted-foreground/40 rounded-full px-2">
+                {notes.roundName}
+              </span>
+            )}
+            {ownerView && notes && notes.outcome && notes.outcome !== "pending" && (
+              <OutcomePip outcome={notes.outcome} />
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {editable && actions?.saveEventNotes && opp && (
+            <button
+              onClick={() => setExpanded((s) => !s)}
+              className={`p-1.5 rounded-full border-2 border-ink ${
+                expanded ? "bg-grape text-white" : "bg-card hover:bg-muted"
+              }`}
+              title="Round notes"
+              aria-label="Round notes"
+            >
+              <ChevronRight
+                size={14}
+                className={`transition-transform ${expanded ? "rotate-90" : ""}`}
+              />
+            </button>
+          )}
+          {editable ? (
+            <button
+              onClick={flipPublic}
+              disabled={pendingPublic}
+              aria-pressed={optimisticPublic}
+              className={`sticker shrink-0 transition-all ${
+                optimisticPublic ? "bg-sun" : "bg-card text-muted-foreground hover:bg-muted"
+              }`}
+              title={optimisticPublic ? "Hide from public profile" : "Show on public profile"}
+            >
+              {optimisticPublic ? <Eye size={12} /> : <EyeOff size={12} />}
+              {optimisticPublic ? "public" : "private"}
+            </button>
+          ) : (
+            optimisticPublic && (
+              <span className="sticker shrink-0">
+                <Eye size={12} /> public
+              </span>
+            )
+          )}
+        </div>
+      </div>
+
+      {expanded && editable && actions?.saveEventNotes && (
+        <RoundEditor
+          eventId={event.googleEventId}
+          initial={notes ?? { roundName: null, outcome: "pending", notes: "", updatedAt: 0 }}
+          onSave={(update) => actions.saveEventNotes!(event.googleEventId, update)}
+        />
+      )}
+    </div>
+  );
+}
+
+function RoundEditor({
+  initial,
+  onSave,
+}: {
+  eventId: string;
+  initial: EventNotesDoc;
+  onSave: (update: Partial<EventNotesDoc>) => Promise<void>;
+}) {
+  const [roundName, setRoundName] = useState(initial.roundName ?? "");
+  const [outcome, setOutcome] = useState<RoundOutcome>(initial.outcome ?? "pending");
+  const [notesText, setNotesText] = useState(initial.notes ?? "");
+  const [saving, setSaving] = useState<string | null>(null);
+
+  async function commit(update: Partial<EventNotesDoc>, key: string) {
+    setSaving(key);
+    try {
+      await onSave(update);
+    } finally {
+      setSaving(null);
     }
   }
 
   return (
-    <div
-      className={`flex items-start gap-3 border-2 border-ink rounded-xl p-3 transition-colors ${
-        optimistic ? "bg-sun/40" : "bg-card"
-      }`}
-    >
-      <span
-        className={`shrink-0 px-2 py-1 text-xs rounded-md font-bold border-2 border-ink ${
-          optimistic ? "bg-primary text-white" : "bg-muted text-ink"
-        }`}
-      >
-        {timeLabel(event)}
-      </span>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold truncate">{event.summary}</p>
-        <div className="flex items-center gap-2 flex-wrap mt-0.5">
-          {event.location && (
-            <p className="text-xs text-muted-foreground truncate">📍 {event.location}</p>
-          )}
-          {event.opportunityId && opportunitiesById?.has(event.opportunityId) && (
-            <OpportunityChip
-              opp={opportunitiesById.get(event.opportunityId)!}
-              ownerView={ownerView}
-            />
-          )}
-        </div>
+    <div className="mt-3 pt-3 border-t-2 border-dashed border-ink/20 space-y-2">
+      <div className="grid sm:grid-cols-2 gap-2">
+        <label className="block text-xs">
+          <span className="block font-semibold mb-1">Round name</span>
+          <input
+            value={roundName}
+            onChange={(e) => setRoundName(e.target.value)}
+            onBlur={() =>
+              roundName !== (initial.roundName ?? "") &&
+              commit({ roundName: roundName.trim() || null }, "roundName")
+            }
+            placeholder="Phone screen / System design / Behavioral"
+            className="w-full border-2 border-ink rounded-lg px-2 py-1.5 bg-card text-sm"
+          />
+        </label>
+        <label className="block text-xs">
+          <span className="block font-semibold mb-1">Outcome</span>
+          <select
+            value={outcome}
+            onChange={(e) => {
+              const v = e.target.value as RoundOutcome;
+              setOutcome(v);
+              commit({ outcome: v }, "outcome");
+            }}
+            className="w-full border-2 border-ink rounded-lg px-2 py-1.5 bg-card text-sm"
+          >
+            {ROUND_OUTCOMES.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
-      {editable ? (
-        <button
-          onClick={flip}
-          disabled={pending}
-          aria-pressed={optimistic}
-          className={`sticker shrink-0 transition-all ${
-            optimistic ? "bg-sun" : "bg-card text-muted-foreground hover:bg-muted"
-          }`}
-          title={optimistic ? "Hide from public profile" : "Show on public profile"}
-        >
-          {optimistic ? <Eye size={12} /> : <EyeOff size={12} />}
-          {optimistic ? "public" : "private"}
-        </button>
-      ) : (
-        optimistic && (
-          <span className="sticker shrink-0">
-            <Eye size={12} /> public
-          </span>
-        )
-      )}
+      <label className="block text-xs">
+        <span className="block font-semibold mb-1">Private notes for this round</span>
+        <textarea
+          value={notesText}
+          onChange={(e) => setNotesText(e.target.value)}
+          onBlur={() =>
+            notesText !== (initial.notes ?? "") && commit({ notes: notesText }, "notes")
+          }
+          rows={3}
+          placeholder="What happened, how it went, anything to remember"
+          className="w-full border-2 border-ink rounded-lg px-2 py-1.5 bg-card text-sm font-mono"
+        />
+      </label>
+      {saving && <p className="text-[0.7rem] text-muted-foreground">saving {saving}…</p>}
     </div>
   );
 }
