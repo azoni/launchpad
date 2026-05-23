@@ -363,6 +363,12 @@ function EventRow({
   const notes = eventNotesById?.get(event.googleEventId);
   const closedNegative = opp && NEGATIVE_CLOSED.includes(opp.status);
 
+  // An event is "in the past" once its end time is before now. For all-day events,
+  // event.end is the exclusive next-day date — strict less-than still works.
+  const endTime = event.end || event.start;
+  const isPast = endTime ? new Date(endTime).getTime() < Date.now() : false;
+  const struck = !!(closedNegative || isPast);
+
   async function flipPublic() {
     if (!editable || !actions || pendingPublic) return;
     setPendingPublic(true);
@@ -378,25 +384,33 @@ function EventRow({
   }
 
   const rowBg =
-    optimisticPublic && !closedNegative
-      ? "bg-sun/40"
-      : closedNegative
-        ? "bg-card opacity-70"
-        : "bg-card";
+    closedNegative
+      ? "bg-card opacity-70"
+      : optimisticPublic
+        ? "bg-sun/40"
+        : isPast
+          ? "bg-card opacity-80"
+          : "bg-card";
 
   return (
     <div className={`border-2 border-ink rounded-xl p-3 transition-colors ${rowBg}`}>
       <div className="flex items-start gap-2 sm:gap-3">
         <span
           className={`shrink-0 px-2 py-1 text-[0.7rem] sm:text-xs rounded-md font-bold border-2 border-ink ${
-            optimisticPublic ? "bg-primary text-white" : "bg-muted text-ink"
+            isPast
+              ? "bg-muted text-muted-foreground"
+              : optimisticPublic
+                ? "bg-primary text-white"
+                : "bg-muted text-ink"
           }`}
         >
           {timeLabel(event)}
         </span>
         <div className="flex-1 min-w-0">
           <p
-            className={`font-semibold ${closedNegative ? "line-through" : ""} break-words`}
+            className={`font-semibold break-words ${
+              struck ? "line-through text-muted-foreground" : ""
+            }`}
             title={event.summary}
           >
             {event.summary}
