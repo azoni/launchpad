@@ -1,14 +1,21 @@
 import type { OpportunityStatus } from "@/lib/firebase/collections";
 
 const PILL: Record<OpportunityStatus, string> = {
-  ongoing:   "dy-pill dy-pill-accent",
-  referral:  "dy-pill dy-pill-accent",
+  // In-progress states: all neutral. Brick (accent) was reading too close to the
+  // negative red — kept the accent as a brand color (wordmark period, buttons),
+  // but separated it from status signals.
+  ongoing:   "dy-pill dy-pill-neutral",
+  referral:  "dy-pill dy-pill-neutral",
   applied:   "dy-pill dy-pill-neutral",
   screen:    "dy-pill dy-pill-neutral",
+  // Onsite stays prominent (you're at the deepest stage).
   onsite:    "dy-pill dy-pill-ink",
+  // Wins
   offer:     "dy-pill dy-pill-positive",
   accepted:  "dy-pill dy-pill-positive",
+  // The only red.
   rejected:  "dy-pill dy-pill-negative",
+  // Closed-but-not-failed: faded outline.
   withdrew:  "dy-pill dy-pill-outline",
   ghosted:   "dy-pill dy-pill-outline",
 };
