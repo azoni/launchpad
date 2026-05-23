@@ -3,6 +3,7 @@ import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { fetchEvents } from "@/lib/google/calendar";
 import { COLLECTIONS, type EventDoc, type UserDoc } from "@/lib/firebase/collections";
 import { FieldValue } from "firebase-admin/firestore";
+import { planAutoLinks, applyAutoLinks } from "@/lib/auto-link";
 
 export const runtime = "nodejs";
 
@@ -83,15 +84,18 @@ export async function POST(req: Request) {
       isPublic: prev?.isPublic ?? false,
       syncedAt: now,
       source: "google",
+      opportunityId: prev?.opportunityId ?? null,
     };
     batch.set(eventsCol.doc(ev.googleEventId), doc);
   }
   batch.update(userRef, { lastSyncedAt: FieldValue.serverTimestamp() });
 
   await batch.commit();
-  // serverTimestamp on update doesn't take effect immediately in optimistic UI;
-  // also write a plain millisecond timestamp so the dashboard can show "Last synced".
   await userRef.update({ lastSyncedAt: now });
 
-  return NextResponse.json({ ok: true, count: events.length });
+  // Auto-link new events to opportunities by title match.
+  const plans = await planAutoLinks(adminDb, uid);
+  await applyAutoLinks(adminDb, uid, plans);
+
+  return NextResponse.json({ ok: true, count: events.length, linked: plans.length });
 }

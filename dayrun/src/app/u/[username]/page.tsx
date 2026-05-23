@@ -2,10 +2,17 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { adminDb } from "@/lib/firebase/admin";
-import { COLLECTIONS, type EventDoc, type UserDoc } from "@/lib/firebase/collections";
+import {
+  COLLECTIONS,
+  type EventDoc,
+  type OpportunityDoc,
+  type UserDoc,
+} from "@/lib/firebase/collections";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { TimelineView } from "@/components/TimelineView";
+import { StatusPill } from "@/components/pipeline/StatusPill";
+import { ExternalLink } from "lucide-react";
 import { APP_NAME, APP_URL } from "@/lib/utils";
 
 type PageProps = { params: Promise<{ username: string }> };
@@ -34,7 +41,18 @@ async function loadProfile(username: string) {
     .get();
   const events = eventsSnap.docs.map((d) => d.data() as EventDoc);
 
-  return { user, events };
+  // Single-where query — no composite index required. Sort client-side.
+  const oppsSnap = await adminDb
+    .collection(COLLECTIONS.opportunities(uid))
+    .where("isPublic", "==", true)
+    .limit(100)
+    .get();
+  const opportunities = oppsSnap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as OpportunityDoc))
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 50);
+
+  return { user, events, opportunities };
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -66,7 +84,16 @@ export default async function PublicProfilePage({ params }: PageProps) {
   const data = await loadProfile(username);
   if (!data) notFound();
 
-  const { user, events } = data;
+  const { user, events, opportunities } = data;
+  const oppsById = new Map(
+    opportunities.map((o) => [o.id, { id: o.id, company: o.company, role: o.role }]),
+  );
+  const activeOpps = opportunities.filter((o) =>
+    ["referral", "applied", "screen", "onsite", "offer"].includes(o.status),
+  );
+  const closedOpps = opportunities.filter((o) =>
+    ["accepted", "rejected", "withdrew", "ghosted"].includes(o.status),
+  );
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -127,12 +154,41 @@ export default async function PublicProfilePage({ params }: PageProps) {
           </div>
         </section>
 
+        {opportunities.length > 0 && (
+          <section>
+            <h2 className="font-heading text-2xl md:text-3xl font-bold mb-4">
+              What I&apos;m working on
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              {activeOpps.length} active · {closedOpps.length} closed
+            </p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {activeOpps.map((o) => (
+                <PublicOpportunityCard key={o.id} opp={o} />
+              ))}
+            </div>
+            {closedOpps.length > 0 && (
+              <details className="mt-4">
+                <summary className="cursor-pointer text-sm font-semibold text-muted-foreground hover:text-ink">
+                  Show {closedOpps.length} closed
+                </summary>
+                <div className="grid sm:grid-cols-2 gap-3 mt-3 opacity-80">
+                  {closedOpps.map((o) => (
+                    <PublicOpportunityCard key={o.id} opp={o} />
+                  ))}
+                </div>
+              </details>
+            )}
+          </section>
+        )}
+
         <section>
           <h2 className="font-heading text-2xl md:text-3xl font-bold mb-4">
-            What&apos;s public this week
+            Calendar
           </h2>
           <TimelineView
             events={events}
+            opportunitiesById={oppsById}
             emptyState={
               <div>
                 <p className="font-heading text-xl">Nothing public right now.</p>
@@ -156,5 +212,41 @@ export default async function PublicProfilePage({ params }: PageProps) {
       </main>
       <Footer />
     </>
+  );
+}
+
+function PublicOpportunityCard({ opp }: { opp: OpportunityDoc }) {
+  return (
+    <div className="chunky p-4">
+      <div className="flex items-start justify-between gap-2 flex-wrap mb-1">
+        <div className="min-w-0">
+          <p className="font-heading text-lg font-bold">{opp.company}</p>
+          <p className="text-sm text-muted-foreground">{opp.role}</p>
+        </div>
+        <StatusPill status={opp.status} />
+      </div>
+      {opp.nextStep && (
+        <p className="text-sm mt-1">
+          <span className="text-muted-foreground">Next:</span>{" "}
+          <span className="font-semibold">{opp.nextStep}</span>
+          {opp.nextStepBy && <span className="text-muted-foreground"> · {opp.nextStepBy}</span>}
+        </p>
+      )}
+      {opp.source && (
+        <p className="text-xs text-muted-foreground mt-1.5">via {opp.source}</p>
+      )}
+      {opp.link && (
+        <p className="text-xs mt-1">
+          <a
+            href={opp.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-muted-foreground hover:text-ink"
+          >
+            <ExternalLink size={11} /> posting
+          </a>
+        </p>
+      )}
+    </div>
   );
 }

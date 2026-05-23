@@ -2,6 +2,9 @@ export const COLLECTIONS = {
   users: "users",
   usernames: "usernames",
   events: (uid: string) => `users/${uid}/events` as const,
+  opportunities: (uid: string) => `users/${uid}/opportunities` as const,
+  opportunityPrivate: (uid: string, oppId: string) =>
+    `users/${uid}/opportunities/${oppId}/private` as const,
 } as const;
 
 export type UserDoc = {
@@ -25,4 +28,67 @@ export type EventDoc = {
   isPublic: boolean;
   syncedAt: number;
   source: "google";
+  /** id of a linked Opportunity (in users/{uid}/opportunities), if any. */
+  opportunityId?: string | null;
+};
+
+export const OPPORTUNITY_STATUSES = [
+  "referral",
+  "applied",
+  "screen",
+  "onsite",
+  "offer",
+  "accepted",
+  "rejected",
+  "withdrew",
+  "ghosted",
+] as const;
+
+export type OpportunityStatus = (typeof OPPORTUNITY_STATUSES)[number];
+
+export const ACTIVE_STATUSES: OpportunityStatus[] = [
+  "referral",
+  "applied",
+  "screen",
+  "onsite",
+  "offer",
+];
+
+export const CLOSED_STATUSES: OpportunityStatus[] = [
+  "accepted",
+  "rejected",
+  "withdrew",
+  "ghosted",
+];
+
+export function isActive(status: OpportunityStatus) {
+  return ACTIVE_STATUSES.includes(status);
+}
+
+/** Public/safe fields. Notes/feedback/contacts live in the `private` subcollection. */
+export type OpportunityDoc = {
+  id: string;
+  company: string;
+  role: string;
+  status: OpportunityStatus;
+  source: string | null;
+  link: string | null;
+  nextStep: string | null;
+  nextStepBy: string | null;
+  isPublic: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type Contact = {
+  name: string;
+  role: string;
+  note: string;
+};
+
+/** Private subcollection doc: `users/{uid}/opportunities/{oppId}/private/data`. */
+export type OpportunityPrivateDoc = {
+  notes: string;
+  feedback: string;
+  contacts: Contact[];
 };

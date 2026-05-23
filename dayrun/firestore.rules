@@ -3,14 +3,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Username lookup table: public read (so /u/[username] can resolve via client SDK if needed);
-    // writes only via Admin SDK.
     match /usernames/{name} {
       allow read: if true;
       allow write: if false;
     }
 
-    // User profile docs: owner can read/write all fields; public can read only when publicProfile is true.
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid
                   || resource.data.publicProfile == true;
@@ -18,15 +15,27 @@ service cloud.firestore {
       allow update: if request.auth != null && request.auth.uid == uid;
       allow delete: if false;
 
-      // Events: owner full access; public read only for events explicitly marked public.
+      // Calendar events: owner full access; public read only for events marked public.
       match /events/{eventId} {
         allow read: if request.auth != null && request.auth.uid == uid
                     || resource.data.isPublic == true;
-        // All writes happen through the Admin SDK (API routes), never directly from the client.
+        // Writes go through the Admin SDK API routes.
         allow write: if false;
       }
 
-      // OAuth tokens (v2): never readable/writable from the client.
+      // Opportunities (job-pipeline items). Only the *safe* fields live here.
+      // The `private` subcollection below holds notes/feedback/contacts (never publicly readable).
+      match /opportunities/{oppId} {
+        allow read: if request.auth != null && request.auth.uid == uid
+                    || resource.data.isPublic == true;
+        allow write: if false;
+
+        match /private/{docId} {
+          allow read, write: if false;
+        }
+      }
+
+      // OAuth refresh tokens (v2+): never client-readable.
       match /oauth/{provider} {
         allow read, write: if false;
       }

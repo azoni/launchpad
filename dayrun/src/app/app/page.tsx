@@ -10,7 +10,7 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import { Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Briefcase, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { useAuthUser, signInWithGoogle, signOut } from "@/lib/auth";
 import { SignInWithGoogle } from "@/components/SignInWithGoogle";
@@ -18,13 +18,16 @@ import { TimelineView } from "@/components/TimelineView";
 import {
   COLLECTIONS,
   type EventDoc,
+  type OpportunityDoc,
   type UserDoc,
+  ACTIVE_STATUSES,
 } from "@/lib/firebase/collections";
 
 export default function AppPage() {
   const { user, loading } = useAuthUser();
   const [profile, setProfile] = useState<UserDoc | null>(null);
   const [events, setEvents] = useState<EventDoc[]>([]);
+  const [opportunities, setOpportunities] = useState<OpportunityDoc[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [bulkPending, setBulkPending] = useState<"public" | "private" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,12 +55,27 @@ export default function AppPage() {
       query(collection(db, COLLECTIONS.events(user.uid)), orderBy("start", "asc")),
       (snap) => setEvents(snap.docs.map((d) => d.data() as EventDoc)),
     );
+    const unsubOpps = onSnapshot(
+      query(collection(db, COLLECTIONS.opportunities(user.uid)), orderBy("updatedAt", "desc")),
+      (snap) => setOpportunities(snap.docs.map((d) => ({ id: d.id, ...d.data() } as OpportunityDoc))),
+    );
     return () => {
       cancelled = true;
       unsubProfile();
       unsubEvents();
+      unsubOpps();
     };
   }, [user]);
+
+  const oppsById = useMemo(() => {
+    const m = new Map<string, OpportunityDoc>();
+    for (const o of opportunities) m.set(o.id, o);
+    return m;
+  }, [opportunities]);
+  const activeOppsCount = useMemo(
+    () => opportunities.filter((o) => ACTIVE_STATUSES.includes(o.status)).length,
+    [opportunities],
+  );
 
   const stats = useMemo(() => {
     const now = Date.now();
@@ -204,6 +222,10 @@ export default function AppPage() {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link href="/app/pipeline" className="btn-chunky btn-grape">
+            <Briefcase size={14} />
+            Pipeline{activeOppsCount > 0 ? ` · ${activeOppsCount}` : ""}
+          </Link>
           <Link href="/app/settings" className="btn-chunky btn-ghost">
             Settings
           </Link>
@@ -267,6 +289,8 @@ export default function AppPage() {
           events={events}
           editable
           actions={{ toggleOne, toggleMany }}
+          opportunitiesById={oppsById}
+          ownerView
           emptyState={
             <div className="space-y-3">
               <p className="font-heading text-2xl">No events synced yet.</p>

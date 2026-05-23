@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, Eye, EyeOff } from "lucide-react";
-import type { EventDoc } from "@/lib/firebase/collections";
+import Link from "next/link";
+import { Briefcase, ChevronDown, Eye, EyeOff } from "lucide-react";
+import type { EventDoc, OpportunityDoc } from "@/lib/firebase/collections";
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -50,11 +51,17 @@ export function TimelineView({
   editable,
   actions,
   emptyState,
+  opportunitiesById,
+  ownerView,
 }: {
   events: EventDoc[];
   editable?: boolean;
   actions?: TimelineActions;
   emptyState?: React.ReactNode;
+  /** Map of opportunityId -> { company, role } for rendering chips. */
+  opportunitiesById?: Map<string, Pick<OpportunityDoc, "id" | "company" | "role">>;
+  /** If true, chip links to the editable /app/pipeline/[id]; else /u/[u]/... is non-link. */
+  ownerView?: boolean;
 }) {
   const today = useMemo(() => new Date(), []);
   const todayKey = dayKey(today);
@@ -84,6 +91,8 @@ export function TimelineView({
             editable={editable}
             actions={actions}
             highlight
+            opportunitiesById={opportunitiesById}
+            ownerView={ownerView}
           />
         ) : (
           <div className="chunky chunky-coral p-6 text-center">
@@ -101,7 +110,15 @@ export function TimelineView({
         >
           <div className="space-y-4">
             {upcoming.map((b) => (
-              <DayCard key={b.key} bucket={b} today={today} editable={editable} actions={actions} />
+              <DayCard
+                key={b.key}
+                bucket={b}
+                today={today}
+                editable={editable}
+                actions={actions}
+                opportunitiesById={opportunitiesById}
+                ownerView={ownerView}
+              />
             ))}
           </div>
         </Section>
@@ -130,6 +147,8 @@ export function TimelineView({
                   editable={editable}
                   actions={actions}
                   past
+                  opportunitiesById={opportunitiesById}
+                  ownerView={ownerView}
                 />
               ))}
             </div>
@@ -174,6 +193,8 @@ function DayCard({
   actions,
   highlight,
   past,
+  opportunitiesById,
+  ownerView,
 }: {
   bucket: DayBucket;
   today: Date;
@@ -181,6 +202,8 @@ function DayCard({
   actions?: TimelineActions;
   highlight?: boolean;
   past?: boolean;
+  opportunitiesById?: Map<string, Pick<OpportunityDoc, "id" | "company" | "role">>;
+  ownerView?: boolean;
 }) {
   const ids = bucket.items.map((e) => e.googleEventId);
   const allPublic = bucket.items.every((e) => e.isPublic);
@@ -215,6 +238,8 @@ function DayCard({
             event={ev}
             editable={editable}
             onToggle={(n) => actions?.toggleOne(ev.googleEventId, n)}
+            opportunitiesById={opportunitiesById}
+            ownerView={ownerView}
           />
         ))}
       </div>
@@ -222,14 +247,45 @@ function DayCard({
   );
 }
 
+function OpportunityChip({
+  opp,
+  ownerView,
+}: {
+  opp: Pick<OpportunityDoc, "id" | "company" | "role">;
+  ownerView?: boolean;
+}) {
+  const inner = (
+    <span className="inline-flex items-center gap-1 text-[0.7rem] font-bold px-2 py-0.5 rounded-full border-2 border-ink bg-grape text-white">
+      <Briefcase size={11} />
+      {opp.company}
+    </span>
+  );
+  if (ownerView) {
+    return (
+      <Link
+        href={`/app/pipeline/${opp.id}`}
+        className="hover:no-underline"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return inner;
+}
+
 function EventRow({
   event,
   editable,
   onToggle,
+  opportunitiesById,
+  ownerView,
 }: {
   event: EventDoc;
   editable?: boolean;
   onToggle?: (next: boolean) => Promise<void> | void;
+  opportunitiesById?: Map<string, Pick<OpportunityDoc, "id" | "company" | "role">>;
+  ownerView?: boolean;
 }) {
   const [pending, setPending] = useState(false);
   const [optimistic, setOptimistic] = useState(event.isPublic);
@@ -268,9 +324,17 @@ function EventRow({
       </span>
       <div className="flex-1 min-w-0">
         <p className="font-semibold truncate">{event.summary}</p>
-        {event.location && (
-          <p className="text-xs text-muted-foreground truncate">📍 {event.location}</p>
-        )}
+        <div className="flex items-center gap-2 flex-wrap mt-0.5">
+          {event.location && (
+            <p className="text-xs text-muted-foreground truncate">📍 {event.location}</p>
+          )}
+          {event.opportunityId && opportunitiesById?.has(event.opportunityId) && (
+            <OpportunityChip
+              opp={opportunitiesById.get(event.opportunityId)!}
+              ownerView={ownerView}
+            />
+          )}
+        </div>
       </div>
       {editable ? (
         <button
