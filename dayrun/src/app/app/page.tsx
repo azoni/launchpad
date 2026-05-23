@@ -15,6 +15,7 @@ import { db } from "@/lib/firebase/client";
 import { useAuthUser, signInWithGoogle, signOut } from "@/lib/auth";
 import { SignInWithGoogle } from "@/components/SignInWithGoogle";
 import { TimelineView } from "@/components/TimelineView";
+import { InterviewSuggestions } from "@/components/InterviewSuggestions";
 import {
   COLLECTIONS,
   type EventDoc,
@@ -304,6 +305,10 @@ export default function AppPage() {
           <p className="font-semibold">Something went wrong</p>
           <p className="text-sm break-all">{error}</p>
         </div>
+      )}
+
+      {bootstrapped && events.length > 0 && (
+        <InterviewSuggestions events={events} />
       )}
 
       {bootstrapped && (

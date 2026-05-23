@@ -85,6 +85,7 @@ export async function POST(req: Request) {
       syncedAt: now,
       source: "google",
       opportunityId: prev?.opportunityId ?? null,
+      dismissedAsInterview: prev?.dismissedAsInterview ?? false,
     };
     batch.set(eventsCol.doc(ev.googleEventId), doc);
   }
