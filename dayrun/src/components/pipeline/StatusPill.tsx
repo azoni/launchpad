@@ -4,6 +4,7 @@ const META: Record<
   OpportunityStatus,
   { label: string; bg: string; fg: string; closed?: boolean }
 > = {
+  ongoing:   { label: "ongoing",   bg: "#FFF7EE", fg: "#0E1B2C" },
   referral:  { label: "referral",  bg: "#6C5CE7", fg: "white" },
   applied:   { label: "applied",   bg: "#FAEBD8", fg: "#0E1B2C" },
   screen:    { label: "screen",    bg: "#FFD166", fg: "#0E1B2C" },

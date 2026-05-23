@@ -66,7 +66,7 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
       photoURL: u.photoURL,
       lastSyncedAt: u.lastSyncedAt,
       activePipeline: opps.filter((o) =>
-        ["referral", "applied", "screen", "onsite", "offer"].includes(o.status),
+        ["ongoing", "referral", "applied", "screen", "onsite", "offer"].includes(o.status),
       ).length,
       publicPipeline: opps.slice(0, 4),
       publicEvents: eventsSnap.data().count,

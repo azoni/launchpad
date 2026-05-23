@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { OPPORTUNITY_STATUSES, type OpportunityStatus } from "@/lib/firebase/collections";
+import { INITIAL_STATUSES, type OpportunityStatus } from "@/lib/firebase/collections";
 import { useAuthUser } from "@/lib/auth";
 
 export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
@@ -10,7 +10,7 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
   const [open, setOpen] = useState(false);
   const [company, setCompany] = useState("");
   const [role, setRole] = useState("");
-  const [status, setStatus] = useState<OpportunityStatus>("referral");
+  const [status, setStatus] = useState<OpportunityStatus>("ongoing");
   const [source, setSource] = useState("");
   const [link, setLink] = useState("");
   const [nextStep, setNextStep] = useState("");
@@ -21,7 +21,7 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
   function reset() {
     setCompany("");
     setRole("");
-    setStatus("referral");
+    setStatus("ongoing");
     setSource("");
     setLink("");
     setNextStep("");
@@ -88,12 +88,15 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
             onChange={(e) => setStatus(e.target.value as OpportunityStatus)}
             className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card"
           >
-            {OPPORTUNITY_STATUSES.map((s) => (
+            {INITIAL_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
             ))}
           </select>
+          <p className="text-[0.7rem] text-muted-foreground mt-1">
+            Outcomes (offer / rejected / etc) are set later as the process moves.
+          </p>
         </Field>
         <Field label="Source">
           <input

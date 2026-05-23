@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Lightbulb, Plus, Sparkles, X } from "lucide-react";
 import {
-  OPPORTUNITY_STATUSES,
+  INITIAL_STATUSES,
   type EventDoc,
   type OpportunityStatus,
 } from "@/lib/firebase/collections";
@@ -147,7 +147,7 @@ function SuggestionGroup({
   const [open, setOpen] = useState(false);
   const [company, setCompany] = useState(initialCompany);
   const [role, setRole] = useState("");
-  const [status, setStatus] = useState<OpportunityStatus>("screen");
+  const [status, setStatus] = useState<OpportunityStatus>("ongoing");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -326,7 +326,7 @@ function SuggestionGroup({
                 onChange={(e) => setStatus(e.target.value as OpportunityStatus)}
                 className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card text-sm"
               >
-                {OPPORTUNITY_STATUSES.map((s) => (
+                {INITIAL_STATUSES.map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>

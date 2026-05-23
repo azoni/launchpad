@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 function sanitizeStatus(s: unknown): OpportunityStatus {
   return (OPPORTUNITY_STATUSES as readonly string[]).includes(s as string)
     ? (s as OpportunityStatus)
-    : "applied";
+    : "ongoing";
 }
 
 function clean(s: unknown, max = 2000): string | null {

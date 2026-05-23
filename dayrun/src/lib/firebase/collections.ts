@@ -38,6 +38,7 @@ export type EventDoc = {
 };
 
 export const OPPORTUNITY_STATUSES = [
+  "ongoing",
   "referral",
   "applied",
   "screen",
@@ -51,7 +52,19 @@ export const OPPORTUNITY_STATUSES = [
 
 export type OpportunityStatus = (typeof OPPORTUNITY_STATUSES)[number];
 
+/** Statuses you'd plausibly pick when creating a new pipeline item.
+ *  Outcomes (offer/accepted/rejected/withdrew/ghosted) only get set later
+ *  on the detail page once something actually happens. */
+export const INITIAL_STATUSES: OpportunityStatus[] = [
+  "ongoing",
+  "referral",
+  "applied",
+  "screen",
+  "onsite",
+];
+
 export const ACTIVE_STATUSES: OpportunityStatus[] = [
+  "ongoing",
   "referral",
   "applied",
   "screen",
@@ -65,6 +78,8 @@ export const CLOSED_STATUSES: OpportunityStatus[] = [
   "withdrew",
   "ghosted",
 ];
+
+export const DEFAULT_STATUS: OpportunityStatus = "ongoing";
 
 export function isActive(status: OpportunityStatus) {
   return ACTIVE_STATUSES.includes(status);

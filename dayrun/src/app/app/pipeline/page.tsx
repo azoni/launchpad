@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { useAuthUser } from "@/lib/auth";
 import {
@@ -21,6 +21,7 @@ export default function PipelinePage() {
   const [opps, setOpps] = useState<OpportunityDoc[]>([]);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
+  const [bulkPending, setBulkPending] = useState<"public" | "private" | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -44,6 +45,29 @@ export default function PipelinePage() {
 
   const active = opps.filter((o) => ACTIVE_STATUSES.includes(o.status));
   const closed = opps.filter((o) => CLOSED_STATUSES.includes(o.status));
+  const publicCount = opps.filter((o) => o.isPublic).length;
+
+  async function bulkSetVisibility(scope: "active" | "all", next: boolean) {
+    if (!user) return;
+    setBulkPending(next ? "public" : "private");
+    try {
+      const idToken = await user.getIdToken();
+      const targets = scope === "active" ? active : opps;
+      await Promise.all(
+        targets
+          .filter((o) => o.isPublic !== next)
+          .map((o) =>
+            fetch(`/api/pipeline/${o.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+              body: JSON.stringify({ isPublic: next }),
+            }),
+          ),
+      );
+    } finally {
+      setBulkPending(null);
+    }
+  }
   const grouped = new Map<string, OpportunityDoc[]>();
   for (const o of active) {
     if (!grouped.has(o.status)) grouped.set(o.status, []);
@@ -64,6 +88,36 @@ export default function PipelinePage() {
       </div>
 
       <QuickAdd />
+
+      {opps.length > 0 && (
+        <div className="chunky p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="text-sm text-muted-foreground font-mono">
+              {active.length} active · {closed.length} closed · {publicCount} public
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => bulkSetVisibility("active", true)}
+              disabled={!!bulkPending || active.every((o) => o.isPublic)}
+              className="btn-chunky btn-sun text-sm py-2 px-3 flex-1 sm:flex-initial"
+              title="Mark all active pipeline items public (linked events cascade too)"
+            >
+              <Eye size={14} />
+              {bulkPending === "public" ? "…" : "Share all active"}
+            </button>
+            <button
+              onClick={() => bulkSetVisibility("all", false)}
+              disabled={!!bulkPending || opps.every((o) => !o.isPublic)}
+              className="btn-chunky btn-ghost text-sm py-2 px-3 flex-1 sm:flex-initial"
+              title="Mark every pipeline item private"
+            >
+              <EyeOff size={14} />
+              {bulkPending === "private" ? "…" : "Hide all"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {bootstrapped && opps.length === 0 ? (
         <div className="chunky p-8 text-center space-y-2">

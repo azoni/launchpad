@@ -87,9 +87,9 @@ export default async function PublicProfilePage({ params }: PageProps) {
   const { user, events, opportunities } = data;
   const oppsById = new Map(opportunities.map((o) => [o.id, o]));
 
-  // Sort: active first (by stage progression), then closed (by status priority).
+  // Sort: active first (by stage progression), then closed.
   const ORDER: Record<string, number> = {
-    onsite: 0, offer: 1, screen: 2, applied: 3, referral: 4,
+    onsite: 0, offer: 1, screen: 2, applied: 3, ongoing: 4, referral: 5,
     accepted: 10, withdrew: 11, rejected: 12, ghosted: 13,
   };
   const sortedOpps = [...opportunities].sort((a, b) => {
@@ -209,14 +209,20 @@ export default async function PublicProfilePage({ params }: PageProps) {
 }
 
 function PublicOpportunityCard({ opp }: { opp: OpportunityDoc }) {
-  const isClosed = ["accepted", "rejected", "withdrew", "ghosted"].includes(opp.status);
   const isNegativeClosed = ["rejected", "withdrew", "ghosted"].includes(opp.status);
-  const tone = opp.status === "accepted" ? "chunky-sun" : opp.status === "offer" ? "chunky-coral" : "";
+  const tone =
+    opp.status === "accepted"
+      ? "chunky-sun"
+      : opp.status === "offer"
+        ? "chunky-coral"
+        : opp.status === "ongoing"
+          ? "chunky-grape"
+          : "";
   return (
     <div className={`chunky ${tone} p-4 ${isNegativeClosed ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-2 flex-wrap mb-1">
         <div className="min-w-0">
-          <p className={`font-heading text-lg font-bold ${isClosed ? "" : ""}`}>{opp.company}</p>
+          <p className="font-heading text-lg font-bold">{opp.company}</p>
           <p className="text-sm text-muted-foreground">{opp.role}</p>
         </div>
         <StatusPill status={opp.status} />
