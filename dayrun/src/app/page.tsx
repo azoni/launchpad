@@ -48,30 +48,30 @@ export default function Home() {
         />
 
         {/* Hero */}
-        <section className="mx-auto max-w-6xl px-4 pt-12 pb-16 md:pt-20 md:pb-24">
-          <div className="grid md:grid-cols-2 gap-10 md:gap-12 items-center">
-            <div className="space-y-6">
+        <section className="mx-auto max-w-6xl px-4 pt-10 pb-12 md:pt-20 md:pb-24">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+            <div className="space-y-5 md:space-y-6">
               <span className="sticker pop-in">📅 your week, on display</span>
-              <h1 className="font-heading text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.02]">
+              <h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05]">
                 A public, playful place for{" "}
                 <span className="inline-block bg-sun border-2 border-ink rounded-2xl px-2 -rotate-1">
                   what you&apos;re up to.
                 </span>
               </h1>
-              <p className="text-lg md:text-xl max-w-xl text-muted-foreground">
-                Sign in with Google, sync your calendar, and decide event-by-event what to show the
-                world. Friends, recruiters, your group chat — anyone with the link can see what you&apos;ve
+              <p className="text-base sm:text-lg md:text-xl max-w-xl text-muted-foreground">
+                Sign in with Google, sync your calendar, and decide event-by-event what to share.
+                Friends, recruiters, your group chat — anyone with the link can see what you&apos;ve
                 made public.
               </p>
               <div className="flex flex-wrap items-center gap-3">
-                <Link href="/app" className="btn-chunky text-lg">
+                <Link href="/app" className="btn-chunky text-base sm:text-lg">
                   Sign in with Google →
                 </Link>
-                <Link href="/u/charltonuw" className="btn-chunky btn-ghost text-base">
-                  See a live profile
+                <Link href="/explore" className="btn-chunky btn-ghost text-sm sm:text-base">
+                  Explore profiles
                 </Link>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Read-only access to your Google Calendar. Nothing public unless you toggle it.
               </p>
             </div>

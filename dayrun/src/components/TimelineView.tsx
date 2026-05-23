@@ -78,6 +78,7 @@ export function TimelineView({
   opportunitiesById,
   eventNotesById,
   ownerView,
+  pastDefaultOpen,
 }: {
   events: EventDoc[];
   editable?: boolean;
@@ -86,10 +87,11 @@ export function TimelineView({
   opportunitiesById?: Map<string, OpportunityDoc>;
   eventNotesById?: Map<string, EventNotesDoc>;
   ownerView?: boolean;
+  pastDefaultOpen?: boolean;
 }) {
   const today = useMemo(() => new Date(), []);
   const todayKey = dayKey(today);
-  const [showPast, setShowPast] = useState(false);
+  const [showPast, setShowPast] = useState(!!pastDefaultOpen);
 
   const buckets = useMemo(() => bucketByDay(events), [events]);
   const past = buckets.filter((b) => b.key < todayKey);
@@ -301,6 +303,42 @@ function OutcomePip({ outcome }: { outcome: RoundOutcome }) {
   );
 }
 
+function PublicToggle({
+  isPublic,
+  pending,
+  onClick,
+  inheritedFrom,
+}: {
+  isPublic: boolean;
+  pending: boolean;
+  onClick: () => void;
+  /** company name if visibility is inherited from a public pipeline item */
+  inheritedFrom: string | null;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={pending}
+      aria-pressed={isPublic}
+      title={
+        inheritedFrom
+          ? `Public via pipeline (${inheritedFrom}). Click to override.`
+          : isPublic
+            ? "Hide from public profile"
+            : "Show on public profile"
+      }
+      className={`shrink-0 min-h-[36px] min-w-[80px] inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-full border-2 border-ink text-xs font-bold transition-all ${
+        isPublic
+          ? "bg-sun text-ink hover:bg-[#FFC54A]"
+          : "bg-card text-muted-foreground hover:bg-muted"
+      }`}
+    >
+      {isPublic ? <Eye size={13} /> : <EyeOff size={13} />}
+      {isPublic ? "public" : "private"}
+    </button>
+  );
+}
+
 function EventRow({
   event,
   editable,
@@ -348,9 +386,9 @@ function EventRow({
 
   return (
     <div className={`border-2 border-ink rounded-xl p-3 transition-colors ${rowBg}`}>
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2 sm:gap-3">
         <span
-          className={`shrink-0 px-2 py-1 text-xs rounded-md font-bold border-2 border-ink ${
+          className={`shrink-0 px-2 py-1 text-[0.7rem] sm:text-xs rounded-md font-bold border-2 border-ink ${
             optimisticPublic ? "bg-primary text-white" : "bg-muted text-ink"
           }`}
         >
@@ -358,14 +396,16 @@ function EventRow({
         </span>
         <div className="flex-1 min-w-0">
           <p
-            className={`font-semibold truncate ${closedNegative ? "line-through" : ""}`}
+            className={`font-semibold ${closedNegative ? "line-through" : ""} break-words`}
             title={event.summary}
           >
             {event.summary}
           </p>
-          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+          <div className="flex items-center gap-1.5 flex-wrap mt-1">
             {event.location && (
-              <p className="text-xs text-muted-foreground truncate">📍 {event.location}</p>
+              <p className="text-xs text-muted-foreground truncate max-w-full">
+                📍 {event.location}
+              </p>
             )}
             {opp && <OpportunityChip opp={opp} ownerView={ownerView} />}
             {ownerView && notes?.roundName && (
@@ -378,11 +418,11 @@ function EventRow({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {editable && actions?.saveEventNotes && opp && (
             <button
               onClick={() => setExpanded((s) => !s)}
-              className={`p-1.5 rounded-full border-2 border-ink ${
+              className={`min-h-[36px] min-w-[36px] p-1.5 rounded-full border-2 border-ink inline-flex items-center justify-center ${
                 expanded ? "bg-grape text-white" : "bg-card hover:bg-muted"
               }`}
               title="Round notes"
@@ -395,18 +435,12 @@ function EventRow({
             </button>
           )}
           {editable ? (
-            <button
+            <PublicToggle
+              isPublic={optimisticPublic}
+              pending={pendingPublic}
               onClick={flipPublic}
-              disabled={pendingPublic}
-              aria-pressed={optimisticPublic}
-              className={`sticker shrink-0 transition-all ${
-                optimisticPublic ? "bg-sun" : "bg-card text-muted-foreground hover:bg-muted"
-              }`}
-              title={optimisticPublic ? "Hide from public profile" : "Show on public profile"}
-            >
-              {optimisticPublic ? <Eye size={12} /> : <EyeOff size={12} />}
-              {optimisticPublic ? "public" : "private"}
-            </button>
+              inheritedFrom={opp && opp.isPublic && optimisticPublic ? opp.company : null}
+            />
           ) : (
             optimisticPublic && (
               <span className="sticker shrink-0">

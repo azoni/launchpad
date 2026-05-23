@@ -31,6 +31,8 @@ export type EventDoc = {
   source: "google";
   /** id of a linked Opportunity (in users/{uid}/opportunities), if any. */
   opportunityId?: string | null;
+  /** User dismissed this event from the "looks like an interview" suggestions list. */
+  dismissedAsInterview?: boolean;
 };
 
 export const OPPORTUNITY_STATUSES = [
@@ -87,11 +89,19 @@ export type Contact = {
   note: string;
 };
 
+export type Brief = {
+  content: string;
+  generatedAt: number;
+  model: string;
+  contextHint: string | null;
+};
+
 /** Private subcollection doc: `users/{uid}/opportunities/{oppId}/private/data`. */
 export type OpportunityPrivateDoc = {
   notes: string;
   feedback: string;
   contacts: Contact[];
+  brief?: Brief | null;
 };
 
 export const ROUND_OUTCOMES = ["pending", "passed", "failed", "no-show"] as const;

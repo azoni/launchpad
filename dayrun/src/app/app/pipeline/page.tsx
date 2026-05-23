@@ -52,17 +52,15 @@ export default function PipelinePage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <Link href="/app" className="text-sm text-muted-foreground hover:text-ink inline-flex items-center gap-1">
-            <ArrowLeft size={14} /> dashboard
-          </Link>
-          <h1 className="font-heading text-4xl md:text-5xl font-bold mt-1">Pipeline</h1>
-          <p className="text-muted-foreground">
-            Track interviews, referrals, and the things you&apos;re chasing. Toggle items public to
-            show on <Link href="/app/settings" className="underline">your profile</Link>.
-          </p>
-        </div>
+      <div>
+        <Link href="/app" className="text-sm text-muted-foreground hover:text-ink inline-flex items-center gap-1">
+          <ArrowLeft size={14} /> dashboard
+        </Link>
+        <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold mt-1">Pipeline</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">
+          Track interviews, referrals, and what you&apos;re chasing. Toggle items public to show on{" "}
+          <Link href="/app/settings" className="underline">your profile</Link>.
+        </p>
       </div>
 
       <QuickAdd />

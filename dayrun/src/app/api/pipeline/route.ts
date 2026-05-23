@@ -67,5 +67,15 @@ export async function POST(req: Request) {
   const plans = await planAutoLinks(adminDb, uid);
   await applyAutoLinks(adminDb, uid, plans);
 
+  // If the new pipeline item is public, flip any newly-linked events to match.
+  if (doc.isPublic && plans.length > 0) {
+    const batch = adminDb.batch();
+    const eventsCol = adminDb.collection(COLLECTIONS.events(uid));
+    for (const p of plans.filter((p) => p.opportunityId === ref.id)) {
+      batch.update(eventsCol.doc(p.eventDocId), { isPublic: true });
+    }
+    await batch.commit();
+  }
+
   return NextResponse.json({ ok: true, opportunity: doc, linkedEvents: plans.length });
 }

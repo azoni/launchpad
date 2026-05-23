@@ -24,6 +24,12 @@ export function Navbar() {
         </Link>
         <nav className="flex items-center gap-2 text-sm">
           <Link
+            href="/explore"
+            className="px-3 py-1.5 rounded-full hover:bg-muted font-semibold"
+          >
+            Explore
+          </Link>
+          <Link
             href="/about"
             className="hidden sm:inline px-3 py-1.5 rounded-full hover:bg-muted font-semibold"
           >

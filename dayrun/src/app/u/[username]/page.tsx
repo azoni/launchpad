@@ -86,12 +86,18 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
   const { user, events, opportunities } = data;
   const oppsById = new Map(opportunities.map((o) => [o.id, o]));
-  const activeOpps = opportunities.filter((o) =>
-    ["referral", "applied", "screen", "onsite", "offer"].includes(o.status),
-  );
-  const closedOpps = opportunities.filter((o) =>
-    ["accepted", "rejected", "withdrew", "ghosted"].includes(o.status),
-  );
+
+  // Sort: active first (by stage progression), then closed (by status priority).
+  const ORDER: Record<string, number> = {
+    onsite: 0, offer: 1, screen: 2, applied: 3, referral: 4,
+    accepted: 10, withdrew: 11, rejected: 12, ghosted: 13,
+  };
+  const sortedOpps = [...opportunities].sort((a, b) => {
+    const ra = ORDER[a.status] ?? 99;
+    const rb = ORDER[b.status] ?? 99;
+    if (ra !== rb) return ra - rb;
+    return b.updatedAt - a.updatedAt;
+  });
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -152,31 +158,19 @@ export default async function PublicProfilePage({ params }: PageProps) {
           </div>
         </section>
 
-        {opportunities.length > 0 && (
+        {sortedOpps.length > 0 && (
           <section>
             <h2 className="font-heading text-2xl md:text-3xl font-bold mb-4">
               What I&apos;m working on
             </h2>
             <p className="text-sm text-muted-foreground mb-4">
-              {activeOpps.length} active · {closedOpps.length} closed
+              {sortedOpps.length} {sortedOpps.length === 1 ? "item" : "items"} in the pipeline
             </p>
             <div className="grid sm:grid-cols-2 gap-3">
-              {activeOpps.map((o) => (
+              {sortedOpps.map((o) => (
                 <PublicOpportunityCard key={o.id} opp={o} />
               ))}
             </div>
-            {closedOpps.length > 0 && (
-              <details className="mt-4">
-                <summary className="cursor-pointer text-sm font-semibold text-muted-foreground hover:text-ink">
-                  Show {closedOpps.length} closed
-                </summary>
-                <div className="grid sm:grid-cols-2 gap-3 mt-3 opacity-80">
-                  {closedOpps.map((o) => (
-                    <PublicOpportunityCard key={o.id} opp={o} />
-                  ))}
-                </div>
-              </details>
-            )}
           </section>
         )}
 
@@ -187,6 +181,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
           <TimelineView
             events={events}
             opportunitiesById={oppsById}
+            pastDefaultOpen
             emptyState={
               <div>
                 <p className="font-heading text-xl">Nothing public right now.</p>
@@ -214,11 +209,14 @@ export default async function PublicProfilePage({ params }: PageProps) {
 }
 
 function PublicOpportunityCard({ opp }: { opp: OpportunityDoc }) {
+  const isClosed = ["accepted", "rejected", "withdrew", "ghosted"].includes(opp.status);
+  const isNegativeClosed = ["rejected", "withdrew", "ghosted"].includes(opp.status);
+  const tone = opp.status === "accepted" ? "chunky-sun" : opp.status === "offer" ? "chunky-coral" : "";
   return (
-    <div className="chunky p-4">
+    <div className={`chunky ${tone} p-4 ${isNegativeClosed ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-2 flex-wrap mb-1">
         <div className="min-w-0">
-          <p className="font-heading text-lg font-bold">{opp.company}</p>
+          <p className={`font-heading text-lg font-bold ${isClosed ? "" : ""}`}>{opp.company}</p>
           <p className="text-sm text-muted-foreground">{opp.role}</p>
         </div>
         <StatusPill status={opp.status} />

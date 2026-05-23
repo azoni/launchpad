@@ -65,24 +65,44 @@
   }
 }
 
-/* Signature chunky card — 2px ink border + offset color shadow */
+/* Signature chunky card — 2px ink border + offset color shadow.
+   Smaller offset on small screens so cards never push past the viewport edge. */
 .chunky {
   border: 2px solid var(--ink);
   border-radius: var(--radius);
   background: var(--card);
-  box-shadow: 6px 6px 0 var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
   transition: transform 160ms cubic-bezier(.2,.9,.3,1.2), box-shadow 160ms;
 }
 .chunky:hover {
   transform: translate(-2px, -2px);
-  box-shadow: 8px 8px 0 var(--ink);
+  box-shadow: 6px 6px 0 var(--ink);
 }
-.chunky-coral { box-shadow: 6px 6px 0 var(--primary); }
-.chunky-coral:hover { box-shadow: 8px 8px 0 var(--primary); }
-.chunky-grape  { box-shadow: 6px 6px 0 var(--grape); }
-.chunky-grape:hover  { box-shadow: 8px 8px 0 var(--grape); }
-.chunky-sun    { box-shadow: 6px 6px 0 var(--sun); }
-.chunky-sun:hover    { box-shadow: 8px 8px 0 var(--sun); }
+.chunky-coral { box-shadow: 4px 4px 0 var(--primary); }
+.chunky-coral:hover { box-shadow: 6px 6px 0 var(--primary); }
+.chunky-grape  { box-shadow: 4px 4px 0 var(--grape); }
+.chunky-grape:hover  { box-shadow: 6px 6px 0 var(--grape); }
+.chunky-sun    { box-shadow: 4px 4px 0 var(--sun); }
+.chunky-sun:hover    { box-shadow: 6px 6px 0 var(--sun); }
+
+@media (min-width: 640px) {
+  .chunky { box-shadow: 6px 6px 0 var(--ink); }
+  .chunky:hover { box-shadow: 8px 8px 0 var(--ink); }
+  .chunky-coral { box-shadow: 6px 6px 0 var(--primary); }
+  .chunky-coral:hover { box-shadow: 8px 8px 0 var(--primary); }
+  .chunky-grape { box-shadow: 6px 6px 0 var(--grape); }
+  .chunky-grape:hover { box-shadow: 8px 8px 0 var(--grape); }
+  .chunky-sun { box-shadow: 6px 6px 0 var(--sun); }
+  .chunky-sun:hover { box-shadow: 8px 8px 0 var(--sun); }
+}
+
+/* Disable tilt on small screens — looks weird squished */
+@media (max-width: 640px) {
+  .tilt-hover:hover { transform: none; }
+}
+
+/* Make sure pages don't overflow horizontally because of chunky offsets */
+html, body { overflow-x: hidden; }
 
 /* Chunky button — same vocabulary but pressable */
 .btn-chunky {

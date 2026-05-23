@@ -4,10 +4,12 @@ import { adminDb } from "@/lib/firebase/admin";
 import { verifyUid } from "@/lib/api/auth";
 import {
   COLLECTIONS,
+  type Brief,
   type OpportunityDoc,
   type OpportunityPrivateDoc,
 } from "@/lib/firebase/collections";
 import { getAnthropic, logLlmCall } from "@/lib/llm/anthropic";
+import { FieldValue } from "firebase-admin/firestore";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -16,7 +18,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 const MODEL = "claude-sonnet-4-6";
 
-function buildPrompt(opp: OpportunityDoc, existingNotes: string): string {
+function buildPrompt(opp: OpportunityDoc, contextHint: string | null): string {
   return [
     `You're helping a senior engineer prep for a job interview. Generate a tight, scannable prep brief in markdown.`,
     ``,
@@ -25,7 +27,9 @@ function buildPrompt(opp: OpportunityDoc, existingNotes: string): string {
     opp.source ? `Source / how I got in: ${opp.source}` : "",
     `Current stage: ${opp.status}`,
     opp.nextStep ? `Next step: ${opp.nextStep}${opp.nextStepBy ? ` (${opp.nextStepBy})` : ""}` : "",
-    existingNotes ? `\nExisting notes:\n"""\n${existingNotes.slice(0, 4000)}\n"""` : "",
+    contextHint
+      ? `\nExtra context the user wants you to incorporate (TRUST THIS over the company/role fields if there's a conflict):\n"""\n${contextHint.slice(0, 4000)}\n"""`
+      : "",
     ``,
     `Output exactly these sections, in this order, each with a level-3 markdown heading:`,
     `1. ### Company snapshot — 2–3 sentences: what they do, sector, scale, anything distinctive.`,
@@ -40,6 +44,12 @@ function buildPrompt(opp: OpportunityDoc, existingNotes: string): string {
     .join("\n");
 }
 
+function clean(s: unknown, max = 2000): string | null {
+  if (typeof s !== "string") return null;
+  const t = s.trim().slice(0, max);
+  return t.length === 0 ? null : t;
+}
+
 export async function POST(req: Request, ctx: Ctx) {
   const uid = await verifyUid(req);
   if (!uid) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -50,16 +60,19 @@ export async function POST(req: Request, ctx: Ctx) {
   if (!oppSnap.exists) return NextResponse.json({ error: "not found" }, { status: 404 });
   const opp = { id: oppSnap.id, ...oppSnap.data() } as OpportunityDoc;
 
+  let body: { contextHint?: string };
+  try {
+    body = await req.json();
+  } catch {
+    body = {};
+  }
+  const contextHint = clean(body.contextHint, 4000);
+
   const privRef = adminDb
     .collection(COLLECTIONS.opportunityPrivate(uid, id))
     .doc("data");
-  const privSnap = await privRef.get();
-  const priv = privSnap.exists
-    ? (privSnap.data() as Partial<OpportunityPrivateDoc>)
-    : { notes: "" };
-  const existingNotes = priv.notes ?? "";
 
-  const prompt = buildPrompt(opp, existingNotes);
+  const prompt = buildPrompt(opp, contextHint);
 
   let briefText: string;
   let inputTokens = 0;
@@ -86,24 +99,59 @@ export async function POST(req: Request, ctx: Ctx) {
 
   logLlmCall({
     title: `Pipeline brief: ${opp.company}`,
-    description: `${opp.company} — ${opp.role}`,
+    description: `${opp.company} — ${opp.role}${contextHint ? ` (context: ${contextHint.slice(0, 80)})` : ""}`,
     model: MODEL,
     inputTokens,
     outputTokens,
   });
 
-  const header = `## Prep brief — generated ${new Date().toISOString().slice(0, 10)}`;
-  const next =
-    existingNotes.trim().length === 0
-      ? `${header}\n\n${briefText}`
-      : `${existingNotes.trim()}\n\n---\n\n${header}\n\n${briefText}`;
+  const brief: Brief = {
+    content: briefText,
+    generatedAt: Date.now(),
+    model: MODEL,
+    contextHint,
+  };
+  await privRef.set({ brief }, { merge: true });
 
-  await privRef.set({ notes: next }, { merge: true });
+  return NextResponse.json({ ok: true, brief, inputTokens, outputTokens });
+}
 
-  return NextResponse.json({
-    ok: true,
-    inputTokens,
-    outputTokens,
-    appended: existingNotes.trim().length > 0,
-  });
+/** Manually edit the brief content (user-edited markdown). */
+export async function PATCH(req: Request, ctx: Ctx) {
+  const uid = await verifyUid(req);
+  if (!uid) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const { id } = await ctx.params;
+  let body: { content?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "bad json" }, { status: 400 });
+  }
+  const content = clean(body.content, 50000);
+  if (content === null) return NextResponse.json({ error: "content required" }, { status: 400 });
+
+  const privRef = adminDb
+    .collection(COLLECTIONS.opportunityPrivate(uid, id))
+    .doc("data");
+  const snap = await privRef.get();
+  if (!snap.exists) return NextResponse.json({ error: "no brief to edit" }, { status: 404 });
+  const data = snap.data() as Partial<OpportunityPrivateDoc>;
+  if (!data.brief) return NextResponse.json({ error: "no brief to edit" }, { status: 404 });
+
+  const next: Brief = { ...data.brief, content, generatedAt: Date.now() };
+  await privRef.update({ brief: next });
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(req: Request, ctx: Ctx) {
+  const uid = await verifyUid(req);
+  if (!uid) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const { id } = await ctx.params;
+  const privRef = adminDb
+    .collection(COLLECTIONS.opportunityPrivate(uid, id))
+    .doc("data");
+  await privRef.update({ brief: FieldValue.delete() });
+  return NextResponse.json({ ok: true });
 }

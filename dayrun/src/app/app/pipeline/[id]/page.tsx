@@ -10,7 +10,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { ArrowLeft, ExternalLink, Eye, EyeOff, Plus, Sparkles, Trash2, X } from "lucide-react";
+import { ArrowLeft, ExternalLink, Eye, EyeOff, Plus, Trash2, X } from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { useAuthUser } from "@/lib/auth";
 import {
@@ -23,6 +23,7 @@ import {
   type OpportunityStatus,
 } from "@/lib/firebase/collections";
 import { StatusPill } from "@/components/pipeline/StatusPill";
+import { BriefCard } from "@/components/pipeline/BriefCard";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -31,12 +32,11 @@ export default function OpportunityDetailPage(props: PageProps) {
   const router = useRouter();
   const { user, loading } = useAuthUser();
   const [opp, setOpp] = useState<OpportunityDoc | null>(null);
-  const [priv, setPriv] = useState<OpportunityPrivateDoc>({ notes: "", feedback: "", contacts: [] });
+  const [priv, setPriv] = useState<OpportunityPrivateDoc>({ notes: "", feedback: "", contacts: [], brief: null });
   const [linkedEvents, setLinkedEvents] = useState<EventDoc[]>([]);
   const [savingPatch, setSavingPatch] = useState<Record<string, boolean>>({});
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [generatingBrief, setGeneratingBrief] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Subscribe to main doc.
@@ -61,6 +61,7 @@ export default function OpportunityDetailPage(props: PageProps) {
           notes: d.notes ?? "",
           feedback: d.feedback ?? "",
           contacts: d.contacts ?? [],
+          brief: d.brief ?? null,
         });
       }
     });
@@ -108,22 +109,36 @@ export default function OpportunityDetailPage(props: PageProps) {
     }
   }
 
-  async function generateBrief() {
+  async function briefGenerate(contextHint: string) {
     if (!user) return;
-    setGeneratingBrief(true);
-    setError(null);
-    try {
-      const idToken = await user.getIdToken();
-      const res = await fetch(`/api/pipeline/${id}/brief`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
-      if (!res.ok) throw new Error(await res.text());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Brief generation failed");
-    } finally {
-      setGeneratingBrief(false);
-    }
+    const idToken = await user.getIdToken();
+    const res = await fetch(`/api/pipeline/${id}/brief`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ contextHint: contextHint || undefined }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
+  async function briefEdit(content: string) {
+    if (!user) return;
+    const idToken = await user.getIdToken();
+    const res = await fetch(`/api/pipeline/${id}/brief`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ content }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
+  async function briefDelete() {
+    if (!user) return;
+    const idToken = await user.getIdToken();
+    const res = await fetch(`/api/pipeline/${id}/brief`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${idToken}` },
+    });
+    if (!res.ok) throw new Error(await res.text());
   }
 
   async function remove() {
@@ -171,8 +186,8 @@ export default function OpportunityDetailPage(props: PageProps) {
       </Link>
 
       {/* Header */}
-      <header className="chunky p-5 md:p-6 space-y-3">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
+      <header className="chunky p-4 md:p-6 space-y-3">
+        <div className="space-y-3">
           <div className="min-w-0">
             <EditableHeading
               value={opp.company}
@@ -191,7 +206,7 @@ export default function OpportunityDetailPage(props: PageProps) {
             <select
               value={opp.status}
               onChange={(e) => patch({ status: e.target.value as OpportunityStatus }, "status")}
-              className="border-2 border-ink rounded-full px-3 py-1.5 bg-card font-semibold uppercase text-xs"
+              className="border-2 border-ink rounded-full px-3 py-2 bg-card font-semibold uppercase text-xs min-h-[36px]"
             >
               {OPPORTUNITY_STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -201,12 +216,23 @@ export default function OpportunityDetailPage(props: PageProps) {
             </select>
             <button
               onClick={() => patch({ isPublic: !opp.isPublic }, "isPublic")}
-              className={`sticker ${opp.isPublic ? "bg-sun" : "bg-card text-muted-foreground"}`}
-              title={opp.isPublic ? "Hide from public profile" : "Show on public profile"}
+              className={`min-h-[36px] inline-flex items-center gap-1 px-3 py-1.5 rounded-full border-2 border-ink text-xs font-bold ${
+                opp.isPublic ? "bg-sun text-ink" : "bg-card text-muted-foreground"
+              }`}
+              title={
+                opp.isPublic
+                  ? "Hide from public profile (also hides linked events)"
+                  : "Show on public profile (linked events become public too)"
+              }
             >
-              {opp.isPublic ? <Eye size={12} /> : <EyeOff size={12} />}
+              {opp.isPublic ? <Eye size={13} /> : <EyeOff size={13} />}
               {opp.isPublic ? "public" : "private"}
             </button>
+            {opp.isPublic && (
+              <span className="text-[0.7rem] text-muted-foreground italic">
+                linked events follow this toggle
+              </span>
+            )}
           </div>
         </div>
 
@@ -265,20 +291,16 @@ export default function OpportunityDetailPage(props: PageProps) {
       <PrivateBanner />
 
       {/* Notes + Feedback */}
+      <BriefCard
+        brief={priv.brief ?? null}
+        onGenerate={briefGenerate}
+        onEdit={briefEdit}
+        onDelete={briefDelete}
+      />
+
       <section className="grid md:grid-cols-2 gap-4">
         <div className="chunky p-4">
-          <div className="flex items-center justify-between mb-2 gap-2">
-            <h2 className="font-heading text-xl font-bold">Notes</h2>
-            <button
-              onClick={generateBrief}
-              disabled={generatingBrief}
-              className="btn-chunky btn-grape text-xs py-1.5 px-3"
-              title="Generate a tailored prep brief with Claude. Appends to your existing notes."
-            >
-              <Sparkles size={13} />
-              {generatingBrief ? "Generating…" : "Generate prep brief"}
-            </button>
-          </div>
+          <h2 className="font-heading text-xl font-bold mb-2">Notes</h2>
           <NotesEditor
             initial={priv.notes}
             placeholder={`Process so far, blockers, study plan, take-home brief, anything…`}

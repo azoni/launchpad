@@ -81,9 +81,29 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if ("link" in body) safeUpdate.link = clean(body.link, 1000);
   if ("nextStep" in body) safeUpdate.nextStep = clean(body.nextStep, 500);
   if ("nextStepBy" in body) safeUpdate.nextStepBy = clean(body.nextStepBy, 40);
-  if ("isPublic" in body) safeUpdate.isPublic = body.isPublic === true;
+  const isPublicChanging = "isPublic" in body;
+  const newIsPublic = body.isPublic === true;
+  if (isPublicChanging) safeUpdate.isPublic = newIsPublic;
 
   await ref.update(safeUpdate);
+
+  // Cascade visibility to all linked events when the pipeline item's public flag changes.
+  // Public pipeline item → linked events public. Private → linked events private. Per-event
+  // overrides are washed away by an explicit pipeline toggle (intentional: pipeline is the
+  // primary unit of "show people what I'm doing").
+  if (isPublicChanging) {
+    const linked = await adminDb
+      .collection(COLLECTIONS.events(uid))
+      .where("opportunityId", "==", id)
+      .get();
+    if (!linked.empty) {
+      const batch = adminDb.batch();
+      for (const ev of linked.docs) {
+        batch.update(ev.ref, { isPublic: newIsPublic });
+      }
+      await batch.commit();
+    }
+  }
 
   // Private fields go to the subcollection doc.
   const privateUpdate: Record<string, unknown> = {};

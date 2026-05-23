@@ -243,57 +243,57 @@ export default function AppPage() {
             </p>
           )}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/app/pipeline" className="btn-chunky btn-grape">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <Link href="/app/pipeline" className="btn-chunky btn-grape text-sm py-2 px-3 sm:text-base sm:py-3 sm:px-5">
             <Briefcase size={14} />
             Pipeline{activeOppsCount > 0 ? ` · ${activeOppsCount}` : ""}
           </Link>
-          <Link href="/app/settings" className="btn-chunky btn-ghost">
+          <Link href="/app/settings" className="btn-chunky btn-ghost text-sm py-2 px-3 sm:text-base sm:py-3 sm:px-5">
             Settings
           </Link>
-          <button onClick={() => signOut()} className="btn-chunky btn-ghost">
+          <button onClick={() => signOut()} className="btn-chunky btn-ghost text-sm py-2 px-3 sm:text-base sm:py-3 sm:px-5">
             Sign out
           </button>
         </div>
       </div>
 
       {/* Action bar */}
-      <div className="chunky p-4 md:p-5">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="chunky p-4 md:p-5 space-y-3">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <button onClick={handleSyncClick} disabled={syncing} className="btn-chunky">
             <RefreshCw size={16} className={syncing ? "animate-spin" : ""} />
             {syncing ? "Syncing…" : events.length === 0 ? "Sync calendar" : "Re-sync"}
           </button>
-
           {events.length > 0 && (
-            <>
-              <span className="text-sm text-muted-foreground font-mono">
-                {stats.upcoming} upcoming · {stats.public} public
-              </span>
-              <span className="flex-1" />
-              <button
-                onClick={() => bulkAll("upcoming", true)}
-                disabled={!!bulkPending}
-                className="btn-chunky btn-sun text-sm py-2 px-3"
-                title="Mark every upcoming event public"
-              >
-                <Eye size={14} />
-                {bulkPending === "public" ? "…" : "Share upcoming"}
-              </button>
-              <button
-                onClick={() => bulkAll("all", false)}
-                disabled={!!bulkPending}
-                className="btn-chunky btn-ghost text-sm py-2 px-3"
-                title="Mark every event private"
-              >
-                <EyeOff size={14} />
-                {bulkPending === "private" ? "…" : "Hide all"}
-              </button>
-            </>
+            <span className="text-xs sm:text-sm text-muted-foreground font-mono">
+              {stats.upcoming} upcoming · {stats.public} public
+            </span>
           )}
         </div>
+        {events.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => bulkAll("upcoming", true)}
+              disabled={!!bulkPending}
+              className="btn-chunky btn-sun text-sm py-2 px-3 flex-1 sm:flex-initial"
+              title="Mark every upcoming event public"
+            >
+              <Eye size={14} />
+              {bulkPending === "public" ? "…" : "Share upcoming"}
+            </button>
+            <button
+              onClick={() => bulkAll("all", false)}
+              disabled={!!bulkPending}
+              className="btn-chunky btn-ghost text-sm py-2 px-3 flex-1 sm:flex-initial"
+              title="Mark every event private"
+            >
+              <EyeOff size={14} />
+              {bulkPending === "private" ? "…" : "Hide all"}
+            </button>
+          </div>
+        )}
         {profile?.lastSyncedAt && (
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="text-xs text-muted-foreground">
             Last synced {new Date(profile.lastSyncedAt).toLocaleString()}
           </p>
         )}
