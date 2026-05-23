@@ -6,13 +6,10 @@ import {
   COLLECTIONS,
   type EventDoc,
   type OpportunityDoc,
+  type OpportunityStatus,
   type UserDoc,
 } from "@/lib/firebase/collections";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
-import { TimelineView } from "@/components/TimelineView";
-import { StatusPill } from "@/components/pipeline/StatusPill";
-import { ExternalLink } from "lucide-react";
+import { PublicTimeline } from "@/components/PublicTimeline";
 import { APP_NAME, APP_URL } from "@/lib/utils";
 
 type PageProps = { params: Promise<{ username: string }> };
@@ -31,17 +28,16 @@ async function loadProfile(username: string) {
   if (!user.publicProfile) return null;
 
   const now = Date.now();
-  const horizonBack = new Date(now - 30 * 86400_000).toISOString();
+  const horizonBack = new Date(now - 60 * 86400_000).toISOString();
   const eventsSnap = await adminDb
     .collection(COLLECTIONS.events(uid))
     .where("isPublic", "==", true)
     .where("start", ">=", horizonBack)
     .orderBy("start", "asc")
-    .limit(200)
+    .limit(300)
     .get();
   const events = eventsSnap.docs.map((d) => d.data() as EventDoc);
 
-  // Single-where query — no composite index required. Sort client-side.
   const oppsSnap = await adminDb
     .collection(COLLECTIONS.opportunities(uid))
     .where("isPublic", "==", true)
@@ -62,7 +58,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: `@${username}`, robots: { index: false, follow: false } };
   }
   const title = `${data.user.displayName ?? `@${username}`} on ${APP_NAME}`;
-  const description = `Public schedule for ${data.user.displayName ?? `@${username}`}. ${data.events.length} upcoming public event${data.events.length === 1 ? "" : "s"}.`;
+  const activeCount = data.opportunities.filter((o) =>
+    ["ongoing", "referral", "applied", "screen", "onsite", "offer"].includes(o.status),
+  ).length;
+  const description =
+    activeCount > 0
+      ? `${data.user.displayName ?? `@${username}`} is currently exploring ${activeCount} ${activeCount === 1 ? "opportunity" : "opportunities"}.`
+      : `Public profile of ${data.user.displayName ?? `@${username}`} on ${APP_NAME}.`;
   const url = `${APP_URL}/u/${username}`;
   return {
     title,
@@ -79,6 +81,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+const STATUS_ORDER: Record<OpportunityStatus, number> = {
+  onsite: 0,
+  offer: 1,
+  screen: 2,
+  applied: 3,
+  ongoing: 4,
+  referral: 5,
+  accepted: 10,
+  withdrew: 11,
+  rejected: 12,
+  ghosted: 13,
+};
+const NEGATIVE_CLOSED: OpportunityStatus[] = ["rejected", "withdrew", "ghosted"];
+
 export default async function PublicProfilePage({ params }: PageProps) {
   const { username } = await params;
   const data = await loadProfile(username);
@@ -86,18 +102,16 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
   const { user, events, opportunities } = data;
   const oppsById = new Map(opportunities.map((o) => [o.id, o]));
-
-  // Sort: active first (by stage progression), then closed.
-  const ORDER: Record<string, number> = {
-    onsite: 0, offer: 1, screen: 2, applied: 3, ongoing: 4, referral: 5,
-    accepted: 10, withdrew: 11, rejected: 12, ghosted: 13,
-  };
   const sortedOpps = [...opportunities].sort((a, b) => {
-    const ra = ORDER[a.status] ?? 99;
-    const rb = ORDER[b.status] ?? 99;
+    const ra = STATUS_ORDER[a.status] ?? 99;
+    const rb = STATUS_ORDER[b.status] ?? 99;
     if (ra !== rb) return ra - rb;
     return b.updatedAt - a.updatedAt;
   });
+
+  const activeOpps = sortedOpps.filter((o) => !NEGATIVE_CLOSED.includes(o.status) && o.status !== "accepted");
+  const wonOpps = sortedOpps.filter((o) => o.status === "accepted");
+  const closedNegOpps = sortedOpps.filter((o) => NEGATIVE_CLOSED.includes(o.status));
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -126,136 +140,225 @@ export default async function PublicProfilePage({ params }: PageProps) {
     })),
   };
 
-  return (
-    <>
-      <Navbar />
-      <main className="flex-1 mx-auto max-w-4xl w-full px-4 py-8 space-y-8">
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
+  const lastSyncedHuman = user.lastSyncedAt
+    ? humanRelative(user.lastSyncedAt)
+    : null;
 
-        <section className="flex items-center gap-4 flex-wrap">
+  return (
+    <div className="editorial min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      {/* Minimal masthead */}
+      <header className="border-b border-[color:var(--ed-hairline)]">
+        <div className="mx-auto max-w-3xl px-5 sm:px-8 py-4 flex items-center justify-between">
+          <Link
+            href="/"
+            className="text-[14px] font-medium tracking-tight"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            DayRun
+          </Link>
+          <Link
+            href="/explore"
+            className="text-[13px] text-[color:var(--ed-muted)] hover:text-[color:var(--ed-ink)]"
+          >
+            Explore →
+          </Link>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-3xl px-5 sm:px-8 py-12 sm:py-16">
+        {/* Identity */}
+        <section className="flex items-start gap-5">
           {user.photoURL ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={user.photoURL}
-              alt={`${user.displayName ?? username} avatar`}
-              width={84}
-              height={84}
-              className="rounded-2xl border-2 border-ink shadow-[4px_4px_0_var(--color-ink)] bg-card"
+              alt={`${user.displayName ?? username}`}
+              width={56}
+              height={56}
+              className="rounded-full border border-[color:var(--ed-hairline-strong)]"
             />
           ) : (
-            <div className="h-[84px] w-[84px] rounded-2xl border-2 border-ink bg-sun grid place-items-center text-3xl font-bold">
+            <div
+              className="h-14 w-14 rounded-full grid place-items-center text-lg font-medium"
+              style={{
+                background: "var(--ed-accent-bg)",
+                color: "var(--ed-accent)",
+                fontFamily: "var(--font-heading)",
+              }}
+            >
               {(user.displayName ?? username).slice(0, 1).toUpperCase()}
             </div>
           )}
-          <div>
-            <h1 className="font-heading text-4xl md:text-5xl font-bold">
+          <div className="min-w-0 pt-0.5">
+            <h1 className="text-[28px] sm:text-[34px] font-medium leading-[1.05] tracking-tight">
               {user.displayName ?? `@${username}`}
             </h1>
-            <p className="text-muted-foreground font-mono">@{username}</p>
+            <p className="mt-1 text-[14px] text-[color:var(--ed-muted)]">
+              <span className="ed-mono">@{username}</span>
+              {activeOpps.length > 0 && (
+                <>
+                  <span className="ed-dot mx-2">·</span>
+                  {activeOpps.length} open
+                  {wonOpps.length > 0 ? ` · ${wonOpps.length} accepted` : ""}
+                </>
+              )}
+              {lastSyncedHuman && (
+                <>
+                  <span className="ed-dot mx-2">·</span>
+                  updated {lastSyncedHuman}
+                </>
+              )}
+            </p>
           </div>
         </section>
 
+        {/* Pipeline */}
         {sortedOpps.length > 0 && (
-          <section>
-            <h2 className="font-heading text-2xl md:text-3xl font-bold mb-4">
-              What I&apos;m working on
-            </h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              {sortedOpps.length} {sortedOpps.length === 1 ? "item" : "items"} in the pipeline
-            </p>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {sortedOpps.map((o) => (
-                <PublicOpportunityCard key={o.id} opp={o} />
+          <section className="mt-14 sm:mt-16">
+            <SectionHeader eyebrow="01" title="Currently exploring" />
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {activeOpps.map((o) => (
+                <OpportunityCard key={o.id} opp={o} />
+              ))}
+              {wonOpps.map((o) => (
+                <OpportunityCard key={o.id} opp={o} />
+              ))}
+              {closedNegOpps.map((o) => (
+                <OpportunityCard key={o.id} opp={o} muted />
               ))}
             </div>
           </section>
         )}
 
-        <section>
-          <h2 className="font-heading text-2xl md:text-3xl font-bold mb-4">
-            Calendar
-          </h2>
-          <TimelineView
-            events={events}
-            opportunitiesById={oppsById}
-            pastDefaultOpen
-            emptyState={
-              <div>
-                <p className="font-heading text-xl">Nothing public right now.</p>
-                <p className="text-muted-foreground">
-                  {user.displayName ?? `@${username}`} hasn&apos;t shared any events publicly yet. Check back later.
-                </p>
-              </div>
-            }
+        {/* Calendar */}
+        <section className="mt-14 sm:mt-16">
+          <SectionHeader
+            eyebrow={sortedOpps.length > 0 ? "02" : "01"}
+            title="Calendar"
           />
+          <div className="mt-6">
+            <PublicTimeline
+              events={events}
+              opportunitiesById={oppsById}
+              emptyState={
+                <span>
+                  {user.displayName ?? `@${username}`} hasn&apos;t shared any events publicly. Check
+                  back later.
+                </span>
+              }
+            />
+          </div>
         </section>
 
-        <section className="chunky chunky-grape p-5">
-          <p className="font-heading text-xl mb-1">Like this?</p>
-          <p className="text-sm text-muted-foreground mb-3">
-            Make your own public week in 30 seconds.
-          </p>
-          <Link href="/" className="btn-chunky btn-sun">
-            Try {APP_NAME} →
-          </Link>
-        </section>
+        {/* Quiet footer CTA */}
+        <footer className="mt-20 sm:mt-24 pt-8 border-t border-[color:var(--ed-hairline)]">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            <div>
+              <p
+                className="text-[15px] leading-snug max-w-md text-[color:var(--ed-ink-soft)]"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                DayRun is a public, opt-in calendar for what you&apos;re working on.
+              </p>
+              <p className="mt-1 text-[13px] text-[color:var(--ed-muted)]">
+                Built by{" "}
+                <a href="https://azoni.ai" className="ed-link">
+                  azoni.ai
+                </a>
+              </p>
+            </div>
+            <Link href="/app" className="ed-btn">
+              Make your own
+            </Link>
+          </div>
+        </footer>
       </main>
-      <Footer />
-    </>
+    </div>
   );
 }
 
-function PublicOpportunityCard({ opp }: { opp: OpportunityDoc }) {
-  const isNegativeClosed = ["rejected", "withdrew", "ghosted"].includes(opp.status);
-  const tone =
-    opp.status === "accepted"
-      ? "chunky-sun"
-      : opp.status === "offer"
-        ? "chunky-coral"
-        : opp.status === "ongoing"
-          ? "chunky-grape"
-          : "";
+function SectionHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
   return (
-    <div className={`chunky ${tone} p-4 ${isNegativeClosed ? "opacity-70" : ""}`}>
-      <div className="flex items-start justify-between gap-2 flex-wrap mb-1">
-        <div className="min-w-0">
-          <p className="font-heading text-lg font-bold">{opp.company}</p>
-          <p className="text-sm text-muted-foreground">{opp.role}</p>
-        </div>
-        <StatusPill status={opp.status} />
-      </div>
-      {opp.nextStep && (
-        <p className="text-sm mt-1">
-          <span className="text-muted-foreground">Next:</span>{" "}
-          <span className="font-semibold">{opp.nextStep}</span>
-          {opp.nextStepBy && <span className="text-muted-foreground"> · {opp.nextStepBy}</span>}
-        </p>
-      )}
-      <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-        {opp.locationType && (
-          <span className="inline-flex items-center gap-1 text-[0.7rem] font-semibold border-2 border-ink rounded-full px-2 py-0.5 bg-card">
-            📍 {opp.locationType}
-          </span>
-        )}
-      </div>
-      {opp.source && (
-        <p className="text-xs text-muted-foreground mt-1.5">via {opp.source}</p>
-      )}
-      {opp.link && (
-        <p className="text-xs mt-1">
-          <a
-            href={opp.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-muted-foreground hover:text-ink"
-          >
-            <ExternalLink size={11} /> posting
-          </a>
-        </p>
-      )}
+    <div className="flex items-baseline gap-4">
+      <span className="ed-eyebrow">{eyebrow}</span>
+      <h2 className="text-[22px] sm:text-[24px] font-medium tracking-tight">{title}</h2>
+      <span className="flex-1 h-px bg-[color:var(--ed-hairline)] translate-y-[-3px]" />
     </div>
   );
+}
+
+function statusPillClass(s: OpportunityStatus): string {
+  if (s === "accepted" || s === "offer") return "ed-pill ed-pill-positive";
+  if (s === "rejected") return "ed-pill ed-pill-negative";
+  if (s === "withdrew" || s === "ghosted") return "ed-pill ed-pill-outline";
+  return "ed-pill ed-pill-neutral";
+}
+
+function OpportunityCard({ opp, muted }: { opp: OpportunityDoc; muted?: boolean }) {
+  return (
+    <article
+      className={`ed-card flex flex-col gap-2 ${muted ? "opacity-70" : ""}`}
+    >
+      <header className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="text-[17px] font-medium leading-tight tracking-tight">
+            {opp.company}
+          </h3>
+          <p className="text-[13.5px] text-[color:var(--ed-muted)] mt-0.5">
+            {opp.role}
+            {opp.locationType ? (
+              <>
+                <span className="ed-dot mx-1.5">·</span>
+                {opp.locationType}
+              </>
+            ) : null}
+          </p>
+        </div>
+        <span className={statusPillClass(opp.status)}>{opp.status}</span>
+      </header>
+
+      {opp.nextStep && (
+        <p className="text-[14px] text-[color:var(--ed-ink-soft)]">
+          <span className="text-[color:var(--ed-mutest)]">Next:</span> {opp.nextStep}
+          {opp.nextStepBy && (
+            <span className="text-[color:var(--ed-mutest)]"> · {opp.nextStepBy}</span>
+          )}
+        </p>
+      )}
+
+      {(opp.source || opp.link) && (
+        <p className="text-[12.5px] text-[color:var(--ed-mutest)] mt-auto pt-1">
+          {opp.source && <span>via {opp.source}</span>}
+          {opp.source && opp.link && <span className="ed-dot mx-1.5">·</span>}
+          {opp.link && (
+            <a
+              href={opp.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ed-link"
+            >
+              posting
+            </a>
+          )}
+        </p>
+      )}
+    </article>
+  );
+}
+
+function humanRelative(ts: number): string {
+  const diff = Date.now() - ts;
+  const min = Math.round(diff / 60_000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.round(h / 24);
+  if (d < 7) return `${d}d ago`;
+  return new Date(ts).toLocaleDateString([], { month: "short", day: "numeric" });
 }

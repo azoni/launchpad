@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Fraunces, Nunito } from "next/font/google";
+import { Fraunces, Inter, Nunito } from "next/font/google";
 import { PostHogProvider } from "./PostHogProvider";
 import "./globals.css";
 import { APP_NAME, APP_TAGLINE, APP_URL } from "@/lib/utils";
@@ -16,6 +16,12 @@ const nunito = Nunito({
   variable: "--font-body",
   subsets: ["latin"],
   weight: ["400", "600", "700", "800"],
+});
+
+const inter = Inter({
+  variable: "--font-editorial",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -53,7 +59,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${nunito.variable} h-full antialiased`}
+      className={`${fraunces.variable} ${nunito.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col paper">
         <PostHogProvider>{children}</PostHogProvider>

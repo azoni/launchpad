@@ -21,6 +21,7 @@ import type {
   RoundOutcome,
 } from "@/lib/firebase/collections";
 import { ROUND_OUTCOMES } from "@/lib/firebase/collections";
+import { expandSpans, spanLabel, type DisplayEvent } from "@/lib/event-span";
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -40,7 +41,8 @@ function dayLabel(d: Date, today: Date) {
   return d.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
 }
 
-function timeLabel(ev: EventDoc) {
+function timeLabel(ev: DisplayEvent) {
+  if (ev._spanIdx !== undefined && ev._spanIdx > 0) return "continued";
   if (ev.allDay) return "All day";
   return new Date(ev.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
@@ -48,12 +50,12 @@ function timeLabel(ev: EventDoc) {
 const CLOSED_STATUSES: OpportunityStatus[] = ["accepted", "rejected", "withdrew", "ghosted"];
 const NEGATIVE_CLOSED: OpportunityStatus[] = ["rejected", "withdrew", "ghosted"];
 
-type DayBucket = { date: Date; key: string; items: EventDoc[] };
+type DayBucket = { date: Date; key: string; items: DisplayEvent[] };
 
-function bucketByDay(events: EventDoc[]): DayBucket[] {
+function bucketByDay(events: DisplayEvent[]): DayBucket[] {
   const groups = new Map<string, DayBucket>();
   for (const ev of events) {
-    const d = startOfDay(new Date(ev.start));
+    const d = ev._spanDay ?? startOfDay(new Date(ev.start));
     const key = dayKey(d);
     if (!groups.has(key)) groups.set(key, { date: d, key, items: [] });
     groups.get(key)!.items.push(ev);
@@ -93,7 +95,7 @@ export function TimelineView({
   const todayKey = dayKey(today);
   const [showPast, setShowPast] = useState(!!pastDefaultOpen);
 
-  const buckets = useMemo(() => bucketByDay(events), [events]);
+  const buckets = useMemo(() => bucketByDay(expandSpans(events)), [events]);
   const past = buckets.filter((b) => b.key < todayKey);
   const todayBucket = buckets.find((b) => b.key === todayKey);
   const upcoming = buckets.filter((b) => b.key > todayKey);
@@ -236,7 +238,7 @@ function DayCard({
 
       <div className="space-y-2">
         {bucket.items.map((ev) => (
-          <EventRow key={ev.googleEventId} event={ev} {...rest} />
+          <EventRow key={`${ev.googleEventId}_${ev._spanIdx ?? 0}`} event={ev} {...rest} />
         ))}
       </div>
     </div>
@@ -347,7 +349,7 @@ function EventRow({
   eventNotesById,
   ownerView,
 }: {
-  event: EventDoc;
+  event: DisplayEvent;
 } & RowSharedProps) {
   const [pendingPublic, setPendingPublic] = useState(false);
   const [optimisticPublic, setOptimisticPublic] = useState(event.isPublic);
@@ -414,6 +416,11 @@ function EventRow({
             title={event.summary}
           >
             {event.summary}
+            {event._spanTotal !== undefined && event._spanTotal > 1 && (
+              <span className="ml-2 text-[0.7rem] font-medium text-muted-foreground align-middle">
+                {spanLabel(event._spanIdx ?? 0, event._spanTotal)}
+              </span>
+            )}
           </p>
           <div className="flex items-center gap-1.5 flex-wrap mt-1">
             {event.location && (
