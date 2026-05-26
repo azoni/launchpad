@@ -19,6 +19,7 @@ import {
   getNextRoundAt,
   nextStepLabel,
 } from "@/lib/pipeline";
+import { formatCalendarDay, formatCalendarTime } from "@/lib/calendar-time";
 
 export const metadata: Metadata = {
   title: "Explore - public profiles",
@@ -37,6 +38,7 @@ type EventPreview = {
   summary: string;
   start: string;
   allDay: boolean;
+  timeZone: string | null;
   location: string | null;
   opportunityCompany: string | null;
   opportunityStatus: OpportunityStatus | null;
@@ -62,7 +64,7 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
     .get();
 
   const summaries: ProfileSummary[] = [];
-  const eventFloor = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+  const eventFloor = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   for (const userDoc of usersSnap.docs) {
     const u = userDoc.data() as UserDoc;
@@ -98,6 +100,7 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
         summary: event.summary,
         start: event.start,
         allDay: event.allDay,
+        timeZone: event.timeZone ?? null,
         location: event.location,
         opportunityCompany: opp?.company ?? null,
         opportunityStatus: opp?.status ?? null,
@@ -404,12 +407,11 @@ function statusAccent(status: OpportunityStatus | null | undefined): string {
 }
 
 function formatEventDay(value: string) {
-  return new Date(value).toLocaleDateString([], { month: "short", day: "numeric" });
+  return formatCalendarDay(value, { month: "short", day: "numeric" });
 }
 
-function formatEventTime(event: Pick<EventPreview, "start" | "allDay">) {
-  if (event.allDay) return "all day";
-  return new Date(event.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+function formatEventTime(event: Pick<EventPreview, "start" | "allDay" | "timeZone">) {
+  return formatCalendarTime(event);
 }
 
 function humanRelative(ts: number): string {

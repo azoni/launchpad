@@ -21,6 +21,7 @@ import {
   nextStepLabel,
   visibleRounds,
 } from "@/lib/pipeline";
+import { formatCalendarDayDate, todayInTimeZone } from "@/lib/calendar-time";
 
 type PageProps = { params: Promise<{ username: string }> };
 
@@ -396,7 +397,7 @@ function humanRelative(ts: number): string {
 }
 
 function todayLine(): string {
-  return new Date().toLocaleDateString([], {
+  return formatCalendarDayDate(todayInTimeZone(), {
     weekday: "long",
     month: "long",
     day: "numeric",

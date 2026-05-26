@@ -1,4 +1,5 @@
 import type { InterviewRound, OpportunityDoc, OpportunityStatus } from "./firebase/collections";
+import { calendarParts, formatCalendarDay } from "./calendar-time";
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -18,24 +19,19 @@ export function toDateInputValue(value?: string | null): string {
   if (!value) return "";
   const trimmed = value.trim();
   if (DATE_ONLY_RE.test(trimmed)) return trimmed;
-  const ts = parsePipelineDate(trimmed);
-  if (!ts) return "";
-  const d = new Date(ts);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate(),
-  ).padStart(2, "0")}`;
+  const parts = calendarParts(trimmed);
+  if (!parts) return "";
+  return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
 }
 
 export function formatPipelineDate(value?: string | null, fallback = "No date"): string {
-  const ts = parsePipelineDate(value);
-  if (!ts) return fallback;
-  return new Date(ts).toLocaleDateString([], { month: "short", day: "numeric" });
+  if (!value || !calendarParts(value)) return fallback;
+  return formatCalendarDay(value, { month: "short", day: "numeric" });
 }
 
 export function formatPipelineDateLong(value?: string | null, fallback = "No date"): string {
-  const ts = parsePipelineDate(value);
-  if (!ts) return fallback;
-  return new Date(ts).toLocaleDateString([], {
+  if (!value || !calendarParts(value)) return fallback;
+  return formatCalendarDay(value, {
     weekday: "short",
     month: "short",
     day: "numeric",

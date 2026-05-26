@@ -6,6 +6,7 @@ export type SimpleEvent = {
   start: string;
   end: string;
   allDay: boolean;
+  timeZone: string | null;
   location: string | null;
   description: string | null;
   /** Second-level domain of the most-represented external corporate attendee (e.g. "geico"), or null. */
@@ -90,6 +91,7 @@ export async function fetchEvents(
         start: e.start?.dateTime ?? e.start?.date ?? "",
         end: e.end?.dateTime ?? e.end?.date ?? "",
         allDay,
+        timeZone: e.start?.timeZone ?? e.end?.timeZone ?? null,
         location: e.location ?? null,
         description: e.description ?? null,
         attendeeDomain: extractAttendeeDomain(e.attendees ?? undefined),

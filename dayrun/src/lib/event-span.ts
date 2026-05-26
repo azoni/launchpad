@@ -1,4 +1,5 @@
 import type { EventDoc } from "./firebase/collections";
+import { calendarDayDate, calendarParts } from "./calendar-time";
 
 /** Pure-display augmentation for multi-day events. Same underlying event, repeated
  *  once per day in its span, with `_spanIdx` (0-based) and `_spanTotal` set. */
@@ -27,8 +28,8 @@ export function expandSpans(events: EventDoc[]): DisplayEvent[] {
       out.push(ev);
       continue;
     }
-    const startDate = new Date(ev.start);
-    const endRaw = ev.end ? new Date(ev.end) : null;
+    const startDate = calendarDayDate(ev.start);
+    const endRaw = ev.end ? calendarDayDate(ev.end) : null;
 
     let lastInclusiveDay: Date;
     if (ev.allDay) {
@@ -36,7 +37,7 @@ export function expandSpans(events: EventDoc[]): DisplayEvent[] {
       if (!endRaw) {
         lastInclusiveDay = startOfDay(startDate);
       } else {
-        lastInclusiveDay = startOfDay(new Date(endRaw.getTime() - 1)); // 1ms inside last day
+        lastInclusiveDay = startOfDay(new Date(endRaw.getTime() - DAY_MS));
       }
     } else {
       // Timed event: the last day touched is the calendar date of `end`.
@@ -44,7 +45,9 @@ export function expandSpans(events: EventDoc[]): DisplayEvent[] {
       if (!endRaw) {
         lastInclusiveDay = startOfDay(startDate);
       } else {
-        const adj = new Date(endRaw.getTime() - 1);
+        const endParts = calendarParts(ev.end);
+        const isMidnight = endParts?.hour === 0 && endParts.minute === 0;
+        const adj = isMidnight ? new Date(endRaw.getTime() - DAY_MS) : endRaw;
         lastInclusiveDay = startOfDay(adj);
       }
     }

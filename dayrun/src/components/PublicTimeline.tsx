@@ -1,5 +1,12 @@
 import type { EventDoc, OpportunityDoc } from "@/lib/firebase/collections";
 import { expandSpans, spanLabel, type DisplayEvent } from "@/lib/event-span";
+import {
+  calendarDayDate,
+  formatCalendarDayDate,
+  formatCalendarTime,
+  relativeCalendarDayLabel,
+  todayInTimeZone,
+} from "@/lib/calendar-time";
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -12,20 +19,16 @@ function dayKey(d: Date) {
 }
 
 function relativeLabel(d: Date, today: Date): string {
-  const diff = Math.round((startOfDay(d).getTime() - startOfDay(today).getTime()) / 86400_000);
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Tomorrow";
-  if (diff === -1) return "Yesterday";
-  return d.toLocaleDateString([], { weekday: "long" });
+  return relativeCalendarDayLabel(d, today);
 }
+
 function shortDateLabel(d: Date) {
-  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+  return formatCalendarDayDate(d, { month: "short", day: "numeric" });
 }
 
 function timeOf(ev: DisplayEvent): string {
-  if (ev._spanIdx !== undefined && ev._spanIdx > 0) return "—";
-  if (ev.allDay) return "all day";
-  return new Date(ev.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (ev._spanIdx !== undefined && ev._spanIdx > 0) return "-";
+  return formatCalendarTime(ev);
 }
 
 type Bucket = { date: Date; key: string; items: DisplayEvent[] };
@@ -33,7 +36,7 @@ type Bucket = { date: Date; key: string; items: DisplayEvent[] };
 function bucketByDay(events: DisplayEvent[]): Bucket[] {
   const groups = new Map<string, Bucket>();
   for (const ev of events) {
-    const d = ev._spanDay ?? startOfDay(new Date(ev.start));
+    const d = ev._spanDay ?? startOfDay(calendarDayDate(ev.start));
     const key = dayKey(d);
     if (!groups.has(key)) groups.set(key, { date: d, key, items: [] });
     groups.get(key)!.items.push(ev);
@@ -56,7 +59,7 @@ export function PublicTimeline({
     return <div className="text-[15px] text-[color:var(--faded)] italic">{emptyState}</div>;
   }
 
-  const today = new Date();
+  const today = todayInTimeZone();
   const todayKey = dayKey(today);
   const now = Date.now();
 
@@ -105,7 +108,7 @@ function DayHeader({ date, today }: { date: Date; today: Date }) {
         }}
       >
         {rel}
-        <span className="text-[color:var(--faded)]"> · {shortDateLabel(date)}</span>
+        <span className="text-[color:var(--faded)]"> - {shortDateLabel(date)}</span>
       </h3>
       <span className="flex-1 h-px bg-[color:var(--hairline)] translate-y-[2px]" />
     </header>
@@ -160,7 +163,7 @@ function EventRow({
           {opp && <OpportunityChip opp={opp} />}
           {event.location && (
             <span className="truncate max-w-full text-[color:var(--faded)]">
-              {opp && " · "}
+              {opp && " - "}
               {event.location}
             </span>
           )}

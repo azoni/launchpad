@@ -36,6 +36,7 @@ import {
   toDateInputValue,
   visibleRounds,
 } from "@/lib/pipeline";
+import { formatCalendarDateTime } from "@/lib/calendar-time";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -439,7 +440,7 @@ export default function OpportunityDetailPage(props: PageProps) {
               <li key={ev.googleEventId} className="text-sm border-2 border-ink rounded-xl p-3 bg-card">
                 <p className="font-semibold">{ev.summary}</p>
                 <p className="text-muted-foreground text-xs">
-                  {new Date(ev.start).toLocaleString()}
+                  {formatCalendarDateTime(ev)}
                   {ev.location ? ` · ${ev.location}` : ""}
                 </p>
               </li>

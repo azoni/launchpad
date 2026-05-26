@@ -79,6 +79,7 @@ export async function POST(req: Request) {
       start: ev.start,
       end: ev.end,
       allDay: ev.allDay,
+      timeZone: ev.timeZone ?? prev?.timeZone ?? null,
       location: ev.location,
       description: ev.description,
       isPublic: prev?.isPublic ?? false,

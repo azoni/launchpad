@@ -22,6 +22,13 @@ import type {
 } from "@/lib/firebase/collections";
 import { ROUND_OUTCOMES } from "@/lib/firebase/collections";
 import { expandSpans, spanLabel, type DisplayEvent } from "@/lib/event-span";
+import {
+  calendarDayDate,
+  formatCalendarDayDate,
+  formatCalendarTime,
+  relativeCalendarDayLabel,
+  todayInTimeZone,
+} from "@/lib/calendar-time";
 
 function startOfDay(d: Date) {
   const x = new Date(d);
@@ -34,17 +41,12 @@ function dayKey(d: Date) {
 }
 
 function dayLabel(d: Date, today: Date) {
-  const diff = Math.round((startOfDay(d).getTime() - startOfDay(today).getTime()) / 86400_000);
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Tomorrow";
-  if (diff === -1) return "Yesterday";
-  return d.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
+  return relativeCalendarDayLabel(d, today);
 }
 
 function timeLabel(ev: DisplayEvent) {
   if (ev._spanIdx !== undefined && ev._spanIdx > 0) return "continued";
-  if (ev.allDay) return "All day";
-  return new Date(ev.start).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return formatCalendarTime(ev);
 }
 
 const CLOSED_STATUSES: OpportunityStatus[] = ["accepted", "rejected", "withdrew", "ghosted"];
@@ -55,7 +57,7 @@ type DayBucket = { date: Date; key: string; items: DisplayEvent[] };
 function bucketByDay(events: DisplayEvent[]): DayBucket[] {
   const groups = new Map<string, DayBucket>();
   for (const ev of events) {
-    const d = ev._spanDay ?? startOfDay(new Date(ev.start));
+    const d = ev._spanDay ?? startOfDay(calendarDayDate(ev.start));
     const key = dayKey(d);
     if (!groups.has(key)) groups.set(key, { date: d, key, items: [] });
     groups.get(key)!.items.push(ev);
@@ -91,7 +93,7 @@ export function TimelineView({
   ownerView?: boolean;
   pastDefaultOpen?: boolean;
 }) {
-  const today = useMemo(() => new Date(), []);
+  const today = useMemo(() => todayInTimeZone(), []);
   const todayKey = dayKey(today);
   const [showPast, setShowPast] = useState(!!pastDefaultOpen);
 
@@ -110,7 +112,7 @@ export function TimelineView({
     <div className="space-y-8">
       <Section
         label="Today"
-        sublabel={today.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}
+        sublabel={formatCalendarDayDate(today, { weekday: "long", month: "short", day: "numeric" })}
         accent="primary"
       >
         {todayBucket ? (

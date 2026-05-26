@@ -12,6 +12,7 @@ import { guessCompany, isSuggestionCandidate } from "@/lib/interview-detect";
 import type { User } from "firebase/auth";
 import { useAuthUser } from "@/lib/auth";
 import { parsePipelineDate, todayStartMs } from "@/lib/pipeline";
+import { formatCalendarDay } from "@/lib/calendar-time";
 
 type Group = {
   /** company guess (or "?" if unknown) */
@@ -306,7 +307,7 @@ function SuggestionGroup({
             >
               <span className="truncate">
                 <span className="font-mono text-xs">
-                  {new Date(ev.start).toLocaleDateString([], { month: "short", day: "numeric" })}
+                  {formatCalendarDay(ev.start, { month: "short", day: "numeric" })}
                 </span>{" "}
                 · {ev.summary}
               </span>

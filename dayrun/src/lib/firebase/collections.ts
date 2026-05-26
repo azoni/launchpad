@@ -24,6 +24,7 @@ export type EventDoc = {
   start: string;
   end: string;
   allDay: boolean;
+  timeZone?: string | null;
   location: string | null;
   description: string | null;
   isPublic: boolean;
