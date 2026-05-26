@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { Navbar } from "@/components/Navbar";
 import { adminDb } from "@/lib/firebase/admin";
 import {
   COLLECTIONS,
@@ -14,10 +15,14 @@ import { StatusPill } from "@/components/pipeline/StatusPill";
 import { APP_NAME, APP_URL } from "@/lib/utils";
 import {
   compareOpportunitiesByNext,
+  compactRoundNumberLabel,
   formatPipelineDate,
   formatPipelineDateLong,
+  getCurrentRound,
   getFirstRoundAt,
+  getLastRoundAt,
   getNextRoundAt,
+  isClosedOpportunity,
   nextStepLabel,
   visibleRounds,
 } from "@/lib/pipeline";
@@ -128,21 +133,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* Slim header — same wordmark as the rest of the site */}
-      <header className="border-b border-[color:var(--hairline)]">
-        <div className="mx-auto max-w-3xl px-5 sm:px-8 py-4 flex items-center justify-between">
-          <Link href="/" className="dy-wordmark">
-            {APP_NAME.toLowerCase()}
-          </Link>
-          <Link
-            href="/explore"
-            className="dy-mono text-[color:var(--ink-soft)] hover:text-[color:var(--primary)]"
-          >
-            explore →
-          </Link>
-        </div>
-      </header>
-
+      <Navbar />
       <main className="mx-auto max-w-3xl px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
         {/* Identity */}
         <section className="flex items-start gap-5">
@@ -273,9 +264,13 @@ function OppCard({
   tone?: "positive" | "negative";
 }) {
   const isStruck = NEGATIVE_CLOSED.includes(opp.status);
+  const isClosed = isClosedOpportunity(opp);
   const firstRoundAt = getFirstRoundAt(opp);
   const nextRoundAt = getNextRoundAt(opp);
+  const lastRoundAt = getLastRoundAt(opp);
+  const currentRound = getCurrentRound(opp);
   const nextLabel = nextStepLabel(opp);
+  const focusDate = isClosed ? lastRoundAt : nextRoundAt;
   const rounds = visibleRounds(opp, 5);
   const topBorderColor =
     tone === "positive"
@@ -310,29 +305,41 @@ function OppCard({
           <StatusPill status={opp.status} />
       </header>
 
-      {(firstRoundAt || nextRoundAt || nextLabel) && (
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <div className="rounded-md border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2">
-            <p className="dy-eyebrow">first</p>
-            <p className="text-[13px] text-[color:var(--ink)] mt-1">
-              {formatPipelineDate(firstRoundAt, "not set")}
+      {(firstRoundAt || nextRoundAt || nextLabel || rounds.length > 0) && (
+        <div className="mt-4 space-y-2">
+          <div
+            className="rounded-md border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2"
+            style={{ boxShadow: isClosed ? undefined : "inset 2px 0 0 0 var(--primary)" }}
+          >
+            <p className="dy-eyebrow">{isClosed ? "closed with" : "focus next"}</p>
+            <p className="text-[13px] font-medium text-[color:var(--ink)] mt-1">
+              {nextLabel ?? (isClosed ? "Process closed" : "Next step TBD")}
+            </p>
+            <p className="text-[12px] text-[color:var(--faded)] mt-0.5">
+              {formatPipelineDateLong(focusDate, isClosed ? "no final date" : "no date")}
+              {!isClosed && currentRound?.outcome ? ` - ${currentRound.outcome}` : ""}
             </p>
           </div>
-          <div className="rounded-md border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2">
-            <p className="dy-eyebrow">next</p>
-            <p className="text-[13px] text-[color:var(--ink)] mt-1">
-              {nextLabel ?? "TBD"}
-            </p>
-            <p className="text-[12px] text-[color:var(--faded)]">
-              {formatPipelineDateLong(nextRoundAt, "no date")}
-            </p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-md border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2">
+              <p className="dy-eyebrow">first</p>
+              <p className="text-[13px] text-[color:var(--ink)] mt-1">
+                {formatPipelineDate(firstRoundAt, "not set")}
+              </p>
+            </div>
+            <div className="rounded-md border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2">
+              <p className="dy-eyebrow">{isClosed ? "last" : "rounds"}</p>
+              <p className="text-[13px] text-[color:var(--ink)] mt-1">
+                {isClosed ? formatPipelineDate(lastRoundAt, "not set") : rounds.length}
+              </p>
+            </div>
           </div>
         </div>
       )}
 
       {rounds.length > 0 && (
         <ol className="mt-4 space-y-2">
-          {rounds.map((round) => (
+          {rounds.map((round, index) => (
             <li key={round.id} className="flex items-start gap-2 text-[13px]">
               <span
                 className="mt-[7px] h-1.5 w-1.5 rounded-full shrink-0"
@@ -348,6 +355,7 @@ function OppCard({
               <div className="min-w-0">
                 <p className="text-[color:var(--ink)] leading-snug">
                   <span className="text-[color:var(--faded)]">
+                    {compactRoundNumberLabel(round, index + 1)} -{" "}
                     {formatPipelineDate(round.scheduledAt, "TBD")}
                   </span>{" "}
                   {round.title}

@@ -100,6 +100,7 @@ export type InterviewRoundOutcome = (typeof INTERVIEW_ROUND_OUTCOMES)[number];
 
 export type InterviewRound = {
   id: string;
+  roundNumber?: number | null;
   title: string;
   scheduledAt: string | null;
   outcome: InterviewRoundOutcome;

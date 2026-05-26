@@ -1,4 +1,9 @@
-import type { InterviewRound, OpportunityDoc, OpportunityStatus } from "./firebase/collections";
+import {
+  CLOSED_STATUSES,
+  type InterviewRound,
+  type OpportunityDoc,
+  type OpportunityStatus,
+} from "./firebase/collections";
 import { calendarParts, formatCalendarDay } from "./calendar-time";
 
 const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -48,6 +53,48 @@ function isOpenRound(round: InterviewRound): boolean {
   return round.outcome === "scheduled" || round.outcome === "completed";
 }
 
+export function isClosedOpportunity(opp: OpportunityDoc): boolean {
+  return CLOSED_STATUSES.includes(opp.status);
+}
+
+export function getRoundNumber(
+  round?: InterviewRound | null,
+  fallback?: number,
+): number | null {
+  const raw = round?.roundNumber ?? fallback ?? null;
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return null;
+  const value = Math.trunc(raw);
+  return value > 0 ? value : null;
+}
+
+export function roundNumberLabel(
+  round?: InterviewRound | null,
+  fallback?: number,
+): string | null {
+  const number = getRoundNumber(round, fallback);
+  return number === null ? null : `Round ${number}`;
+}
+
+export function compactRoundNumberLabel(
+  round?: InterviewRound | null,
+  fallback?: number,
+): string | null {
+  const number = getRoundNumber(round, fallback);
+  return number === null ? null : `R${number}`;
+}
+
+export function roundTitleWithNumber(
+  round?: InterviewRound | null,
+  fallback?: number,
+): string | null {
+  if (!round) return null;
+  const label = roundNumberLabel(round, fallback);
+  const title = round.title.trim();
+  if (!label) return title || null;
+  if (!title || title.toLowerCase() === label.toLowerCase()) return label;
+  return `${label}: ${title}`;
+}
+
 export function getFirstRoundAt(opp: OpportunityDoc): string | null {
   if (opp.firstRoundAt) return opp.firstRoundAt;
   const dated = (opp.interviewRounds ?? [])
@@ -85,6 +132,19 @@ export function getCurrentRound(opp: OpportunityDoc): InterviewRound | null {
   );
 }
 
+export function getLastRound(opp: OpportunityDoc): InterviewRound | null {
+  const rounds = visibleRounds(opp);
+  if (rounds.length === 0) return null;
+  const dated = rounds
+    .filter((round) => parsePipelineDate(round.scheduledAt) !== null)
+    .sort((a, b) => parsePipelineDate(b.scheduledAt)! - parsePipelineDate(a.scheduledAt)!);
+  return dated[0] ?? rounds[rounds.length - 1] ?? null;
+}
+
+export function getLastRoundAt(opp: OpportunityDoc): string | null {
+  return getLastRound(opp)?.scheduledAt ?? opp.nextRoundAt ?? opp.firstRoundAt ?? null;
+}
+
 const STATUS_RANK: Record<OpportunityStatus, number> = {
   offer: 0,
   onsite: 1,
@@ -120,6 +180,13 @@ export function visibleRounds(opp: OpportunityDoc, limit?: number): InterviewRou
       if (aDate !== null && bDate !== null && aDate !== bDate) return aDate - bDate;
       if (aDate !== null) return -1;
       if (bDate !== null) return 1;
+      const aRoundNumber = getRoundNumber(a);
+      const bRoundNumber = getRoundNumber(b);
+      if (aRoundNumber !== null && bRoundNumber !== null && aRoundNumber !== bRoundNumber) {
+        return aRoundNumber - bRoundNumber;
+      }
+      if (aRoundNumber !== null) return -1;
+      if (bRoundNumber !== null) return 1;
       return a.title.localeCompare(b.title);
     });
   return typeof limit === "number" ? rounds.slice(0, limit) : rounds;
@@ -127,6 +194,6 @@ export function visibleRounds(opp: OpportunityDoc, limit?: number): InterviewRou
 
 export function nextStepLabel(opp: OpportunityDoc): string | null {
   const round = getCurrentRound(opp);
-  if (round) return round.title;
+  if (round) return roundTitleWithNumber(round);
   return opp.nextStep ?? null;
 }

@@ -204,6 +204,7 @@ function SuggestionGroup({
         return {
           id: `event_${ev.googleEventId.slice(0, 64)}`,
           eventId: ev.googleEventId,
+          roundNumber: index + 1,
           title: guessRoundTitle(ev.summary, index),
           scheduledAt: ev.start,
           outcome: ts !== null && ts < floor ? "completed" : "scheduled",

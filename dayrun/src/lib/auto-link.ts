@@ -115,6 +115,7 @@ async function refreshOpportunityTimingFromEvents(
         return {
           id: `event_${event.googleEventId.slice(0, 64)}`,
           eventId: event.googleEventId,
+          roundNumber: index + 1,
           title: inferRoundTitle(event.summary, opp.company, index),
           scheduledAt: event.start,
           outcome: ts !== null && ts < floor ? "completed" : "scheduled",

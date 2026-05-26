@@ -45,6 +45,7 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
       const firstTs = parsePipelineDate(firstRoundAt);
       rounds.push({
         id: `round_first_${Date.now()}`,
+        roundNumber: 1,
         title: "First round",
         scheduledAt: firstRoundAt,
         outcome: firstTs !== null && firstTs < floor ? "completed" : "scheduled",
@@ -54,6 +55,7 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
     if (nextRoundAt && nextRoundAt !== firstRoundAt) {
       rounds.push({
         id: `round_next_${Date.now()}`,
+        roundNumber: rounds.length + 1,
         title: nextStep.trim() || "Next round",
         scheduledAt: nextRoundAt,
         outcome: "scheduled",

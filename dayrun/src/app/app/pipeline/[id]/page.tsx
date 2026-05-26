@@ -35,6 +35,7 @@ import {
   todayStartMs,
   toDateInputValue,
   visibleRounds,
+  getRoundNumber,
 } from "@/lib/pipeline";
 import { formatCalendarDateTime } from "@/lib/calendar-time";
 
@@ -483,9 +484,35 @@ function RoundTracker({
 }) {
   const [items, setItems] = useState<InterviewRound[]>(rounds);
 
+  function normalizedRoundNumber(value: unknown, fallback: number): number {
+    const n =
+      typeof value === "number"
+        ? value
+        : typeof value === "string" && value.trim()
+          ? Number(value)
+          : fallback;
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(99, Math.max(1, Math.trunc(n)));
+  }
+
+  function normalizeRounds(next: InterviewRound[]): InterviewRound[] {
+    return next.map((round, index) => ({
+      ...round,
+      roundNumber: normalizedRoundNumber(round.roundNumber, index + 1),
+    }));
+  }
+
+  function nextRoundNumber(offset = 0): number {
+    const max = items.reduce((acc, item, index) => {
+      return Math.max(acc, getRoundNumber(item, index + 1) ?? index + 1);
+    }, 0);
+    return Math.min(99, max + 1 + offset);
+  }
+
   function commit(next: InterviewRound[]) {
-    setItems(next);
-    onSave(next);
+    const normalized = normalizeRounds(next);
+    setItems(normalized);
+    onSave(normalized);
   }
 
   function update(id: string, patch: Partial<InterviewRound>) {
@@ -495,6 +522,7 @@ function RoundTracker({
   function addRound(seed?: Partial<InterviewRound>) {
     const next: InterviewRound = {
       id: `round_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      roundNumber: seed?.roundNumber ?? nextRoundNumber(),
       title: seed?.title ?? `Round ${items.length + 1}`,
       scheduledAt: seed?.scheduledAt ?? null,
       outcome: seed?.outcome ?? "scheduled",
@@ -513,6 +541,7 @@ function RoundTracker({
         return {
           id: `event_${event.googleEventId.slice(0, 64)}`,
           eventId: event.googleEventId,
+          roundNumber: nextRoundNumber(index),
           title: guessRoundTitle(event.summary, items.length + index),
           scheduledAt: event.start,
           outcome: ts !== null && ts < todayStartMs() ? "completed" : "scheduled",
@@ -564,7 +593,23 @@ function RoundTracker({
         <ol className="space-y-3">
           {items.map((round, index) => (
             <li key={round.id} className="rounded-xl border border-hairline bg-surface p-3">
-              <div className="grid md:grid-cols-[1.4fr_150px_150px_auto] gap-2 items-start">
+              <div className="grid md:grid-cols-[78px_1.4fr_150px_150px_auto] gap-2 items-start">
+                <label className="block text-xs">
+                  <span className="block font-semibold mb-1">#</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={getRoundNumber(round, index + 1) ?? index + 1}
+                    onChange={(e) =>
+                      update(round.id, {
+                        roundNumber: normalizedRoundNumber(e.target.value, index + 1),
+                      })
+                    }
+                    className="w-full border border-hairline-strong rounded-lg px-3 py-2 bg-card text-sm"
+                    aria-label="Round number"
+                  />
+                </label>
                 <label className="block text-xs">
                   <span className="block font-semibold mb-1">Round</span>
                   <input
@@ -575,7 +620,11 @@ function RoundTracker({
                       setItems(next);
                     }}
                     onBlur={() =>
-                      update(round.id, { title: round.title.trim() || `Round ${index + 1}` })
+                      update(round.id, {
+                        title:
+                          items[index]?.title.trim() ||
+                          `Round ${getRoundNumber(items[index], index + 1) ?? index + 1}`,
+                      })
                     }
                     className="w-full border border-hairline-strong rounded-lg px-3 py-2 bg-card text-sm"
                   />
@@ -623,7 +672,9 @@ function RoundTracker({
                     next[index] = { ...round, publicNote: e.target.value };
                     setItems(next);
                   }}
-                  onBlur={() => update(round.id, { publicNote: round.publicNote?.trim() || null })}
+                  onBlur={() =>
+                    update(round.id, { publicNote: items[index]?.publicNote?.trim() || null })
+                  }
                   placeholder="Optional: recruiter screen done, final onsite scheduled..."
                   className="w-full border border-hairline-strong rounded-lg px-3 py-2 bg-card text-sm"
                 />

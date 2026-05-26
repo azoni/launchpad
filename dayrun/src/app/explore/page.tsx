@@ -16,8 +16,10 @@ import { APP_NAME, APP_URL } from "@/lib/utils";
 import {
   compareOpportunitiesByNext,
   formatPipelineDate,
+  getCurrentRound,
   getNextRoundAt,
   nextStepLabel,
+  roundTitleWithNumber,
 } from "@/lib/pipeline";
 import { formatCalendarDay, formatCalendarTime } from "@/lib/calendar-time";
 
@@ -342,7 +344,8 @@ function ProfileCard({ p }: { p: ProfileSummary }) {
 
 function OpportunityPreview({ opp }: { opp: OpportunityDoc }) {
   const next = getNextRoundAt(opp);
-  const nextLabel = nextStepLabel(opp);
+  const currentRound = getCurrentRound(opp);
+  const nextLabel = roundTitleWithNumber(currentRound) ?? nextStepLabel(opp);
   return (
     <div
       className="rounded-lg border border-hairline bg-surface px-3 py-2 border-l-[4px]"

@@ -10,7 +10,12 @@ import {
 } from "@/lib/firebase/collections";
 import { getAnthropic, logLlmCall } from "@/lib/llm/anthropic";
 import { FieldValue } from "firebase-admin/firestore";
-import { formatPipelineDate, getNextRoundAt, visibleRounds } from "@/lib/pipeline";
+import {
+  formatPipelineDate,
+  getNextRoundAt,
+  roundTitleWithNumber,
+  visibleRounds,
+} from "@/lib/pipeline";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -31,7 +36,10 @@ function buildPrompt(opp: OpportunityDoc, contextHint: string | null): string {
     getNextRoundAt(opp) ? `Next round date: ${formatPipelineDate(getNextRoundAt(opp))}` : "",
     visibleRounds(opp).length > 0
       ? `Interview rounds so far:\n${visibleRounds(opp)
-          .map((round) => `- ${formatPipelineDate(round.scheduledAt)}: ${round.title} (${round.outcome})`)
+          .map(
+            (round, index) =>
+              `- ${formatPipelineDate(round.scheduledAt)}: ${roundTitleWithNumber(round, index + 1)} (${round.outcome})`,
+          )
           .join("\n")}`
       : "",
     contextHint

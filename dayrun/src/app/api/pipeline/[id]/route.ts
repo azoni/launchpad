@@ -79,6 +79,17 @@ function sanitizeRoundOutcome(v: unknown): InterviewRoundOutcome {
     : "scheduled";
 }
 
+function sanitizeRoundNumber(v: unknown, fallback: number): number {
+  const n =
+    typeof v === "number"
+      ? v
+      : typeof v === "string" && v.trim()
+        ? Number(v)
+        : fallback;
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(99, Math.max(1, Math.trunc(n)));
+}
+
 function sanitizeInterviewRounds(value: unknown): InterviewRound[] | undefined {
   if (!Array.isArray(value)) return undefined;
   return value
@@ -89,6 +100,7 @@ function sanitizeInterviewRounds(value: unknown): InterviewRound[] | undefined {
       const id = clean(e.id, 80) ?? `round_${Date.now()}_${index}`;
       return {
         id,
+        roundNumber: sanitizeRoundNumber(e.roundNumber, index + 1),
         title,
         scheduledAt: cleanDate(e.scheduledAt),
         outcome: sanitizeRoundOutcome(e.outcome),

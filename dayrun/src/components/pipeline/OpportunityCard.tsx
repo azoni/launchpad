@@ -6,9 +6,14 @@ import { CalendarClock, ExternalLink, Eye, EyeOff } from "lucide-react";
 import type { OpportunityDoc } from "@/lib/firebase/collections";
 import { useAuthUser } from "@/lib/auth";
 import {
+  compactRoundNumberLabel,
   formatPipelineDate,
+  formatPipelineDateLong,
+  getCurrentRound,
   getFirstRoundAt,
+  getLastRoundAt,
   getNextRoundAt,
+  isClosedOpportunity,
   nextStepLabel,
   visibleRounds,
 } from "@/lib/pipeline";
@@ -51,8 +56,12 @@ export function OpportunityCard({
 
   const firstRound = getFirstRoundAt(opp);
   const nextRound = getNextRoundAt(opp);
+  const lastRound = getLastRoundAt(opp);
+  const currentRound = getCurrentRound(opp);
+  const isClosed = isClosedOpportunity(opp);
   const rounds = visibleRounds(opp, 4);
   const nextLabel = nextStepLabel(opp);
+  const focusDate = isClosed ? lastRound : nextRound;
 
   return (
     <div className="block chunky p-4 md:p-5 tilt-hover relative">
@@ -67,19 +76,29 @@ export function OpportunityCard({
           <StatusPill status={opp.status} />
         </div>
 
-        {(nextLabel || nextRound || firstRound) && (
-          <div className="mt-3 grid sm:grid-cols-2 gap-2">
-            <div className="rounded-lg border border-hairline bg-surface px-3 py-2">
-              <p className="dy-eyebrow">next up</p>
+        {(nextLabel || nextRound || firstRound || rounds.length > 0) && (
+          <div className="mt-3 space-y-2">
+            <div
+              className={`rounded-lg border px-3 py-2 ${
+                isClosed ? "border-hairline bg-surface" : "border-primary/50 bg-sun/10"
+              }`}
+            >
+              <p className="dy-eyebrow">{isClosed ? "closed with" : "focus next"}</p>
               <p className="text-sm font-semibold text-ink mt-1">
-                {nextLabel ?? "Round TBD"}
+                {nextLabel ?? (isClosed ? "Process closed" : "Next step TBD")}
               </p>
-              <p className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-1">
-                <CalendarClock size={12} />
-                {formatPipelineDate(nextRound, "No next date")}
-              </p>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
+                <span className="inline-flex items-center gap-1">
+                  <CalendarClock size={12} />
+                  {formatPipelineDateLong(focusDate, isClosed ? "No final date" : "No next date")}
+                </span>
+                {!isClosed && currentRound?.outcome && <span>{currentRound.outcome}</span>}
+                {!isClosed && opp.nextStepBy && <span>{opp.nextStepBy}</span>}
+              </div>
             </div>
-            <div className="rounded-lg border border-hairline bg-surface px-3 py-2">
+
+            <div className="grid sm:grid-cols-2 gap-2">
+              <div className="rounded-lg border border-hairline bg-surface px-3 py-2">
               <p className="dy-eyebrow">first round</p>
               <p className="text-sm font-semibold text-ink mt-1">
                 {formatPipelineDate(firstRound, "Not set")}
@@ -87,13 +106,25 @@ export function OpportunityCard({
               <p className="text-xs text-muted-foreground mt-1">
                 {rounds.length > 0 ? `${rounds.length} tracked rounds` : "Add rounds inside"}
               </p>
+              </div>
+              <div className="rounded-lg border border-hairline bg-surface px-3 py-2">
+                <p className="dy-eyebrow">{isClosed ? "last round" : "process"}</p>
+                <p className="text-sm font-semibold text-ink mt-1">
+                  {isClosed
+                    ? formatPipelineDate(lastRound, "Not set")
+                    : `${rounds.length} ${rounds.length === 1 ? "round" : "rounds"}`}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {isClosed ? "closed item" : firstRound ? "ordered by next date" : "add dates to sort"}
+                </p>
+              </div>
             </div>
           </div>
         )}
 
         {rounds.length > 0 && (
           <ol className="mt-3 flex flex-wrap gap-1.5">
-            {rounds.map((round) => (
+            {rounds.map((round, index) => (
               <li
                 key={round.id}
                 className={`dy-pill ${
@@ -104,6 +135,7 @@ export function OpportunityCard({
                       : "dy-pill-neutral"
                 }`}
               >
+                {compactRoundNumberLabel(round, index + 1)} -{" "}
                 {formatPipelineDate(round.scheduledAt, "TBD")} - {round.title}
               </li>
             ))}
