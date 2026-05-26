@@ -5,11 +5,13 @@ import { Lightbulb, Plus, Sparkles, X } from "lucide-react";
 import {
   INITIAL_STATUSES,
   type EventDoc,
+  type InterviewRound,
   type OpportunityStatus,
 } from "@/lib/firebase/collections";
 import { guessCompany, isSuggestionCandidate } from "@/lib/interview-detect";
 import type { User } from "firebase/auth";
 import { useAuthUser } from "@/lib/auth";
+import { parsePipelineDate, todayStartMs } from "@/lib/pipeline";
 
 type Group = {
   /** company guess (or "?" if unknown) */
@@ -190,6 +192,28 @@ function SuggestionGroup({
         group.events.length === 1
           ? `From calendar: "${group.events[0].summary}"`
           : `From ${group.events.length} calendar events`;
+      const sortedEvents = [...group.events].sort((a, b) => {
+        const aTs = parsePipelineDate(a.start) ?? 0;
+        const bTs = parsePipelineDate(b.start) ?? 0;
+        return aTs - bTs;
+      });
+      const floor = todayStartMs();
+      const rounds: InterviewRound[] = sortedEvents.map((ev, index) => {
+        const ts = parsePipelineDate(ev.start);
+        return {
+          id: `event_${ev.googleEventId.slice(0, 64)}`,
+          eventId: ev.googleEventId,
+          title: guessRoundTitle(ev.summary, index),
+          scheduledAt: ev.start,
+          outcome: ts !== null && ts < floor ? "completed" : "scheduled",
+          publicNote: null,
+        };
+      });
+      const firstRoundAt = sortedEvents[0]?.start ?? null;
+      const nextRoundAt = sortedEvents.find((ev) => {
+        const ts = parsePipelineDate(ev.start);
+        return ts !== null && ts >= floor;
+      })?.start ?? null;
       const res = await fetch("/api/pipeline", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
@@ -198,6 +222,9 @@ function SuggestionGroup({
           role: role.trim(),
           status,
           source: sourceLabel,
+          firstRoundAt,
+          nextRoundAt,
+          interviewRounds: rounds,
           isPublic: true,
         }),
       });
@@ -354,4 +381,19 @@ function SuggestionGroup({
       )}
     </div>
   );
+}
+
+function guessRoundTitle(summary: string, index: number) {
+  const s = summary.toLowerCase();
+  if (s.includes("recruiter") || s.includes("phone") || s.includes("screen")) {
+    return "Recruiter screen";
+  }
+  if (s.includes("technical") || s.includes("coding") || s.includes("code")) {
+    return "Technical round";
+  }
+  if (s.includes("system") || s.includes("design")) return "System design";
+  if (s.includes("manager") || s.includes("behavioral")) return "Hiring manager";
+  if (s.includes("onsite") || s.includes("panel")) return "Onsite";
+  if (s.includes("final")) return "Final round";
+  return `Round ${index + 1}`;
 }

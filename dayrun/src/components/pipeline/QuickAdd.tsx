@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 import { Plus } from "lucide-react";
-import { INITIAL_STATUSES, type OpportunityStatus } from "@/lib/firebase/collections";
+import {
+  INITIAL_STATUSES,
+  type InterviewRound,
+  type OpportunityStatus,
+} from "@/lib/firebase/collections";
 import { useAuthUser } from "@/lib/auth";
+import { parsePipelineDate, todayStartMs } from "@/lib/pipeline";
 
 export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
   const { user } = useAuthUser();
@@ -14,6 +19,8 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
   const [source, setSource] = useState("");
   const [link, setLink] = useState("");
   const [nextStep, setNextStep] = useState("");
+  const [firstRoundAt, setFirstRoundAt] = useState("");
+  const [nextRoundAt, setNextRoundAt] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +32,35 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
     setSource("");
     setLink("");
     setNextStep("");
+    setFirstRoundAt("");
+    setNextRoundAt("");
     setIsPublic(true);
     setError(null);
+  }
+
+  function buildRounds(): InterviewRound[] {
+    const rounds: InterviewRound[] = [];
+    const floor = todayStartMs();
+    if (firstRoundAt) {
+      const firstTs = parsePipelineDate(firstRoundAt);
+      rounds.push({
+        id: `round_first_${Date.now()}`,
+        title: "First round",
+        scheduledAt: firstRoundAt,
+        outcome: firstTs !== null && firstTs < floor ? "completed" : "scheduled",
+        publicNote: null,
+      });
+    }
+    if (nextRoundAt && nextRoundAt !== firstRoundAt) {
+      rounds.push({
+        id: `round_next_${Date.now()}`,
+        title: nextStep.trim() || "Next round",
+        scheduledAt: nextRoundAt,
+        outcome: "scheduled",
+        publicNote: null,
+      });
+    }
+    return rounds;
   }
 
   async function submit(e: React.FormEvent) {
@@ -39,7 +73,18 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
       const res = await fetch("/api/pipeline", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
-        body: JSON.stringify({ company, role, status, source, link, nextStep, isPublic }),
+        body: JSON.stringify({
+          company,
+          role,
+          status,
+          source,
+          link,
+          nextStep,
+          firstRoundAt,
+          nextRoundAt,
+          interviewRounds: buildRounds(),
+          isPublic,
+        }),
       });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
@@ -119,6 +164,25 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
             value={nextStep}
             onChange={(e) => setNextStep(e.target.value)}
             placeholder="phone screen Thu 3pm"
+            className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card"
+          />
+        </Field>
+        <Field label="First round date">
+          <input
+            type="date"
+            value={firstRoundAt}
+            onChange={(e) => {
+              setFirstRoundAt(e.target.value);
+              if (!nextRoundAt) setNextRoundAt(e.target.value);
+            }}
+            className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card"
+          />
+        </Field>
+        <Field label="Next round date">
+          <input
+            type="date"
+            value={nextRoundAt}
+            onChange={(e) => setNextRoundAt(e.target.value)}
             className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card"
           />
         </Field>

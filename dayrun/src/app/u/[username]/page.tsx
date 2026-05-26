@@ -12,6 +12,15 @@ import {
 import { PublicTimeline } from "@/components/PublicTimeline";
 import { StatusPill } from "@/components/pipeline/StatusPill";
 import { APP_NAME, APP_URL } from "@/lib/utils";
+import {
+  compareOpportunitiesByNext,
+  formatPipelineDate,
+  formatPipelineDateLong,
+  getFirstRoundAt,
+  getNextRoundAt,
+  nextStepLabel,
+  visibleRounds,
+} from "@/lib/pipeline";
 
 type PageProps = { params: Promise<{ username: string }> };
 
@@ -78,10 +87,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-const STATUS_ORDER: Record<OpportunityStatus, number> = {
-  onsite: 0, offer: 1, screen: 2, applied: 3, ongoing: 4, referral: 5,
-  accepted: 10, withdrew: 11, rejected: 12, ghosted: 13,
-};
 const NEGATIVE_CLOSED: OpportunityStatus[] = ["rejected", "withdrew", "ghosted"];
 
 export default async function PublicProfilePage({ params }: PageProps) {
@@ -91,12 +96,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
   const { user, events, opportunities } = data;
   const oppsById = new Map(opportunities.map((o) => [o.id, o]));
-  const sortedOpps = [...opportunities].sort((a, b) => {
-    const ra = STATUS_ORDER[a.status] ?? 99;
-    const rb = STATUS_ORDER[b.status] ?? 99;
-    if (ra !== rb) return ra - rb;
-    return b.updatedAt - a.updatedAt;
-  });
+  const sortedOpps = [...opportunities].sort(compareOpportunitiesByNext);
 
   const nowOpps = sortedOpps.filter(
     (o) => !NEGATIVE_CLOSED.includes(o.status) && o.status !== "accepted",
@@ -272,6 +272,10 @@ function OppCard({
   tone?: "positive" | "negative";
 }) {
   const isStruck = NEGATIVE_CLOSED.includes(opp.status);
+  const firstRoundAt = getFirstRoundAt(opp);
+  const nextRoundAt = getNextRoundAt(opp);
+  const nextLabel = nextStepLabel(opp);
+  const rounds = visibleRounds(opp, 5);
   const topBorderColor =
     tone === "positive"
       ? "var(--positive)"
@@ -302,16 +306,61 @@ function OppCard({
             )}
           </p>
         </div>
-        <StatusPill status={opp.status} />
+          <StatusPill status={opp.status} />
       </header>
 
-      {opp.nextStep && (
-        <p className="text-[14px] text-[color:var(--ink-soft)] mt-2">
-          <span className="text-[color:var(--faded)]">next:</span> {opp.nextStep}
-          {opp.nextStepBy && (
-            <span className="text-[color:var(--faded)]"> · {opp.nextStepBy}</span>
-          )}
-        </p>
+      {(firstRoundAt || nextRoundAt || nextLabel) && (
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="rounded-md border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2">
+            <p className="dy-eyebrow">first</p>
+            <p className="text-[13px] text-[color:var(--ink)] mt-1">
+              {formatPipelineDate(firstRoundAt, "not set")}
+            </p>
+          </div>
+          <div className="rounded-md border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2">
+            <p className="dy-eyebrow">next</p>
+            <p className="text-[13px] text-[color:var(--ink)] mt-1">
+              {nextLabel ?? "TBD"}
+            </p>
+            <p className="text-[12px] text-[color:var(--faded)]">
+              {formatPipelineDateLong(nextRoundAt, "no date")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {rounds.length > 0 && (
+        <ol className="mt-4 space-y-2">
+          {rounds.map((round) => (
+            <li key={round.id} className="flex items-start gap-2 text-[13px]">
+              <span
+                className="mt-[7px] h-1.5 w-1.5 rounded-full shrink-0"
+                style={{
+                  background:
+                    round.outcome === "passed"
+                      ? "var(--positive)"
+                      : round.outcome === "did-not-pass" || round.outcome === "cancelled"
+                        ? "var(--faded)"
+                        : "var(--primary)",
+                }}
+              />
+              <div className="min-w-0">
+                <p className="text-[color:var(--ink)] leading-snug">
+                  <span className="text-[color:var(--faded)]">
+                    {formatPipelineDate(round.scheduledAt, "TBD")}
+                  </span>{" "}
+                  {round.title}
+                  <span className="text-[color:var(--faded)]"> · {round.outcome}</span>
+                </p>
+                {round.publicNote && (
+                  <p className="text-[color:var(--ink-soft)] leading-snug mt-0.5">
+                    {round.publicNote}
+                  </p>
+                )}
+              </div>
+            </li>
+          ))}
+        </ol>
       )}
 
       {(opp.source || opp.link) && (

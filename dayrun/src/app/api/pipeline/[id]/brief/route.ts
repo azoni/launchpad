@@ -10,6 +10,7 @@ import {
 } from "@/lib/firebase/collections";
 import { getAnthropic, logLlmCall } from "@/lib/llm/anthropic";
 import { FieldValue } from "firebase-admin/firestore";
+import { formatPipelineDate, getNextRoundAt, visibleRounds } from "@/lib/pipeline";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -27,6 +28,12 @@ function buildPrompt(opp: OpportunityDoc, contextHint: string | null): string {
     opp.source ? `Source / how I got in: ${opp.source}` : "",
     `Current stage: ${opp.status}`,
     opp.nextStep ? `Next step: ${opp.nextStep}${opp.nextStepBy ? ` (${opp.nextStepBy})` : ""}` : "",
+    getNextRoundAt(opp) ? `Next round date: ${formatPipelineDate(getNextRoundAt(opp))}` : "",
+    visibleRounds(opp).length > 0
+      ? `Interview rounds so far:\n${visibleRounds(opp)
+          .map((round) => `- ${formatPipelineDate(round.scheduledAt)}: ${round.title} (${round.outcome})`)
+          .join("\n")}`
+      : "",
     contextHint
       ? `\nExtra context the user wants you to incorporate (TRUST THIS over the company/role fields if there's a conflict):\n"""\n${contextHint.slice(0, 4000)}\n"""`
       : "",

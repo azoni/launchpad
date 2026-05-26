@@ -2,9 +2,16 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ExternalLink, Eye, EyeOff } from "lucide-react";
+import { CalendarClock, ExternalLink, Eye, EyeOff } from "lucide-react";
 import type { OpportunityDoc } from "@/lib/firebase/collections";
 import { useAuthUser } from "@/lib/auth";
+import {
+  formatPipelineDate,
+  getFirstRoundAt,
+  getNextRoundAt,
+  nextStepLabel,
+  visibleRounds,
+} from "@/lib/pipeline";
 import { StatusPill } from "./StatusPill";
 
 export function OpportunityCard({
@@ -18,7 +25,6 @@ export function OpportunityCard({
   const [pending, setPending] = useState(false);
   const [optimistic, setOptimistic] = useState(opp.isPublic);
 
-  // Stay in sync if the snapshot updates externally.
   if (opp.isPublic !== optimistic && !pending) setOptimistic(opp.isPublic);
 
   async function toggle(e: React.MouseEvent) {
@@ -43,6 +49,11 @@ export function OpportunityCard({
     }
   }
 
+  const firstRound = getFirstRoundAt(opp);
+  const nextRound = getNextRoundAt(opp);
+  const rounds = visibleRounds(opp, 4);
+  const nextLabel = nextStepLabel(opp);
+
   return (
     <div className="block chunky p-4 md:p-5 tilt-hover relative">
       <Link href={href} className="block hover:no-underline">
@@ -56,45 +67,71 @@ export function OpportunityCard({
           <StatusPill status={opp.status} />
         </div>
 
-        {opp.nextStep && (
-          <p className="text-sm">
-            <span className="text-muted-foreground">Next:</span>{" "}
-            <span className="font-semibold">{opp.nextStep}</span>
-            {opp.nextStepBy && (
-              <span className="text-muted-foreground"> · {opp.nextStepBy}</span>
-            )}
-          </p>
+        {(nextLabel || nextRound || firstRound) && (
+          <div className="mt-3 grid sm:grid-cols-2 gap-2">
+            <div className="rounded-lg border border-hairline bg-surface px-3 py-2">
+              <p className="dy-eyebrow">next up</p>
+              <p className="text-sm font-semibold text-ink mt-1">
+                {nextLabel ?? "Round TBD"}
+              </p>
+              <p className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-1">
+                <CalendarClock size={12} />
+                {formatPipelineDate(nextRound, "No next date")}
+              </p>
+            </div>
+            <div className="rounded-lg border border-hairline bg-surface px-3 py-2">
+              <p className="dy-eyebrow">first round</p>
+              <p className="text-sm font-semibold text-ink mt-1">
+                {formatPipelineDate(firstRound, "Not set")}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {rounds.length > 0 ? `${rounds.length} tracked rounds` : "Add rounds inside"}
+              </p>
+            </div>
+          </div>
         )}
-        {opp.locationType && (
-          <p className="text-xs text-muted-foreground mt-1.5">
-            📍 {opp.locationType}
-          </p>
+
+        {rounds.length > 0 && (
+          <ol className="mt-3 flex flex-wrap gap-1.5">
+            {rounds.map((round) => (
+              <li
+                key={round.id}
+                className={`dy-pill ${
+                  round.outcome === "passed"
+                    ? "dy-pill-positive"
+                    : round.outcome === "did-not-pass" || round.outcome === "cancelled"
+                      ? "dy-pill-outline"
+                      : "dy-pill-neutral"
+                }`}
+              >
+                {formatPipelineDate(round.scheduledAt, "TBD")} - {round.title}
+              </li>
+            ))}
+          </ol>
         )}
-        {opp.source && (
-          <p className="text-xs text-muted-foreground mt-1">via {opp.source}</p>
-        )}
-        {opp.link && (
-          <p className="text-xs mt-1">
-            <span className="inline-flex items-center gap-1 text-muted-foreground">
+
+        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          {opp.locationType && <span>{opp.locationType}</span>}
+          {opp.source && <span>via {opp.source}</span>}
+          {opp.link && (
+            <span className="inline-flex items-center gap-1">
               <ExternalLink size={11} /> {new URL(opp.link).host}
             </span>
-          </p>
-        )}
+          )}
+        </div>
       </Link>
 
-      <div className="mt-3 pt-3 border-t-2 border-dashed border-ink/15 flex items-center justify-between gap-2">
+      <div className="mt-3 pt-3 border-t border-hairline flex items-center justify-between gap-2">
         <button
           onClick={toggle}
           disabled={pending}
           aria-pressed={optimistic}
-          className={`min-h-[36px] inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 border-ink text-xs font-bold transition-colors ${
-            optimistic
-              ? "bg-sun text-ink hover:bg-[#FFC54A]"
-              : "bg-card text-muted-foreground hover:bg-muted"
-          }`}
+          className={`dy-pill ${
+            optimistic ? "dy-pill-positive" : "dy-pill-outline"
+          } hover:opacity-80`}
           title={
             optimistic
-              ? "On your public profile (linked calendar events too). Click to make private."
+              ? "On your public profile. Click to make private."
               : "Hidden from your public profile. Click to share."
           }
         >
@@ -105,7 +142,7 @@ export function OpportunityCard({
           href={href}
           className="text-xs text-muted-foreground hover:text-ink font-semibold inline-flex items-center gap-1"
         >
-          Open →
+          Open {"->"}
         </Link>
       </div>
     </div>

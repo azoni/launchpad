@@ -14,7 +14,13 @@ import {
 } from "@/lib/firebase/collections";
 import { OpportunityCard } from "@/components/pipeline/OpportunityCard";
 import { QuickAdd } from "@/components/pipeline/QuickAdd";
-import { StatusPill } from "@/components/pipeline/StatusPill";
+import {
+  compareOpportunitiesByNext,
+  formatPipelineDateLong,
+  getNextRoundAt,
+  parsePipelineDate,
+  todayStartMs,
+} from "@/lib/pipeline";
 
 export default function PipelinePage() {
   const { user, loading } = useAuthUser();
@@ -43,9 +49,21 @@ export default function PipelinePage() {
       </div>
     );
 
-  const active = opps.filter((o) => ACTIVE_STATUSES.includes(o.status));
-  const closed = opps.filter((o) => CLOSED_STATUSES.includes(o.status));
+  const active = opps
+    .filter((o) => ACTIVE_STATUSES.includes(o.status))
+    .sort(compareOpportunitiesByNext);
+  const closed = opps
+    .filter((o) => CLOSED_STATUSES.includes(o.status))
+    .sort((a, b) => b.updatedAt - a.updatedAt);
   const publicCount = opps.filter((o) => o.isPublic).length;
+  const upcomingCount = active.filter((o) => {
+    const next = parsePipelineDate(getNextRoundAt(o));
+    return next !== null && next >= todayStartMs();
+  }).length;
+  const nextUp = active.find((o) => {
+    const next = parsePipelineDate(getNextRoundAt(o));
+    return next !== null && next >= todayStartMs();
+  });
 
   async function bulkSetVisibility(next: boolean) {
     if (!user) return;
@@ -67,12 +85,6 @@ export default function PipelinePage() {
       setBulkPending(null);
     }
   }
-  const grouped = new Map<string, OpportunityDoc[]>();
-  for (const o of active) {
-    if (!grouped.has(o.status)) grouped.set(o.status, []);
-    grouped.get(o.status)!.push(o);
-  }
-
   return (
     <div className="space-y-8">
       <div>
@@ -85,6 +97,30 @@ export default function PipelinePage() {
           <Link href="/app/settings" className="underline">your profile</Link>.
         </p>
       </div>
+
+      {opps.length > 0 && (
+        <section className="grid sm:grid-cols-3 gap-3">
+          <div className="chunky p-4">
+            <p className="dy-eyebrow">active</p>
+            <p className="font-heading text-3xl mt-1">{active.length}</p>
+            <p className="text-xs text-muted-foreground">open opportunities</p>
+          </div>
+          <div className="chunky chunky-coral p-4">
+            <p className="dy-eyebrow">scheduled</p>
+            <p className="font-heading text-3xl mt-1">{upcomingCount}</p>
+            <p className="text-xs text-muted-foreground">with upcoming rounds</p>
+          </div>
+          <div className="chunky p-4">
+            <p className="dy-eyebrow">next round</p>
+            <p className="font-heading text-xl mt-1 truncate">
+              {nextUp ? nextUp.company : "Nothing scheduled"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {nextUp ? formatPipelineDateLong(getNextRoundAt(nextUp)) : "Add dates to sort the queue"}
+            </p>
+          </div>
+        </section>
+      )}
 
       <QuickAdd />
 
@@ -137,26 +173,24 @@ export default function PipelinePage() {
         </div>
       ) : (
         <>
-          {/* Active grouped by status */}
-          {ACTIVE_STATUSES.map((s) => {
-            const items = grouped.get(s) ?? [];
-            if (items.length === 0) return null;
-            return (
-              <section key={s} className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <StatusPill status={s} />
-                  <span className="text-sm text-muted-foreground font-mono">
-                    {items.length} {items.length === 1 ? "item" : "items"}
-                  </span>
+          {active.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <h2 className="font-heading text-2xl font-bold">Coming up</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Sorted by the next scheduled round, then by stage.
+                  </p>
                 </div>
-                <div className="grid md:grid-cols-2 gap-3">
-                  {items.map((o) => (
-                    <OpportunityCard key={o.id} opp={o} href={`/app/pipeline/${o.id}`} />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
+                <span className="dy-mono">{active.length} active</span>
+              </div>
+              <div className="grid md:grid-cols-2 gap-3">
+                {active.map((o) => (
+                  <OpportunityCard key={o.id} opp={o} href={`/app/pipeline/${o.id}`} />
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Closed (collapsed) */}
           {closed.length > 0 && (

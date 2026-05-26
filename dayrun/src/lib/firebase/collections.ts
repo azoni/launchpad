@@ -88,6 +88,24 @@ export function isActive(status: OpportunityStatus) {
 export const LOCATION_TYPES = ["on-site", "hybrid", "remote"] as const;
 export type LocationType = (typeof LOCATION_TYPES)[number];
 
+export const INTERVIEW_ROUND_OUTCOMES = [
+  "scheduled",
+  "completed",
+  "passed",
+  "did-not-pass",
+  "cancelled",
+] as const;
+export type InterviewRoundOutcome = (typeof INTERVIEW_ROUND_OUTCOMES)[number];
+
+export type InterviewRound = {
+  id: string;
+  title: string;
+  scheduledAt: string | null;
+  outcome: InterviewRoundOutcome;
+  publicNote: string | null;
+  eventId?: string | null;
+};
+
 /** Public/safe fields. Notes/feedback/contacts/compensation live in the `private` subcollection. */
 export type OpportunityDoc = {
   id: string;
@@ -98,6 +116,9 @@ export type OpportunityDoc = {
   link: string | null;
   nextStep: string | null;
   nextStepBy: string | null;
+  firstRoundAt?: string | null;
+  nextRoundAt?: string | null;
+  interviewRounds?: InterviewRound[];
   /** Working arrangement — visible publicly if the item is public. */
   locationType?: LocationType | null;
   isPublic: boolean;

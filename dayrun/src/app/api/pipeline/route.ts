@@ -3,7 +3,10 @@ import { adminDb } from "@/lib/firebase/admin";
 import { verifyUid } from "@/lib/api/auth";
 import {
   COLLECTIONS,
+  INTERVIEW_ROUND_OUTCOMES,
   OPPORTUNITY_STATUSES,
+  type InterviewRound,
+  type InterviewRoundOutcome,
   type OpportunityDoc,
   type OpportunityStatus,
 } from "@/lib/firebase/collections";
@@ -21,6 +24,40 @@ function clean(s: unknown, max = 2000): string | null {
   if (typeof s !== "string") return null;
   const t = s.trim().slice(0, max);
   return t.length === 0 ? null : t;
+}
+
+function cleanDate(s: unknown): string | null {
+  const t = clean(s, 80);
+  if (!t) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  return Number.isFinite(Date.parse(t)) ? t : null;
+}
+
+function sanitizeRoundOutcome(v: unknown): InterviewRoundOutcome {
+  return (INTERVIEW_ROUND_OUTCOMES as readonly string[]).includes(v as string)
+    ? (v as InterviewRoundOutcome)
+    : "scheduled";
+}
+
+function sanitizeInterviewRounds(value: unknown): InterviewRound[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry, index): InterviewRound | null => {
+      if (!entry || typeof entry !== "object") return null;
+      const e = entry as Record<string, unknown>;
+      const title = clean(e.title, 120) ?? `Round ${index + 1}`;
+      const id = clean(e.id, 80) ?? `round_${Date.now()}_${index}`;
+      return {
+        id,
+        title,
+        scheduledAt: cleanDate(e.scheduledAt),
+        outcome: sanitizeRoundOutcome(e.outcome),
+        publicNote: clean(e.publicNote, 500),
+        eventId: clean(e.eventId, 200),
+      };
+    })
+    .filter((x): x is InterviewRound => x !== null)
+    .slice(0, 20);
 }
 
 export async function POST(req: Request) {
@@ -51,6 +88,9 @@ export async function POST(req: Request) {
     link: clean(body.link, 1000),
     nextStep: clean(body.nextStep, 500),
     nextStepBy: clean(body.nextStepBy, 40),
+    firstRoundAt: cleanDate(body.firstRoundAt),
+    nextRoundAt: cleanDate(body.nextRoundAt),
+    interviewRounds: sanitizeInterviewRounds(body.interviewRounds),
     // Public by default — users opted into a public profile, the friction belongs on hiding, not sharing.
     isPublic: body.isPublic !== false,
     createdAt: now,

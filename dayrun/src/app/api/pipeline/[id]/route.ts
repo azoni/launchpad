@@ -3,8 +3,11 @@ import { adminDb } from "@/lib/firebase/admin";
 import { verifyUid } from "@/lib/api/auth";
 import {
   COLLECTIONS,
+  INTERVIEW_ROUND_OUTCOMES,
   LOCATION_TYPES,
   OPPORTUNITY_STATUSES,
+  type InterviewRound,
+  type InterviewRoundOutcome,
   type ChecklistItem,
   type Compensation,
   type LocationType,
@@ -63,6 +66,40 @@ function clean(s: unknown, max = 2000): string | null {
   return t.length === 0 ? null : t;
 }
 
+function cleanDate(s: unknown): string | null {
+  const t = clean(s, 80);
+  if (!t) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  return Number.isFinite(Date.parse(t)) ? t : null;
+}
+
+function sanitizeRoundOutcome(v: unknown): InterviewRoundOutcome {
+  return (INTERVIEW_ROUND_OUTCOMES as readonly string[]).includes(v as string)
+    ? (v as InterviewRoundOutcome)
+    : "scheduled";
+}
+
+function sanitizeInterviewRounds(value: unknown): InterviewRound[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value
+    .map((entry, index): InterviewRound | null => {
+      if (!entry || typeof entry !== "object") return null;
+      const e = entry as Record<string, unknown>;
+      const title = clean(e.title, 120) ?? `Round ${index + 1}`;
+      const id = clean(e.id, 80) ?? `round_${Date.now()}_${index}`;
+      return {
+        id,
+        title,
+        scheduledAt: cleanDate(e.scheduledAt),
+        outcome: sanitizeRoundOutcome(e.outcome),
+        publicNote: clean(e.publicNote, 500),
+        eventId: clean(e.eventId, 200),
+      };
+    })
+    .filter((x): x is InterviewRound => x !== null)
+    .slice(0, 20);
+}
+
 function sanitizeContacts(c: unknown): Contact[] | undefined {
   if (!Array.isArray(c)) return undefined;
   return c
@@ -119,6 +156,12 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if ("link" in body) safeUpdate.link = clean(body.link, 1000);
   if ("nextStep" in body) safeUpdate.nextStep = clean(body.nextStep, 500);
   if ("nextStepBy" in body) safeUpdate.nextStepBy = clean(body.nextStepBy, 40);
+  if ("firstRoundAt" in body) safeUpdate.firstRoundAt = cleanDate(body.firstRoundAt);
+  if ("nextRoundAt" in body) safeUpdate.nextRoundAt = cleanDate(body.nextRoundAt);
+  if ("interviewRounds" in body) {
+    const rounds = sanitizeInterviewRounds(body.interviewRounds);
+    if (rounds) safeUpdate.interviewRounds = rounds;
+  }
   if ("locationType" in body) {
     const v = sanitizeLocation(body.locationType);
     if (v !== undefined) safeUpdate.locationType = v;

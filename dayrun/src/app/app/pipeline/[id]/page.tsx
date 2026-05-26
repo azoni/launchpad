@@ -15,19 +15,27 @@ import { db } from "@/lib/firebase/client";
 import { useAuthUser } from "@/lib/auth";
 import {
   COLLECTIONS,
+  INTERVIEW_ROUND_OUTCOMES,
   LOCATION_TYPES,
   OPPORTUNITY_STATUSES,
   type ChecklistItem,
   type Compensation,
   type Contact,
   type EventDoc,
+  type InterviewRound,
+  type InterviewRoundOutcome,
   type LocationType,
   type OpportunityDoc,
   type OpportunityPrivateDoc,
   type OpportunityStatus,
 } from "@/lib/firebase/collections";
-import { StatusPill } from "@/components/pipeline/StatusPill";
 import { BriefCard } from "@/components/pipeline/BriefCard";
+import {
+  parsePipelineDate,
+  todayStartMs,
+  toDateInputValue,
+  visibleRounds,
+} from "@/lib/pipeline";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -113,6 +121,24 @@ export default function OpportunityDetailPage(props: PageProps) {
         return next;
       });
     }
+  }
+
+  function saveRounds(rounds: InterviewRound[]) {
+    const dated = rounds
+      .filter((round) => parsePipelineDate(round.scheduledAt) !== null)
+      .sort((a, b) => parsePipelineDate(a.scheduledAt)! - parsePipelineDate(b.scheduledAt)!);
+    const firstRoundAt = dated[0]?.scheduledAt ?? null;
+    const nextRoundAt =
+      dated.find((round) => {
+        const ts = parsePipelineDate(round.scheduledAt);
+        return (
+          ts !== null &&
+          ts >= todayStartMs() &&
+          round.outcome !== "did-not-pass" &&
+          round.outcome !== "cancelled"
+        );
+      })?.scheduledAt ?? null;
+    patch({ interviewRounds: rounds, firstRoundAt, nextRoundAt }, "interviewRounds");
   }
 
   async function briefGenerate(contextHint: string) {
@@ -277,10 +303,22 @@ export default function OpportunityDetailPage(props: PageProps) {
               onSave={(v) => patch({ nextStep: v }, "nextStep")}
             />
           </FieldLabel>
-          <FieldLabel label="Next-step date">
+          <FieldLabel label="First round date">
+            <DateInput
+              value={opp.firstRoundAt ?? ""}
+              onSave={(v) => patch({ firstRoundAt: v }, "firstRoundAt")}
+            />
+          </FieldLabel>
+          <FieldLabel label="Next round date">
+            <DateInput
+              value={opp.nextRoundAt ?? ""}
+              onSave={(v) => patch({ nextRoundAt: v }, "nextRoundAt")}
+            />
+          </FieldLabel>
+          <FieldLabel label="Next-step note">
             <InlineInput
               value={opp.nextStepBy ?? ""}
-              placeholder="2026-05-29 · Thu 3pm"
+              placeholder="Recruiter follow-up, due date, prep reminder"
               onSave={(v) => patch({ nextStepBy: v }, "nextStepBy")}
             />
           </FieldLabel>
@@ -314,6 +352,12 @@ export default function OpportunityDetailPage(props: PageProps) {
       </header>
 
       <PrivateBanner />
+
+      <RoundTracker
+        rounds={visibleRounds(opp)}
+        linkedEvents={linkedEvents}
+        onSave={saveRounds}
+      />
 
       {/* Notes + Feedback */}
       <BriefCard
@@ -427,6 +471,191 @@ function PrivateBanner() {
   );
 }
 
+function RoundTracker({
+  rounds,
+  linkedEvents,
+  onSave,
+}: {
+  rounds: InterviewRound[];
+  linkedEvents: EventDoc[];
+  onSave: (rounds: InterviewRound[]) => void;
+}) {
+  const [items, setItems] = useState<InterviewRound[]>(rounds);
+
+  function commit(next: InterviewRound[]) {
+    setItems(next);
+    onSave(next);
+  }
+
+  function update(id: string, patch: Partial<InterviewRound>) {
+    commit(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  }
+
+  function addRound(seed?: Partial<InterviewRound>) {
+    const next: InterviewRound = {
+      id: `round_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      title: seed?.title ?? `Round ${items.length + 1}`,
+      scheduledAt: seed?.scheduledAt ?? null,
+      outcome: seed?.outcome ?? "scheduled",
+      publicNote: seed?.publicNote ?? null,
+      eventId: seed?.eventId ?? null,
+    };
+    commit([...items, next]);
+  }
+
+  function addLinkedEvents() {
+    const existingEventIds = new Set(items.map((item) => item.eventId).filter(Boolean));
+    const additions = linkedEvents
+      .filter((event) => !existingEventIds.has(event.googleEventId))
+      .map((event, index): InterviewRound => {
+        const ts = parsePipelineDate(event.start);
+        return {
+          id: `event_${event.googleEventId.slice(0, 64)}`,
+          eventId: event.googleEventId,
+          title: guessRoundTitle(event.summary, items.length + index),
+          scheduledAt: event.start,
+          outcome: ts !== null && ts < todayStartMs() ? "completed" : "scheduled",
+          publicNote: null,
+        };
+      });
+    if (additions.length > 0) commit([...items, ...additions]);
+  }
+
+  const untrackedLinkedCount = linkedEvents.filter(
+    (event) => !items.some((item) => item.eventId === event.googleEventId),
+  ).length;
+
+  return (
+    <section className="chunky chunky-coral p-4 md:p-5 space-y-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <p className="dy-eyebrow">process</p>
+          <h2 className="font-heading text-2xl font-bold mt-1">Interview rounds</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Track the part you just finished, then set the next date so the pipeline stays ordered.
+          </p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {untrackedLinkedCount > 0 && (
+            <button
+              type="button"
+              onClick={addLinkedEvents}
+              className="btn-chunky btn-ghost text-sm py-2 px-3"
+            >
+              Add {untrackedLinkedCount} linked
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => addRound()}
+            className="btn-chunky text-sm py-2 px-3"
+          >
+            <Plus size={14} /> Add round
+          </button>
+        </div>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-hairline-strong bg-surface p-4 text-sm text-muted-foreground">
+          No rounds tracked yet. Add the first screen, technical round, onsite, or any custom step.
+        </div>
+      ) : (
+        <ol className="space-y-3">
+          {items.map((round, index) => (
+            <li key={round.id} className="rounded-xl border border-hairline bg-surface p-3">
+              <div className="grid md:grid-cols-[1.4fr_150px_150px_auto] gap-2 items-start">
+                <label className="block text-xs">
+                  <span className="block font-semibold mb-1">Round</span>
+                  <input
+                    value={round.title}
+                    onChange={(e) => {
+                      const next = [...items];
+                      next[index] = { ...round, title: e.target.value };
+                      setItems(next);
+                    }}
+                    onBlur={() =>
+                      update(round.id, { title: round.title.trim() || `Round ${index + 1}` })
+                    }
+                    className="w-full border border-hairline-strong rounded-lg px-3 py-2 bg-card text-sm"
+                  />
+                </label>
+                <label className="block text-xs">
+                  <span className="block font-semibold mb-1">Date</span>
+                  <input
+                    type="date"
+                    value={toDateInputValue(round.scheduledAt)}
+                    onChange={(e) => update(round.id, { scheduledAt: e.target.value || null })}
+                    className="w-full border border-hairline-strong rounded-lg px-3 py-2 bg-card text-sm"
+                  />
+                </label>
+                <label className="block text-xs">
+                  <span className="block font-semibold mb-1">Outcome</span>
+                  <select
+                    value={round.outcome}
+                    onChange={(e) =>
+                      update(round.id, { outcome: e.target.value as InterviewRoundOutcome })
+                    }
+                    className="w-full border border-hairline-strong rounded-lg px-3 py-2 bg-card text-sm"
+                  >
+                    {INTERVIEW_ROUND_OUTCOMES.map((outcome) => (
+                      <option key={outcome} value={outcome}>
+                        {outcome}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => commit(items.filter((item) => item.id !== round.id))}
+                  className="md:mt-6 text-muted-foreground hover:text-red-700 p-2 justify-self-start"
+                  aria-label="Remove round"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <label className="block text-xs mt-2">
+                <span className="block font-semibold mb-1">Public note</span>
+                <input
+                  value={round.publicNote ?? ""}
+                  onChange={(e) => {
+                    const next = [...items];
+                    next[index] = { ...round, publicNote: e.target.value };
+                    setItems(next);
+                  }}
+                  onBlur={() => update(round.id, { publicNote: round.publicNote?.trim() || null })}
+                  placeholder="Optional: recruiter screen done, final onsite scheduled..."
+                  className="w-full border border-hairline-strong rounded-lg px-3 py-2 bg-card text-sm"
+                />
+              </label>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {items.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Public profile shows dates, round names, outcomes, and public notes. Private notes stay below.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function guessRoundTitle(summary: string, index: number) {
+  const s = summary.toLowerCase();
+  if (s.includes("recruiter") || s.includes("phone") || s.includes("screen")) {
+    return "Recruiter screen";
+  }
+  if (s.includes("technical") || s.includes("coding") || s.includes("code")) {
+    return "Technical round";
+  }
+  if (s.includes("system") || s.includes("design")) return "System design";
+  if (s.includes("manager") || s.includes("behavioral")) return "Hiring manager";
+  if (s.includes("onsite") || s.includes("panel")) return "Onsite";
+  if (s.includes("final")) return "Final round";
+  return `Round ${index + 1}`;
+}
+
 function FieldLabel({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block text-sm">
@@ -489,6 +718,31 @@ function InlineInput({
       onChange={(e) => setLocal(e.target.value)}
       onBlur={() => {
         if (local !== value) onSave(local);
+      }}
+      className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card"
+    />
+  );
+}
+
+function DateInput({
+  value,
+  onSave,
+}: {
+  value: string;
+  onSave: (v: string | null) => void;
+}) {
+  const [local, setLocal] = useState(toDateInputValue(value));
+  const incoming = toDateInputValue(value);
+  if (incoming !== local && document.activeElement?.tagName !== "INPUT") {
+    setLocal(incoming);
+  }
+  return (
+    <input
+      type="date"
+      value={local}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={() => {
+        if (local !== incoming) onSave(local || null);
       }}
       className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card"
     />
