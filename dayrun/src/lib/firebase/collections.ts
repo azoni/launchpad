@@ -82,8 +82,14 @@ export const CLOSED_STATUSES: OpportunityStatus[] = [
 
 export const DEFAULT_STATUS: OpportunityStatus = "ongoing";
 
-export function isActive(status: OpportunityStatus) {
-  return ACTIVE_STATUSES.includes(status);
+export function normalizeOpportunityStatus(status: unknown): OpportunityStatus {
+  return (OPPORTUNITY_STATUSES as readonly string[]).includes(status as string)
+    ? (status as OpportunityStatus)
+    : DEFAULT_STATUS;
+}
+
+export function isActive(status: unknown) {
+  return ACTIVE_STATUSES.includes(normalizeOpportunityStatus(status));
 }
 
 export const LOCATION_TYPES = ["on-site", "hybrid", "remote"] as const;

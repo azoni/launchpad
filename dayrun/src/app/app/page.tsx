@@ -22,7 +22,8 @@ import {
   type EventNotesDoc,
   type OpportunityDoc,
   type UserDoc,
-  ACTIVE_STATUSES,
+  isActive,
+  normalizeOpportunityStatus,
 } from "@/lib/firebase/collections";
 
 export default function AppPage() {
@@ -60,7 +61,17 @@ export default function AppPage() {
     );
     const unsubOpps = onSnapshot(
       query(collection(db, COLLECTIONS.opportunities(user.uid)), orderBy("updatedAt", "desc")),
-      (snap) => setOpportunities(snap.docs.map((d) => ({ id: d.id, ...d.data() } as OpportunityDoc))),
+      (snap) =>
+        setOpportunities(
+          snap.docs.map(
+            (d) =>
+              ({
+                id: d.id,
+                ...d.data(),
+                status: normalizeOpportunityStatus(d.data().status),
+              }) as OpportunityDoc,
+          ),
+        ),
     );
     const unsubNotes = onSnapshot(
       collection(db, COLLECTIONS.eventNotes(user.uid)),
@@ -85,7 +96,7 @@ export default function AppPage() {
     return m;
   }, [opportunities]);
   const activeOppsCount = useMemo(
-    () => opportunities.filter((o) => ACTIVE_STATUSES.includes(o.status)).length,
+    () => opportunities.filter((o) => isActive(o.status)).length,
     [opportunities],
   );
 

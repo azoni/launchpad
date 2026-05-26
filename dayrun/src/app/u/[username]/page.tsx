@@ -5,6 +5,8 @@ import { Navbar } from "@/components/Navbar";
 import { adminDb } from "@/lib/firebase/admin";
 import {
   COLLECTIONS,
+  isActive,
+  normalizeOpportunityStatus,
   type EventDoc,
   type OpportunityDoc,
   type OpportunityStatus,
@@ -28,7 +30,18 @@ import {
 } from "@/lib/pipeline";
 import { formatCalendarDayDate, todayInTimeZone } from "@/lib/calendar-time";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type PageProps = { params: Promise<{ username: string }> };
+
+function opportunityFromDoc(id: string, data: Record<string, unknown>): OpportunityDoc {
+  return {
+    id,
+    ...(data as Omit<OpportunityDoc, "id">),
+    status: normalizeOpportunityStatus(data.status),
+  };
+}
 
 async function loadProfile(username: string) {
   const lookup = await adminDb.collection(COLLECTIONS.usernames).doc(username).get();
@@ -57,7 +70,7 @@ async function loadProfile(username: string) {
     .limit(100)
     .get();
   const opportunities = oppsSnap.docs
-    .map((d) => ({ id: d.id, ...d.data() } as OpportunityDoc))
+    .map((d) => opportunityFromDoc(d.id, d.data()))
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, 50);
 
@@ -68,9 +81,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { username } = await params;
   const data = await loadProfile(username);
   if (!data) return { title: `@${username}`, robots: { index: false, follow: false } };
-  const activeCount = data.opportunities.filter((o) =>
-    ["ongoing", "referral", "applied", "screen", "onsite", "offer"].includes(o.status),
-  ).length;
+  const activeCount = data.opportunities.filter((o) => isActive(o.status)).length;
   const display = data.user.displayName ?? `@${username}`;
   const title = `${display} on ${APP_NAME}`;
   const description =

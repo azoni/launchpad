@@ -4,8 +4,9 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { adminDb } from "@/lib/firebase/admin";
 import {
-  ACTIVE_STATUSES,
   COLLECTIONS,
+  isActive,
+  normalizeOpportunityStatus,
   type EventDoc,
   type OpportunityDoc,
   type OpportunityStatus,
@@ -22,6 +23,9 @@ import {
   roundTitleWithNumber,
 } from "@/lib/pipeline";
 import { formatCalendarDay, formatCalendarTime } from "@/lib/calendar-time";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Explore - public profiles",
@@ -58,6 +62,14 @@ type ProfileSummary = {
   upcomingEvents: EventPreview[];
 };
 
+function opportunityFromDoc(id: string, data: Record<string, unknown>): OpportunityDoc {
+  return {
+    id,
+    ...(data as Omit<OpportunityDoc, "id">),
+    status: normalizeOpportunityStatus(data.status),
+  };
+}
+
 async function loadPublicProfiles(): Promise<ProfileSummary[]> {
   const usersSnap = await adminDb
     .collection(COLLECTIONS.users)
@@ -77,7 +89,7 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
       .where("isPublic", "==", true)
       .get();
     const opps = oppsSnap.docs
-      .map((d) => ({ id: d.id, ...d.data() } as OpportunityDoc))
+      .map((d) => opportunityFromDoc(d.id, d.data()))
       .sort(compareOpportunitiesByNext);
     const oppsById = new Map(opps.map((o) => [o.id, o]));
 
@@ -114,7 +126,7 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
       displayName: u.displayName,
       photoURL: u.photoURL,
       lastSyncedAt: u.lastSyncedAt,
-      activePipeline: opps.filter((o) => ACTIVE_STATUSES.includes(o.status)).length,
+      activePipeline: opps.filter((o) => isActive(o.status)).length,
       publicPipeline: opps.slice(0, 5),
       publicPipelineCount: opps.length,
       publicEvents: eventsSnap.data().count,
@@ -144,17 +156,31 @@ export default async function ExplorePage() {
     )
     .sort((a, b) => a.start.localeCompare(b.start))
     .slice(0, 10);
+  const totalActive = profiles.reduce((sum, p) => sum + p.activePipeline, 0);
+  const totalPipeline = profiles.reduce((sum, p) => sum + p.publicPipelineCount, 0);
+  const totalEvents = profiles.reduce((sum, p) => sum + p.publicEvents, 0);
 
   return (
     <>
       <Navbar />
       <main className="flex-1 mx-auto max-w-6xl w-full px-4 py-10 space-y-8">
-        <header className="space-y-3">
-          <span className="sticker">explore</span>
-          <h1 className="font-heading text-5xl md:text-6xl font-bold">Public profiles</h1>
-          <p className="text-muted-foreground text-lg max-w-2xl">
-            What everyone&apos;s up to. Real interviews, real schedules, real-time. Click in to see
-            anyone&apos;s week, their pipeline, and what&apos;s next.
+        <header className="chunky p-5 md:p-6">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-5 items-end">
+            <div className="space-y-3">
+              <span className="sticker">explore</span>
+              <h1 className="font-heading text-4xl md:text-6xl font-bold">Public profiles</h1>
+              <p className="text-muted-foreground text-base md:text-lg max-w-2xl">
+                Browse public interview pipelines, upcoming rounds, and shared calendar activity.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <Stat label="profiles" value={withActivity.length} />
+              <Stat label="active" value={totalActive} />
+              <Stat label="events" value={totalEvents} />
+            </div>
+          </div>
+          <p className="mt-4 text-xs font-mono text-muted-foreground">
+            {totalPipeline} public pipeline items shown from live profile data.
           </p>
         </header>
 
@@ -290,7 +316,12 @@ function ProfileCard({ p }: { p: ProfileSummary }) {
             </p>
             <p className="text-xs font-mono text-muted-foreground">/u/{p.username}</p>
             <div className="flex flex-wrap gap-1.5 mt-3">
-              <span className="dy-pill dy-pill-ink">{p.activePipeline} active</span>
+              <span className="dy-pill dy-pill-ink">
+                {p.activePipeline} currently exploring
+              </span>
+              <span className="dy-pill dy-pill-outline">
+                {p.publicPipelineCount} public pipeline
+              </span>
               <span className="dy-pill dy-pill-neutral">
                 {p.publicEvents} {p.publicEvents === 1 ? "event" : "events"}
               </span>
@@ -342,6 +373,15 @@ function ProfileCard({ p }: { p: ProfileSummary }) {
   );
 }
 
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-hairline bg-surface px-3 py-3">
+      <p className="font-heading text-2xl font-bold leading-none">{value}</p>
+      <p className="dy-eyebrow mt-2">{label}</p>
+    </div>
+  );
+}
+
 function OpportunityPreview({ opp }: { opp: OpportunityDoc }) {
   const next = getNextRoundAt(opp);
   const currentRound = getCurrentRound(opp);
@@ -387,7 +427,8 @@ function EventPreviewRow({ event }: { event: EventPreview }) {
 }
 
 function statusAccent(status: OpportunityStatus | null | undefined): string {
-  switch (status) {
+  if (!status) return "var(--muted-foreground)";
+  switch (normalizeOpportunityStatus(status)) {
     case "offer":
     case "accepted":
       return "var(--positive)";

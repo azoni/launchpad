@@ -9,8 +9,9 @@ import { useAuthUser } from "@/lib/auth";
 import {
   COLLECTIONS,
   type OpportunityDoc,
-  ACTIVE_STATUSES,
   CLOSED_STATUSES,
+  isActive,
+  normalizeOpportunityStatus,
 } from "@/lib/firebase/collections";
 import { OpportunityCard } from "@/components/pipeline/OpportunityCard";
 import { QuickAdd } from "@/components/pipeline/QuickAdd";
@@ -34,7 +35,16 @@ export default function PipelinePage() {
     const unsub = onSnapshot(
       query(collection(db, COLLECTIONS.opportunities(user.uid)), orderBy("updatedAt", "desc")),
       (snap) => {
-        setOpps(snap.docs.map((d) => ({ id: d.id, ...d.data() }) as OpportunityDoc));
+        setOpps(
+          snap.docs.map(
+            (d) =>
+              ({
+                id: d.id,
+                ...d.data(),
+                status: normalizeOpportunityStatus(d.data().status),
+              }) as OpportunityDoc,
+          ),
+        );
         setBootstrapped(true);
       },
     );
@@ -50,10 +60,10 @@ export default function PipelinePage() {
     );
 
   const active = opps
-    .filter((o) => ACTIVE_STATUSES.includes(o.status))
+    .filter((o) => isActive(o.status))
     .sort(compareOpportunitiesByNext);
   const closed = opps
-    .filter((o) => CLOSED_STATUSES.includes(o.status))
+    .filter((o) => CLOSED_STATUSES.includes(normalizeOpportunityStatus(o.status)))
     .sort((a, b) => b.updatedAt - a.updatedAt);
   const publicCount = opps.filter((o) => o.isPublic).length;
   const upcomingCount = active.filter((o) => {

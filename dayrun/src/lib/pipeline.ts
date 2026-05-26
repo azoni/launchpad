@@ -1,5 +1,6 @@
 import {
   CLOSED_STATUSES,
+  normalizeOpportunityStatus,
   type InterviewRound,
   type OpportunityDoc,
   type OpportunityStatus,
@@ -54,7 +55,7 @@ function isOpenRound(round: InterviewRound): boolean {
 }
 
 export function isClosedOpportunity(opp: OpportunityDoc): boolean {
-  return CLOSED_STATUSES.includes(opp.status);
+  return CLOSED_STATUSES.includes(normalizeOpportunityStatus(opp.status));
 }
 
 export function getRoundNumber(
@@ -165,8 +166,10 @@ export function compareOpportunitiesByNext(a: OpportunityDoc, b: OpportunityDoc)
   const bFuture = bDate !== null && bDate >= todayStartMs();
   if (aFuture !== bFuture) return aFuture ? -1 : 1;
   if (aFuture && bFuture && aDate !== bDate) return aDate - bDate;
-  if ((STATUS_RANK[a.status] ?? 99) !== (STATUS_RANK[b.status] ?? 99)) {
-    return (STATUS_RANK[a.status] ?? 99) - (STATUS_RANK[b.status] ?? 99);
+  const aStatus = normalizeOpportunityStatus(a.status);
+  const bStatus = normalizeOpportunityStatus(b.status);
+  if ((STATUS_RANK[aStatus] ?? 99) !== (STATUS_RANK[bStatus] ?? 99)) {
+    return (STATUS_RANK[aStatus] ?? 99) - (STATUS_RANK[bStatus] ?? 99);
   }
   return b.updatedAt - a.updatedAt;
 }

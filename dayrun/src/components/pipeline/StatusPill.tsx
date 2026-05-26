@@ -1,4 +1,7 @@
-import type { OpportunityStatus } from "@/lib/firebase/collections";
+import {
+  normalizeOpportunityStatus,
+  type OpportunityStatus,
+} from "@/lib/firebase/collections";
 
 const PILL: Record<OpportunityStatus, string> = {
   // In-progress states: all neutral. Brick (accent) was reading too close to the
@@ -26,11 +29,12 @@ export function StatusPill({
   status,
   size = "md",
 }: {
-  status: OpportunityStatus;
+  status: OpportunityStatus | string | null | undefined;
   size?: "sm" | "md";
 }) {
+  const safeStatus = normalizeOpportunityStatus(status);
   const sizing = size === "sm" ? "text-[10.5px] px-1.5" : "";
-  return <span className={`${PILL[status]} ${sizing}`}>{status}</span>;
+  return <span className={`${PILL[safeStatus]} ${sizing}`}>{safeStatus}</span>;
 }
 
 export function statusIsClosed(status: OpportunityStatus) {
