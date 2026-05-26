@@ -4,13 +4,14 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { adminDb } from "@/lib/firebase/admin";
 import {
+  ACTIVE_STATUSES,
   COLLECTIONS,
-  type EventDoc,
   type OpportunityDoc,
   type UserDoc,
 } from "@/lib/firebase/collections";
 import { StatusPill } from "@/components/pipeline/StatusPill";
 import { APP_NAME, APP_URL } from "@/lib/utils";
+import { compareOpportunitiesByNext } from "@/lib/pipeline";
 
 export const metadata: Metadata = {
   title: "Explore — public profiles",
@@ -49,9 +50,10 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
     const oppsSnap = await adminDb
       .collection(COLLECTIONS.opportunities(userDoc.id))
       .where("isPublic", "==", true)
-      .limit(20)
       .get();
-    const opps = oppsSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OpportunityDoc));
+    const opps = oppsSnap.docs
+      .map((d) => ({ id: d.id, ...d.data() } as OpportunityDoc))
+      .sort(compareOpportunitiesByNext);
 
     // Public event count — single-where, no composite index.
     const eventsSnap = await adminDb
@@ -65,9 +67,7 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
       displayName: u.displayName,
       photoURL: u.photoURL,
       lastSyncedAt: u.lastSyncedAt,
-      activePipeline: opps.filter((o) =>
-        ["ongoing", "referral", "applied", "screen", "onsite", "offer"].includes(o.status),
-      ).length,
+      activePipeline: opps.filter((o) => ACTIVE_STATUSES.includes(o.status)).length,
       publicPipeline: opps.slice(0, 4),
       publicEvents: eventsSnap.data().count,
     });
