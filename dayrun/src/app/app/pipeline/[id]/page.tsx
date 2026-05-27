@@ -10,7 +10,17 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { ArrowLeft, Check, ExternalLink, Eye, EyeOff, Plus, Trash2, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ClipboardList,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { useAuthUser } from "@/lib/auth";
 import {
@@ -210,6 +220,9 @@ export default function OpportunityDetailPage(props: PageProps) {
       </div>
     );
 
+  const actionItems = priv.checklist ?? [];
+  const openActionItems = actionItems.filter((item) => !item.done).length;
+
   return (
     <div className="space-y-6 max-w-4xl">
       <Link
@@ -355,6 +368,28 @@ export default function OpportunityDetailPage(props: PageProps) {
 
       <PrivateBanner />
 
+      <section className="chunky chunky-sun p-4 md:p-5 space-y-3">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <p className="dy-eyebrow">focus</p>
+            <h2 className="font-heading text-2xl font-bold mt-1 inline-flex items-center gap-2">
+              <ClipboardList size={20} /> Action items
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+              Take-homes, follow-ups, prep work, and anything that needs to stay in front of you.
+            </p>
+          </div>
+          <span className="dy-pill dy-pill-ink">
+            {openActionItems} open
+          </span>
+        </div>
+        <ChecklistEditor
+          initial={actionItems}
+          onSave={(c) => patch({ checklist: c }, "checklist")}
+          placeholder="Add an action item, e.g. finish take-home, send thank-you, study system design..."
+        />
+      </section>
+
       <RoundTracker
         rounds={visibleRounds(opp)}
         linkedEvents={linkedEvents}
@@ -368,20 +403,6 @@ export default function OpportunityDetailPage(props: PageProps) {
         onEdit={briefEdit}
         onDelete={briefDelete}
       />
-
-      {/* Checklist */}
-      <section className="chunky p-4">
-        <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-          <h2 className="font-heading text-xl font-bold">Checklist</h2>
-          <span className="inline-flex items-center gap-1 text-[0.7rem] text-muted-foreground font-semibold">
-            <EyeOff size={11} /> private
-          </span>
-        </div>
-        <ChecklistEditor
-          initial={priv.checklist ?? []}
-          onSave={(c) => patch({ checklist: c }, "checklist")}
-        />
-      </section>
 
       <section className="grid md:grid-cols-2 gap-4">
         <div className="chunky p-4">
@@ -850,9 +871,11 @@ function NotesEditor({
 function ChecklistEditor({
   initial,
   onSave,
+  placeholder = "Add an item...",
 }: {
   initial: ChecklistItem[];
   onSave: (items: ChecklistItem[]) => void;
+  placeholder?: string;
 }) {
   const [items, setItems] = useState<ChecklistItem[]>(initial);
   const [draftText, setDraftText] = useState("");
@@ -907,7 +930,7 @@ function ChecklistEditor({
       )}
       {items.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          Things to do for this process — research, study, follow-ups, things to ask. Hit add.
+          No action items yet. Add the next concrete thing you need to do for this process.
         </p>
       )}
       {items.map((item) => (
@@ -954,7 +977,7 @@ function ChecklistEditor({
         <input
           value={draftText}
           onChange={(e) => setDraftText(e.target.value)}
-          placeholder="Add an item…"
+          placeholder={placeholder}
           className="flex-1 border-2 border-ink rounded-xl px-3 py-2 bg-card text-sm"
         />
         <button

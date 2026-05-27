@@ -37,7 +37,8 @@ service cloud.firestore {
         allow write: if false;
 
         match /private/{docId} {
-          allow read, write: if false;
+          allow read: if request.auth != null && request.auth.uid == uid;
+          allow write: if false;
         }
       }
 
