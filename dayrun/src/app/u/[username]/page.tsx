@@ -115,11 +115,10 @@ export default async function PublicProfilePage({ params }: PageProps) {
   const oppsById = new Map(opportunities.map((o) => [o.id, o]));
   const sortedOpps = [...opportunities].sort(compareOpportunitiesByNext);
 
-  const nowOpps = sortedOpps.filter(
-    (o) => !NEGATIVE_CLOSED.includes(o.status) && o.status !== "accepted",
-  );
+  const nowOpps = sortedOpps.filter((o) => isActive(o.status));
   const accepted = sortedOpps.filter((o) => o.status === "accepted");
   const closed = sortedOpps.filter((o) => NEGATIVE_CLOSED.includes(o.status));
+  const nextDated = nowOpps.filter((o) => !!getNextRoundAt(o)).length;
 
   const lastSyncedHuman = user.lastSyncedAt ? humanRelative(user.lastSyncedAt) : null;
   const dateLine = todayLine();
@@ -145,9 +144,10 @@ export default async function PublicProfilePage({ params }: PageProps) {
       />
 
       <Navbar />
-      <main className="mx-auto max-w-3xl px-5 sm:px-8 pt-12 sm:pt-16 pb-20">
+      <main className="mx-auto max-w-5xl px-5 sm:px-8 pt-8 sm:pt-12 pb-20">
         {/* Identity */}
-        <section className="flex items-start gap-5">
+        <section className="chunky p-4 md:p-5">
+          <div className="flex items-start gap-5">
           {user.photoURL ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -170,9 +170,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
             </div>
           )}
           <div className="min-w-0 pt-1">
-            <h1
-              className="dy-display text-[32px] sm:text-[40px]"
-            >
+            <h1 className="dy-display text-[30px] sm:text-[38px]">
               {user.displayName ?? `@${username}`}
             </h1>
             <p className="mt-1.5 text-[14px] text-[color:var(--ink-soft)] flex items-center gap-2 flex-wrap">
@@ -187,24 +185,46 @@ export default async function PublicProfilePage({ params }: PageProps) {
               )}
             </p>
           </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 mt-5">
+            <ProfileStat label="open" value={nowOpps.length} />
+            <ProfileStat label="scheduled" value={nextDated} />
+            <ProfileStat label="closed" value={accepted.length + closed.length} />
+          </div>
         </section>
 
         {/* Pipeline */}
         {sortedOpps.length > 0 && (
-          <section className="mt-14 sm:mt-16">
-            <SectionHeader title="Currently exploring" count={sortedOpps.length} />
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <section className="mt-8">
+            <SectionHeader title="Open pipeline" count={nowOpps.length} />
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
               {nowOpps.map((o) => <OppCard key={o.id} opp={o} />)}
+            </div>
+          </section>
+        )}
+
+        {(accepted.length > 0 || closed.length > 0) && (
+          <section className="mt-8">
+            <SectionHeader title="Closed outcomes" count={accepted.length + closed.length} />
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
               {accepted.map((o) => <OppCard key={o.id} opp={o} tone="positive" />)}
-              {closed.map((o) => <OppCard key={o.id} opp={o} muted />)}
+              {closed.map((o) => <OppCard key={o.id} opp={o} tone="negative" muted />)}
             </div>
           </section>
         )}
 
         {/* Calendar */}
-        <section className="mt-14 sm:mt-16">
-          <SectionHeader title="The week" count={events.length} />
-          <div className="mt-6">
+        <details className="mt-8 chunky p-4 md:p-5">
+          <summary className="cursor-pointer list-none">
+            <div className="flex items-baseline justify-between gap-3">
+              <div>
+                <p className="dy-eyebrow">calendar</p>
+                <h2 className="font-heading text-xl font-bold mt-1">Shared calendar</h2>
+              </div>
+              <span className="dy-mono">{events.length} events</span>
+            </div>
+          </summary>
+          <div className="mt-5">
             <PublicTimeline
               events={events}
               opportunitiesById={oppsById}
@@ -215,7 +235,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
               }
             />
           </div>
-        </section>
+        </details>
 
         {/* Footer */}
         <footer className="mt-20 sm:mt-24 pt-8 border-t border-[color:var(--hairline)]">
@@ -265,6 +285,15 @@ function SectionHeader({ title, count }: { title: string; count?: number }) {
   );
 }
 
+function ProfileStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2">
+      <p className="font-heading text-xl font-bold leading-none">{value}</p>
+      <p className="dy-eyebrow mt-1">{label}</p>
+    </div>
+  );
+}
+
 function OppCard({
   opp,
   muted,
@@ -282,15 +311,17 @@ function OppCard({
   const currentRound = getCurrentRound(opp);
   const nextLabel = nextStepLabel(opp);
   const focusDate = isClosed ? lastRoundAt : nextRoundAt;
+  const waiting = !isClosed && !nextRoundAt;
+  const displayStatus = waiting ? "awaiting" : opp.status;
   const rounds = visibleRounds(opp, 5);
   const topBorderColor =
-    tone === "positive"
+    tone === "positive" || opp.status === "accepted"
       ? "var(--positive)"
-      : opp.status === "rejected"
+      : tone === "negative" || opp.status === "rejected"
         ? "var(--negative)"
         : opp.status === "withdrew" || opp.status === "ghosted"
           ? "var(--hairline-strong)"
-          : "var(--primary)";
+          : "var(--positive)";
   return (
     <article
       className={`chunky p-5 ${muted ? "opacity-70" : ""}`}
@@ -313,7 +344,7 @@ function OppCard({
             )}
           </p>
         </div>
-          <StatusPill status={opp.status} />
+          <StatusPill status={displayStatus} />
       </header>
 
       {(firstRoundAt || nextRoundAt || nextLabel || rounds.length > 0) && (
@@ -322,9 +353,9 @@ function OppCard({
             className="rounded-md border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2"
             style={{ boxShadow: isClosed ? undefined : "inset 2px 0 0 0 var(--primary)" }}
           >
-            <p className="dy-eyebrow">{isClosed ? "closed with" : "focus next"}</p>
+            <p className="dy-eyebrow">{isClosed ? "closed with" : waiting ? "waiting" : "focus next"}</p>
             <p className="text-[13px] font-medium text-[color:var(--ink)] mt-1">
-              {nextLabel ?? (isClosed ? "Process closed" : "Next step TBD")}
+              {nextLabel ?? (isClosed ? "Process closed" : "Waiting on response")}
             </p>
             <p className="text-[12px] text-[color:var(--faded)] mt-0.5">
               {formatPipelineDateLong(focusDate, isClosed ? "no final date" : "no date")}

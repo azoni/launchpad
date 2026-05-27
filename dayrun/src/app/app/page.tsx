@@ -10,7 +10,7 @@ import {
   query,
   orderBy,
 } from "firebase/firestore";
-import { Briefcase, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Briefcase, CheckSquare, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { useAuthUser, signInWithGoogle, signOut } from "@/lib/auth";
 import { SignInWithGoogle } from "@/components/SignInWithGoogle";
@@ -22,16 +22,25 @@ import {
   type EventNotesDoc,
   type OpportunityDoc,
   type UserDoc,
+  type ChecklistItem,
   isActive,
   normalizeOpportunityStatus,
 } from "@/lib/firebase/collections";
+
+type ActionItemPreview = ChecklistItem & {
+  opportunityId: string;
+  company: string;
+  role: string;
+};
 
 export default function AppPage() {
   const { user, loading } = useAuthUser();
   const [profile, setProfile] = useState<UserDoc | null>(null);
   const [events, setEvents] = useState<EventDoc[]>([]);
   const [opportunities, setOpportunities] = useState<OpportunityDoc[]>([]);
+  const [actionItems, setActionItems] = useState<ActionItemPreview[]>([]);
   const [eventNotes, setEventNotes] = useState<Map<string, EventNotesDoc>>(new Map());
+  const [eventScope, setEventScope] = useState<"all" | "pipeline">("all");
   const [syncing, setSyncing] = useState(false);
   const [bulkPending, setBulkPending] = useState<"public" | "private" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -99,6 +108,42 @@ export default function AppPage() {
     () => opportunities.filter((o) => isActive(o.status)).length,
     [opportunities],
   );
+  const filteredEvents = useMemo(
+    () => (eventScope === "pipeline" ? events.filter((event) => !!event.opportunityId) : events),
+    [eventScope, events],
+  );
+
+  useEffect(() => {
+    if (!user || opportunities.length === 0) {
+      setActionItems([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const rows = await Promise.all(
+        opportunities.map(async (opp) => {
+          const snap = await getDoc(
+            doc(db, `${COLLECTIONS.opportunityPrivate(user.uid, opp.id)}/data`),
+          );
+          const checklist = snap.exists()
+            ? ((snap.data().checklist ?? []) as ChecklistItem[])
+            : [];
+          return checklist
+            .filter((item) => !item.done)
+            .map((item) => ({
+              ...item,
+              opportunityId: opp.id,
+              company: opp.company,
+              role: opp.role,
+            }));
+        }),
+      );
+      if (!cancelled) setActionItems(rows.flat().slice(0, 12));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [opportunities, user]);
 
   const stats = useMemo(() => {
     const now = Date.now();
@@ -280,6 +325,16 @@ export default function AppPage() {
             {events.length > 0 && (
               <>
                 <button
+                  onClick={() => setEventScope((scope) => (scope === "all" ? "pipeline" : "all"))}
+                  className={`btn-chunky text-sm py-2 px-3 ${
+                    eventScope === "pipeline" ? "btn-grape" : "btn-ghost"
+                  }`}
+                  title="Only show calendar events linked to a pipeline item"
+                >
+                  <Briefcase size={14} />
+                  {eventScope === "pipeline" ? "Pipeline only" : "All events"}
+                </button>
+                <button
                   onClick={() => bulkAll("upcoming", true)}
                   disabled={!!bulkPending}
                   className="btn-chunky btn-sun text-sm py-2 px-3"
@@ -302,6 +357,7 @@ export default function AppPage() {
           </div>
           {events.length > 0 && (
             <span className="text-xs sm:text-sm text-muted-foreground font-mono">
+              {eventScope === "pipeline" ? `${filteredEvents.length} linked · ` : ""}
               {stats.upcoming} upcoming · {stats.public} public
             </span>
           )}
@@ -320,13 +376,44 @@ export default function AppPage() {
         </div>
       )}
 
+      {actionItems.length > 0 && (
+        <section className="chunky p-4 md:p-5 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="dy-eyebrow">action items</p>
+              <h2 className="font-heading text-2xl font-bold mt-1">Needs attention</h2>
+            </div>
+            <span className="dy-mono">{actionItems.length} open</span>
+          </div>
+          <div className="grid md:grid-cols-2 gap-2">
+            {actionItems.map((item) => (
+              <Link
+                key={`${item.opportunityId}_${item.id}`}
+                href={`/app/pipeline/${item.opportunityId}`}
+                className="rounded-lg border border-hairline bg-surface px-3 py-2 hover:no-underline hover:border-primary transition-colors"
+              >
+                <div className="flex gap-2 items-start">
+                  <CheckSquare size={15} className="mt-0.5 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-ink leading-snug">{item.text}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {item.company} · {item.role}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {bootstrapped && events.length > 0 && (
         <InterviewSuggestions events={events} />
       )}
 
       {bootstrapped && (
         <TimelineView
-          events={events}
+          events={filteredEvents}
           editable
           actions={{ toggleOne, toggleMany, saveEventNotes }}
           opportunitiesById={oppsById}
@@ -334,9 +421,13 @@ export default function AppPage() {
           ownerView
           emptyState={
             <div className="space-y-3">
-              <p className="font-heading text-2xl">No events synced yet.</p>
+              <p className="font-heading text-2xl">
+                {eventScope === "pipeline" ? "No linked events yet." : "No events synced yet."}
+              </p>
               <p className="text-muted-foreground">
-                Hit <strong>Sync calendar</strong> above to pull in the last 30 days and the next 30 days.
+                {eventScope === "pipeline"
+                  ? "Use the interview suggestions or open a pipeline item to connect calendar rounds."
+                  : "Hit Sync calendar above to pull in the last 30 days and the next 30 days."}
               </p>
             </div>
           }

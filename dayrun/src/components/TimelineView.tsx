@@ -411,19 +411,36 @@ function EventRow({
           {timeLabel(event)}
         </span>
         <div className="flex-1 min-w-0">
-          <p
-            className={`font-semibold break-words ${
-              struck ? "line-through text-muted-foreground" : ""
-            }`}
-            title={event.summary}
-          >
-            {event.summary}
-            {event._spanTotal !== undefined && event._spanTotal > 1 && (
-              <span className="ml-2 text-[0.7rem] font-medium text-muted-foreground align-middle">
-                {spanLabel(event._spanIdx ?? 0, event._spanTotal)}
-              </span>
-            )}
-          </p>
+          {ownerView && opp ? (
+            <Link
+              href={`/app/pipeline/${opp.id}`}
+              className={`font-semibold break-words hover:text-primary hover:no-underline ${
+                struck ? "line-through text-muted-foreground" : ""
+              }`}
+              title={`Open ${opp.company} pipeline item`}
+            >
+              {event.summary}
+              {event._spanTotal !== undefined && event._spanTotal > 1 && (
+                <span className="ml-2 text-[0.7rem] font-medium text-muted-foreground align-middle">
+                  {spanLabel(event._spanIdx ?? 0, event._spanTotal)}
+                </span>
+              )}
+            </Link>
+          ) : (
+            <p
+              className={`font-semibold break-words ${
+                struck ? "line-through text-muted-foreground" : ""
+              }`}
+              title={event.summary}
+            >
+              {event.summary}
+              {event._spanTotal !== undefined && event._spanTotal > 1 && (
+                <span className="ml-2 text-[0.7rem] font-medium text-muted-foreground align-middle">
+                  {spanLabel(event._spanIdx ?? 0, event._spanTotal)}
+                </span>
+              )}
+            </p>
+          )}
           <div className="flex items-center gap-1.5 flex-wrap mt-1">
             {event.location && (
               <p className="text-xs text-muted-foreground truncate max-w-full">

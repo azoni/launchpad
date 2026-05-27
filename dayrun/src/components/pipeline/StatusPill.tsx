@@ -13,6 +13,7 @@ const PILL: Record<OpportunityStatus, string> = {
   screen:    "dy-pill dy-pill-neutral",
   // Onsite stays prominent (you're at the deepest stage).
   onsite:    "dy-pill dy-pill-ink",
+  awaiting:  "dy-pill dy-pill-positive",
   // Wins
   offer:     "dy-pill dy-pill-positive",
   accepted:  "dy-pill dy-pill-positive",

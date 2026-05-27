@@ -148,11 +148,12 @@ export function getLastRoundAt(opp: OpportunityDoc): string | null {
 
 const STATUS_RANK: Record<OpportunityStatus, number> = {
   offer: 0,
-  onsite: 1,
-  screen: 2,
-  applied: 3,
-  referral: 4,
-  ongoing: 5,
+  awaiting: 1,
+  onsite: 2,
+  screen: 3,
+  applied: 4,
+  referral: 5,
+  ongoing: 6,
   accepted: 10,
   rejected: 11,
   withdrew: 12,

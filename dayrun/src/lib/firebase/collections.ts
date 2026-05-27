@@ -44,6 +44,7 @@ export const OPPORTUNITY_STATUSES = [
   "applied",
   "screen",
   "onsite",
+  "awaiting",
   "offer",
   "accepted",
   "rejected",
@@ -62,6 +63,7 @@ export const INITIAL_STATUSES: OpportunityStatus[] = [
   "applied",
   "screen",
   "onsite",
+  "awaiting",
 ];
 
 export const ACTIVE_STATUSES: OpportunityStatus[] = [
@@ -70,6 +72,7 @@ export const ACTIVE_STATUSES: OpportunityStatus[] = [
   "applied",
   "screen",
   "onsite",
+  "awaiting",
   "offer",
 ];
 

@@ -7,7 +7,6 @@ import {
   COLLECTIONS,
   isActive,
   normalizeOpportunityStatus,
-  type EventDoc,
   type OpportunityDoc,
   type OpportunityStatus,
   type UserDoc,
@@ -18,11 +17,14 @@ import {
   compareOpportunitiesByNext,
   formatPipelineDate,
   getCurrentRound,
+  getFirstRoundAt,
+  getLastRoundAt,
   getNextRoundAt,
+  isClosedOpportunity,
   nextStepLabel,
   roundTitleWithNumber,
+  visibleRounds,
 } from "@/lib/pipeline";
-import { formatCalendarDay, formatCalendarTime } from "@/lib/calendar-time";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -39,15 +41,10 @@ export const metadata: Metadata = {
   },
 };
 
-type EventPreview = {
-  id: string;
-  summary: string;
-  start: string;
-  allDay: boolean;
-  timeZone: string | null;
-  location: string | null;
-  opportunityCompany: string | null;
-  opportunityStatus: OpportunityStatus | null;
+type PipelinePreview = OpportunityDoc & {
+  username: string;
+  displayName: string | null;
+  photoURL: string | null;
 };
 
 type ProfileSummary = {
@@ -56,10 +53,9 @@ type ProfileSummary = {
   photoURL: string | null;
   lastSyncedAt: number | null;
   activePipeline: number;
+  closedPipeline: number;
   publicPipeline: OpportunityDoc[];
   publicPipelineCount: number;
-  publicEvents: number;
-  upcomingEvents: EventPreview[];
 };
 
 function opportunityFromDoc(id: string, data: Record<string, unknown>): OpportunityDoc {
@@ -78,7 +74,6 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
     .get();
 
   const summaries: ProfileSummary[] = [];
-  const eventFloor = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   for (const userDoc of usersSnap.docs) {
     const u = userDoc.data() as UserDoc;
@@ -91,46 +86,15 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
     const opps = oppsSnap.docs
       .map((d) => opportunityFromDoc(d.id, d.data()))
       .sort(compareOpportunitiesByNext);
-    const oppsById = new Map(opps.map((o) => [o.id, o]));
-
-    const eventsSnap = await adminDb
-      .collection(COLLECTIONS.events(userDoc.id))
-      .where("isPublic", "==", true)
-      .count()
-      .get();
-
-    const upcomingSnap = await adminDb
-      .collection(COLLECTIONS.events(userDoc.id))
-      .where("isPublic", "==", true)
-      .where("start", ">=", eventFloor)
-      .orderBy("start", "asc")
-      .limit(4)
-      .get();
-    const upcomingEvents = upcomingSnap.docs.map((d) => {
-      const event = d.data() as EventDoc;
-      const opp = event.opportunityId ? oppsById.get(event.opportunityId) : null;
-      return {
-        id: event.googleEventId,
-        summary: event.summary,
-        start: event.start,
-        allDay: event.allDay,
-        timeZone: event.timeZone ?? null,
-        location: event.location,
-        opportunityCompany: opp?.company ?? null,
-        opportunityStatus: opp?.status ?? null,
-      };
-    });
-
     summaries.push({
       username: u.username,
       displayName: u.displayName,
       photoURL: u.photoURL,
       lastSyncedAt: u.lastSyncedAt,
       activePipeline: opps.filter((o) => isActive(o.status)).length,
-      publicPipeline: opps.slice(0, 5),
+      closedPipeline: opps.filter((o) => isClosedOpportunity(o)).length,
+      publicPipeline: opps.slice(0, 6),
       publicPipelineCount: opps.length,
-      publicEvents: eventsSnap.data().count,
-      upcomingEvents,
     });
   }
 
@@ -144,21 +108,26 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
 
 export default async function ExplorePage() {
   const profiles = await loadPublicProfiles();
-  const withActivity = profiles.filter((p) => p.publicEvents > 0 || p.publicPipeline.length > 0);
-  const empty = profiles.filter((p) => p.publicEvents === 0 && p.publicPipeline.length === 0);
-  const upcoming = profiles
+  const withActivity = profiles.filter((p) => p.publicPipeline.length > 0);
+  const empty = profiles.filter((p) => p.publicPipeline.length === 0);
+  const upcoming: PipelinePreview[] = profiles
     .flatMap((p) =>
-      p.upcomingEvents.map((event) => ({
-        ...event,
+      p.publicPipeline.map((opp) => ({
+        ...opp,
         username: p.username,
         displayName: p.displayName,
+        photoURL: p.photoURL,
       })),
     )
-    .sort((a, b) => a.start.localeCompare(b.start))
-    .slice(0, 10);
+    .filter((opp) => {
+      const next = getNextRoundAt(opp);
+      return next ? Date.parse(next) >= new Date().setHours(0, 0, 0, 0) : false;
+    })
+    .sort(compareOpportunitiesByNext)
+    .slice(0, 8);
   const totalActive = profiles.reduce((sum, p) => sum + p.activePipeline, 0);
+  const totalClosed = profiles.reduce((sum, p) => sum + p.closedPipeline, 0);
   const totalPipeline = profiles.reduce((sum, p) => sum + p.publicPipelineCount, 0);
-  const totalEvents = profiles.reduce((sum, p) => sum + p.publicEvents, 0);
 
   return (
     <>
@@ -168,15 +137,15 @@ export default async function ExplorePage() {
           <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-5 items-end">
             <div className="space-y-3">
               <span className="sticker">explore</span>
-              <h1 className="font-heading text-4xl md:text-6xl font-bold">Public profiles</h1>
+              <h1 className="font-heading text-4xl md:text-5xl font-bold">Interview pipelines</h1>
               <p className="text-muted-foreground text-base md:text-lg max-w-2xl">
-                Browse public interview pipelines, upcoming rounds, and shared calendar activity.
+                Browse public interview pipelines, upcoming rounds, and recently closed processes.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2">
               <Stat label="profiles" value={withActivity.length} />
-              <Stat label="active" value={totalActive} />
-              <Stat label="events" value={totalEvents} />
+              <Stat label="open" value={totalActive} />
+              <Stat label="closed" value={totalClosed} />
             </div>
           </div>
           <p className="mt-4 text-xs font-mono text-muted-foreground">
@@ -189,40 +158,40 @@ export default async function ExplorePage() {
             <div className="flex items-end justify-between gap-3">
               <div>
                 <p className="dy-eyebrow">what&apos;s next</p>
-                <h2 className="font-heading text-2xl font-bold mt-1">Upcoming public events</h2>
+                <h2 className="font-heading text-2xl font-bold mt-1">Upcoming pipeline rounds</h2>
               </div>
               <span className="dy-mono">{upcoming.length} shown</span>
             </div>
             <ol className="divide-y divide-hairline">
-              {upcoming.map((event) => (
-                <li key={`${event.username}_${event.id}`}>
+              {upcoming.map((opp) => (
+                <li key={`${opp.username}_${opp.id}`}>
                   <Link
-                    href={`/u/${event.username}`}
-                    className="grid sm:grid-cols-[96px_minmax(0,1fr)_180px] gap-3 py-3 hover:no-underline group"
+                    href={`/u/${opp.username}`}
+                    className="grid md:grid-cols-[120px_minmax(0,1fr)_190px] gap-3 py-3 hover:no-underline group"
                   >
                     <div>
-                      <p className="font-semibold text-ink">{formatEventDay(event.start)}</p>
-                      <p className="text-xs text-muted-foreground">{formatEventTime(event)}</p>
+                      <p className="font-semibold text-ink">{formatPipelineDate(getNextRoundAt(opp))}</p>
+                      <p className="text-xs text-muted-foreground">{roundTitleWithNumber(getCurrentRound(opp)) ?? "Next round"}</p>
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-ink leading-snug group-hover:text-primary">
-                        {event.summary}
+                        {opp.company}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1 truncate">
-                        {event.location ?? "No location shared"}
+                        {opp.role}{opp.locationType ? ` - ${opp.locationType}` : ""}
                       </p>
                     </div>
                     <div className="flex sm:justify-end items-start gap-2 min-w-0">
                       <span
                         className="mt-1 h-2.5 w-2.5 rounded-full shrink-0"
-                        style={{ background: statusAccent(event.opportunityStatus) }}
+                        style={{ background: statusAccent(opp.status) }}
                       />
                       <div className="min-w-0 sm:text-right">
                         <p className="text-sm font-semibold truncate">
-                          {event.displayName ?? `@${event.username}`}
+                          {opp.displayName ?? `@${opp.username}`}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {event.opportunityCompany ?? `/u/${event.username}`}
+                          <StatusPill status={opp.status} size="sm" />
                         </p>
                       </div>
                     </div>
@@ -253,9 +222,11 @@ export default async function ExplorePage() {
               </div>
               <span className="dy-mono">{withActivity.length} profiles</span>
             </div>
-            {withActivity.map((p) => (
-              <ProfileCard key={p.username} p={p} />
-            ))}
+            <div className="grid lg:grid-cols-2 gap-3">
+              {withActivity.map((p) => (
+                <ProfileCard key={p.username} p={p} />
+              ))}
+            </div>
           </section>
         )}
 
@@ -294,7 +265,7 @@ function ProfileCard({ p }: { p: ProfileSummary }) {
       href={`/u/${p.username}`}
       className="block chunky p-4 md:p-5 hover:no-underline tilt-hover"
     >
-      <div className="grid lg:grid-cols-[280px_minmax(0,1fr)_minmax(0,1fr)] gap-4">
+      <div className="space-y-4">
         <header className="flex items-start gap-3">
           {p.photoURL ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -317,13 +288,13 @@ function ProfileCard({ p }: { p: ProfileSummary }) {
             <p className="text-xs font-mono text-muted-foreground">/u/{p.username}</p>
             <div className="flex flex-wrap gap-1.5 mt-3">
               <span className="dy-pill dy-pill-ink">
-                {p.activePipeline} currently exploring
+                {p.activePipeline} open
               </span>
               <span className="dy-pill dy-pill-outline">
                 {p.publicPipelineCount} public pipeline
               </span>
-              <span className="dy-pill dy-pill-neutral">
-                {p.publicEvents} {p.publicEvents === 1 ? "event" : "events"}
+              <span className="dy-pill dy-pill-negative">
+                {p.closedPipeline} closed
               </span>
               {p.lastSyncedAt && (
                 <span className="dy-pill dy-pill-outline">
@@ -353,21 +324,6 @@ function ProfileCard({ p }: { p: ProfileSummary }) {
             <p className="text-sm text-muted-foreground">No public pipeline items.</p>
           )}
         </section>
-
-        <section className="space-y-2">
-          <p className="dy-eyebrow">events</p>
-          {p.upcomingEvents.length > 0 ? (
-            <div className="space-y-2">
-              {p.upcomingEvents.slice(0, 3).map((event) => (
-                <EventPreviewRow key={event.id} event={event} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              {p.publicEvents > 0 ? "No upcoming public events." : "No public events yet."}
-            </p>
-          )}
-        </section>
       </div>
     </Link>
   );
@@ -384,8 +340,13 @@ function Stat({ label, value }: { label: string; value: number }) {
 
 function OpportunityPreview({ opp }: { opp: OpportunityDoc }) {
   const next = getNextRoundAt(opp);
+  const first = getFirstRoundAt(opp);
+  const last = getLastRoundAt(opp);
   const currentRound = getCurrentRound(opp);
   const nextLabel = roundTitleWithNumber(currentRound) ?? nextStepLabel(opp);
+  const closed = isClosedOpportunity(opp);
+  const displayStatus = !closed && !next ? "awaiting" : opp.status;
+  const rounds = visibleRounds(opp);
   return (
     <div
       className="rounded-lg border border-hairline bg-surface px-3 py-2 border-l-[4px]"
@@ -396,32 +357,18 @@ function OpportunityPreview({ opp }: { opp: OpportunityDoc }) {
           <p className="font-semibold text-sm leading-snug truncate">{opp.company}</p>
           <p className="text-xs text-muted-foreground truncate">{opp.role}</p>
         </div>
-        <StatusPill status={opp.status} size="sm" />
+        <StatusPill status={displayStatus} size="sm" />
       </div>
       {(next || nextLabel) && (
         <p className="text-xs text-muted-foreground mt-1 truncate">
-          {nextLabel ?? "Next round"} - {formatPipelineDate(next, "date TBD")}
+          {closed ? "Closed" : nextLabel ?? "Waiting on response"} -{" "}
+          {formatPipelineDate(closed ? last : next, closed ? "final date TBD" : "date TBD")}
         </p>
       )}
-    </div>
-  );
-}
-
-function EventPreviewRow({ event }: { event: EventPreview }) {
-  return (
-    <div className="rounded-lg border border-hairline bg-surface px-3 py-2">
-      <div className="flex items-start gap-2">
-        <span
-          className="mt-1.5 h-2 w-2 rounded-full shrink-0"
-          style={{ background: statusAccent(event.opportunityStatus) }}
-        />
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold leading-snug truncate">{event.summary}</p>
-          <p className="text-xs text-muted-foreground">
-            {formatEventDay(event.start)} - {formatEventTime(event)}
-          </p>
-        </div>
-      </div>
+      <p className="text-[11px] text-muted-foreground mt-1 truncate">
+        {rounds.length} rounds · first {formatPipelineDate(first, "not set")}
+        {opp.locationType ? ` · ${opp.locationType}` : ""}
+      </p>
     </div>
   );
 }
@@ -431,31 +378,21 @@ function statusAccent(status: OpportunityStatus | null | undefined): string {
   switch (normalizeOpportunityStatus(status)) {
     case "offer":
     case "accepted":
+    case "awaiting":
+    case "onsite":
+    case "screen":
+    case "applied":
+    case "referral":
+    case "ongoing":
       return "var(--positive)";
     case "rejected":
       return "var(--negative)";
-    case "onsite":
-      return "var(--ink)";
-    case "screen":
-      return "var(--primary)";
-    case "applied":
-      return "var(--faded)";
-    case "referral":
-      return "var(--positive)";
     case "withdrew":
     case "ghosted":
       return "var(--hairline-strong)";
     default:
       return "var(--muted-foreground)";
   }
-}
-
-function formatEventDay(value: string) {
-  return formatCalendarDay(value, { month: "short", day: "numeric" });
-}
-
-function formatEventTime(event: Pick<EventPreview, "start" | "allDay" | "timeZone">) {
-  return formatCalendarTime(event);
 }
 
 function humanRelative(ts: number): string {

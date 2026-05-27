@@ -62,6 +62,7 @@ export function OpportunityCard({
   const rounds = visibleRounds(opp, 4);
   const nextLabel = nextStepLabel(opp);
   const focusDate = isClosed ? lastRound : nextRound;
+  const displayStatus = !isClosed && !nextRound ? "awaiting" : opp.status;
 
   return (
     <div className="block chunky p-4 md:p-5 tilt-hover relative">
@@ -73,7 +74,7 @@ export function OpportunityCard({
             </p>
             <p className="text-muted-foreground">{opp.role}</p>
           </div>
-          <StatusPill status={opp.status} />
+          <StatusPill status={displayStatus} />
         </div>
 
         {(nextLabel || nextRound || firstRound || rounds.length > 0) && (
