@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type Anthropic from "@anthropic-ai/sdk";
-import { adminDb } from "@/lib/firebase/admin";
+import { adminDb, adminFieldValue } from "@/lib/firebase/admin";
 import { verifyUid } from "@/lib/api/auth";
 import {
   COLLECTIONS,
@@ -9,7 +9,6 @@ import {
   type OpportunityPrivateDoc,
 } from "@/lib/firebase/collections";
 import { getAnthropic, logLlmCall } from "@/lib/llm/anthropic";
-import { FieldValue } from "firebase-admin/firestore";
 import {
   formatPipelineDate,
   getNextRoundAt,
@@ -167,6 +166,6 @@ export async function DELETE(req: Request, ctx: Ctx) {
   const privRef = adminDb
     .collection(COLLECTIONS.opportunityPrivate(uid, id))
     .doc("data");
-  await privRef.update({ brief: FieldValue.delete() });
+  await privRef.update({ brief: adminFieldValue.delete() });
   return NextResponse.json({ ok: true });
 }

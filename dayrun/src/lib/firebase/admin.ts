@@ -4,7 +4,7 @@ import {
   cert,
   type ServiceAccount,
 } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 
 function getServiceAccount(): ServiceAccount {
@@ -26,5 +26,6 @@ const app =
 
 const adminDb = getFirestore(app);
 const adminAuth = getAuth(app);
+const adminFieldValue = FieldValue;
 
-export { adminDb, adminAuth };
+export { adminDb, adminAuth, adminFieldValue };

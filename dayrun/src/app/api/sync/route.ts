@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { adminAuth, adminDb, adminFieldValue } from "@/lib/firebase/admin";
 import { fetchEvents } from "@/lib/google/calendar";
 import { COLLECTIONS, type EventDoc, type UserDoc } from "@/lib/firebase/collections";
-import { FieldValue } from "firebase-admin/firestore";
 import { planAutoLinks, applyAutoLinks } from "@/lib/auto-link";
 
 export const runtime = "nodejs";
@@ -91,7 +90,7 @@ export async function POST(req: Request) {
     };
     batch.set(eventsCol.doc(ev.googleEventId), doc);
   }
-  batch.update(userRef, { lastSyncedAt: FieldValue.serverTimestamp() });
+  batch.update(userRef, { lastSyncedAt: adminFieldValue.serverTimestamp() });
 
   await batch.commit();
   await userRef.update({ lastSyncedAt: now });
