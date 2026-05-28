@@ -14,6 +14,7 @@ import {
 } from "@/lib/firebase/collections";
 import { PublicTimeline } from "@/components/PublicTimeline";
 import { StatusPill } from "@/components/pipeline/StatusPill";
+import { RoundProgressDots } from "@/components/pipeline/RoundProgressDots";
 import { APP_NAME, APP_URL } from "@/lib/utils";
 import {
   compareOpportunitiesByNext,
@@ -346,6 +347,11 @@ function OppCard({
         </div>
           <StatusPill status={displayStatus} />
       </header>
+
+      <div className="mb-3 flex items-center gap-2 text-[12px] text-[color:var(--faded)]">
+        <RoundProgressDots opp={opp} />
+        <span>{opp.plannedRounds ?? (rounds.length || 1)} round process</span>
+      </div>
 
       {(firstRoundAt || nextRoundAt || nextLabel || rounds.length > 0) && (
         <div className="mt-4 space-y-2">

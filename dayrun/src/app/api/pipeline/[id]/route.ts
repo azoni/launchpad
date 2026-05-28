@@ -90,6 +90,18 @@ function sanitizeRoundNumber(v: unknown, fallback: number): number {
   return Math.min(99, Math.max(1, Math.trunc(n)));
 }
 
+function sanitizePlannedRounds(v: unknown): number | null | undefined {
+  if (v === null || v === "") return null;
+  const n =
+    typeof v === "number"
+      ? v
+      : typeof v === "string" && v.trim()
+        ? Number(v)
+        : NaN;
+  if (!Number.isFinite(n)) return undefined;
+  return Math.min(12, Math.max(1, Math.trunc(n)));
+}
+
 function sanitizeInterviewRounds(value: unknown): InterviewRound[] | undefined {
   if (!Array.isArray(value)) return undefined;
   return value
@@ -170,6 +182,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if ("nextStepBy" in body) safeUpdate.nextStepBy = clean(body.nextStepBy, 40);
   if ("firstRoundAt" in body) safeUpdate.firstRoundAt = cleanDate(body.firstRoundAt);
   if ("nextRoundAt" in body) safeUpdate.nextRoundAt = cleanDate(body.nextRoundAt);
+  if ("plannedRounds" in body) {
+    const v = sanitizePlannedRounds(body.plannedRounds);
+    if (v !== undefined) safeUpdate.plannedRounds = v;
+  }
   if ("interviewRounds" in body) {
     const rounds = sanitizeInterviewRounds(body.interviewRounds);
     if (rounds) safeUpdate.interviewRounds = rounds;

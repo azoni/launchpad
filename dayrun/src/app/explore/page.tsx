@@ -12,6 +12,7 @@ import {
   type UserDoc,
 } from "@/lib/firebase/collections";
 import { StatusPill } from "@/components/pipeline/StatusPill";
+import { RoundProgressDots } from "@/components/pipeline/RoundProgressDots";
 import { APP_NAME, APP_URL } from "@/lib/utils";
 import {
   compareOpportunitiesByNext,
@@ -190,9 +191,9 @@ export default async function ExplorePage() {
                         <p className="text-sm font-semibold truncate">
                           {opp.displayName ?? `@${opp.username}`}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          <StatusPill status={opp.status} size="sm" />
-                        </p>
+                        <div className="mt-1 flex sm:justify-end">
+                          <RoundProgressDots opp={opp} compact />
+                        </div>
                       </div>
                     </div>
                   </Link>
@@ -358,6 +359,9 @@ function OpportunityPreview({ opp }: { opp: OpportunityDoc }) {
           <p className="text-xs text-muted-foreground truncate">{opp.role}</p>
         </div>
         <StatusPill status={displayStatus} size="sm" />
+      </div>
+      <div className="mt-2">
+        <RoundProgressDots opp={opp} compact />
       </div>
       {(next || nextLabel) && (
         <p className="text-xs text-muted-foreground mt-1 truncate">

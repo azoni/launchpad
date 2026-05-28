@@ -146,6 +146,77 @@ export function getLastRoundAt(opp: OpportunityDoc): string | null {
   return getLastRound(opp)?.scheduledAt ?? opp.nextRoundAt ?? opp.firstRoundAt ?? null;
 }
 
+export type RoundProgress = {
+  total: number;
+  filled: number;
+  terminalIndex: number | null;
+  terminalTone: "negative" | "positive" | null;
+};
+
+function clampRoundCount(value: unknown, fallback: number): number {
+  const raw =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim()
+        ? Number(value)
+        : fallback;
+  if (!Number.isFinite(raw)) return fallback;
+  return Math.min(12, Math.max(1, Math.trunc(raw)));
+}
+
+export function getPlannedRoundCount(opp: OpportunityDoc): number {
+  const rounds = visibleRounds(opp);
+  const highestRoundNumber = rounds.reduce(
+    (max, round, index) => Math.max(max, getRoundNumber(round, index + 1) ?? 0),
+    0,
+  );
+  return clampRoundCount(opp.plannedRounds, Math.max(highestRoundNumber, rounds.length, 1));
+}
+
+export function getRoundProgress(opp: OpportunityDoc): RoundProgress {
+  const total = getPlannedRoundCount(opp);
+  const status = normalizeOpportunityStatus(opp.status);
+  const rounds = visibleRounds(opp);
+  const currentRound = getCurrentRound(opp);
+  const currentNumber = currentRound
+    ? (getRoundNumber(currentRound, rounds.findIndex((r) => r.id === currentRound.id) + 1) ?? null)
+    : null;
+  const completed = rounds.reduce((max, round, index) => {
+    const roundNumber = getRoundNumber(round, index + 1) ?? index + 1;
+    const datedPast =
+      parsePipelineDate(round.scheduledAt) !== null &&
+      parsePipelineDate(round.scheduledAt)! < todayStartMs();
+    const counts =
+      round.outcome === "completed" ||
+      round.outcome === "passed" ||
+      round.outcome === "did-not-pass" ||
+      round.outcome === "cancelled" ||
+      datedPast;
+    return counts ? Math.max(max, roundNumber) : max;
+  }, 0);
+
+  if (status === "accepted" || status === "offer" || status === "awaiting") {
+    return { total, filled: total, terminalIndex: null, terminalTone: "positive" };
+  }
+
+  if (status === "rejected" || status === "withdrew" || status === "ghosted") {
+    const terminalIndex = Math.min(total, Math.max(1, completed || currentNumber || rounds.length || 1));
+    return {
+      total,
+      filled: terminalIndex,
+      terminalIndex,
+      terminalTone: status === "rejected" ? "negative" : null,
+    };
+  }
+
+  return {
+    total,
+    filled: Math.min(total, Math.max(completed, currentNumber ?? 0)),
+    terminalIndex: null,
+    terminalTone: null,
+  };
+}
+
 const STATUS_RANK: Record<OpportunityStatus, number> = {
   offer: 0,
   awaiting: 1,

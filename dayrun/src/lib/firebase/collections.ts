@@ -129,6 +129,8 @@ export type OpportunityDoc = {
   nextStepBy: string | null;
   firstRoundAt?: string | null;
   nextRoundAt?: string | null;
+  /** Expected number of interview rounds in the process. Public, used for progress dots. */
+  plannedRounds?: number | null;
   interviewRounds?: InterviewRound[];
   /** Working arrangement — visible publicly if the item is public. */
   locationType?: LocationType | null;

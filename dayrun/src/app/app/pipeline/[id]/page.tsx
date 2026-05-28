@@ -330,6 +330,12 @@ export default function OpportunityDetailPage(props: PageProps) {
               onSave={(v) => patch({ nextRoundAt: v }, "nextRoundAt")}
             />
           </FieldLabel>
+          <FieldLabel label="Expected rounds">
+            <NumberInput
+              value={opp.plannedRounds ?? null}
+              onSave={(v) => patch({ plannedRounds: v }, "plannedRounds")}
+            />
+          </FieldLabel>
           <FieldLabel label="Next-step note">
             <InlineInput
               value={opp.nextStepBy ?? ""}
@@ -816,6 +822,35 @@ function DateInput({
       onChange={(e) => setLocal(e.target.value)}
       onBlur={() => {
         if (local !== incoming) onSave(local || null);
+      }}
+      className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card"
+    />
+  );
+}
+
+function NumberInput({
+  value,
+  onSave,
+}: {
+  value: number | null;
+  onSave: (v: number | null) => void;
+}) {
+  const incoming = value === null ? "" : String(value);
+  const [local, setLocal] = useState(incoming);
+  if (incoming !== local && document.activeElement?.tagName !== "INPUT") {
+    setLocal(incoming);
+  }
+  return (
+    <input
+      type="number"
+      min={1}
+      max={12}
+      value={local}
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={() => {
+        if (local === incoming) return;
+        const n = local ? Number(local) : null;
+        onSave(n === null || Number.isFinite(n) ? n : value);
       }}
       className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card"
     />

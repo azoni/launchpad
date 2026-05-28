@@ -18,6 +18,7 @@ import {
   visibleRounds,
 } from "@/lib/pipeline";
 import { StatusPill } from "./StatusPill";
+import { RoundProgressDots } from "./RoundProgressDots";
 
 export function OpportunityCard({
   opp,
@@ -75,6 +76,10 @@ export function OpportunityCard({
             <p className="text-muted-foreground">{opp.role}</p>
           </div>
           <StatusPill status={displayStatus} />
+        </div>
+        <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
+          <RoundProgressDots opp={opp} />
+          <span>{opp.plannedRounds ?? (rounds.length || 1)} round process</span>
         </div>
 
         {(nextLabel || nextRound || firstRound || rounds.length > 0) && (

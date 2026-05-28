@@ -21,6 +21,7 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
   const [nextStep, setNextStep] = useState("");
   const [firstRoundAt, setFirstRoundAt] = useState("");
   const [nextRoundAt, setNextRoundAt] = useState("");
+  const [plannedRounds, setPlannedRounds] = useState("4");
   const [isPublic, setIsPublic] = useState(true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
     setNextStep("");
     setFirstRoundAt("");
     setNextRoundAt("");
+    setPlannedRounds("4");
     setIsPublic(true);
     setError(null);
   }
@@ -84,6 +86,7 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
           nextStep,
           firstRoundAt,
           nextRoundAt,
+          plannedRounds: plannedRounds ? Number(plannedRounds) : null,
           interviewRounds: buildRounds(),
           isPublic,
         }),
@@ -185,6 +188,17 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
             type="date"
             value={nextRoundAt}
             onChange={(e) => setNextRoundAt(e.target.value)}
+            className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card"
+          />
+        </Field>
+        <Field label="Expected rounds">
+          <input
+            type="number"
+            min={1}
+            max={12}
+            value={plannedRounds}
+            onChange={(e) => setPlannedRounds(e.target.value)}
+            placeholder="4"
             className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card"
           />
         </Field>

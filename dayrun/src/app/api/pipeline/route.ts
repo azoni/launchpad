@@ -50,6 +50,18 @@ function sanitizeRoundNumber(v: unknown, fallback: number): number {
   return Math.min(99, Math.max(1, Math.trunc(n)));
 }
 
+function sanitizePlannedRounds(v: unknown): number | null {
+  if (v === null || v === "") return null;
+  const n =
+    typeof v === "number"
+      ? v
+      : typeof v === "string" && v.trim()
+        ? Number(v)
+        : NaN;
+  if (!Number.isFinite(n)) return null;
+  return Math.min(12, Math.max(1, Math.trunc(n)));
+}
+
 function sanitizeInterviewRounds(value: unknown): InterviewRound[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -102,6 +114,7 @@ export async function POST(req: Request) {
     nextStepBy: clean(body.nextStepBy, 40),
     firstRoundAt: cleanDate(body.firstRoundAt),
     nextRoundAt: cleanDate(body.nextRoundAt),
+    plannedRounds: sanitizePlannedRounds(body.plannedRounds),
     interviewRounds: sanitizeInterviewRounds(body.interviewRounds),
     // Public by default — users opted into a public profile, the friction belongs on hiding, not sharing.
     isPublic: body.isPublic !== false,
