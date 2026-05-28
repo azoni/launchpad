@@ -12,26 +12,25 @@ export function RoundProgressDots({
   return (
     <div
       className="inline-flex items-center gap-1"
-      title={`${progress.filled} of ${progress.total} rounds`}
-      aria-label={`${progress.filled} of ${progress.total} rounds`}
+      title={progress.label}
+      aria-label={progress.label}
     >
-      {Array.from({ length: progress.total }, (_, index) => {
-        const number = index + 1;
-        const isFilled = number <= progress.filled;
-        const isTerminal = progress.terminalIndex === number;
+      {progress.dots.map((dot) => {
         const bg =
-          isTerminal && progress.terminalTone === "negative"
-            ? "var(--negative)"
-            : isFilled
-              ? "var(--positive)"
-              : "transparent";
+          dot.tone === "passed"
+            ? "var(--positive)"
+            : dot.tone === "current"
+              ? "#D8A431"
+              : dot.tone === "failed"
+                ? "var(--negative)"
+                : "#FFFDF6";
         return (
           <span
-            key={number}
+            key={dot.number}
             className={`${compact ? "h-2 w-2" : "h-2.5 w-2.5"} rounded-full border`}
             style={{
               background: bg,
-              borderColor: isFilled ? bg : "var(--hairline-strong)",
+              borderColor: dot.tone === "empty" ? "var(--hairline-strong)" : bg,
             }}
           />
         );

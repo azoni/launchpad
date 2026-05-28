@@ -148,9 +148,16 @@ export function getLastRoundAt(opp: OpportunityDoc): string | null {
 
 export type RoundProgress = {
   total: number;
-  filled: number;
-  terminalIndex: number | null;
-  terminalTone: "negative" | "positive" | null;
+  passed: number;
+  currentIndex: number | null;
+  failedIndex: number | null;
+  dots: RoundProgressDot[];
+  label: string;
+};
+
+export type RoundProgressDot = {
+  number: number;
+  tone: "passed" | "current" | "failed" | "empty";
 };
 
 function clampRoundCount(value: unknown, fallback: number): number {
@@ -174,46 +181,62 @@ export function getPlannedRoundCount(opp: OpportunityDoc): number {
 }
 
 export function getRoundProgress(opp: OpportunityDoc): RoundProgress {
-  const total = getPlannedRoundCount(opp);
+  const plannedTotal = getPlannedRoundCount(opp);
   const status = normalizeOpportunityStatus(opp.status);
   const rounds = visibleRounds(opp);
-  const currentRound = getCurrentRound(opp);
-  const currentNumber = currentRound
-    ? (getRoundNumber(currentRound, rounds.findIndex((r) => r.id === currentRound.id) + 1) ?? null)
+  const floor = todayStartMs();
+  const roundNumbers = rounds.map((round, index) => getRoundNumber(round, index + 1) ?? index + 1);
+  const highestKnown = Math.max(0, ...roundNumbers);
+  const nextRound = rounds.find((round) => {
+    const ts = parsePipelineDate(round.scheduledAt);
+    return ts !== null && ts >= floor && isOpenRound(round);
+  });
+  const nextIndex = nextRound
+    ? (getRoundNumber(nextRound, rounds.findIndex((round) => round.id === nextRound.id) + 1) ?? null)
     : null;
-  const completed = rounds.reduce((max, round, index) => {
-    const roundNumber = getRoundNumber(round, index + 1) ?? index + 1;
-    const datedPast =
-      parsePipelineDate(round.scheduledAt) !== null &&
-      parsePipelineDate(round.scheduledAt)! < todayStartMs();
-    const counts =
-      round.outcome === "completed" ||
-      round.outcome === "passed" ||
-      round.outcome === "did-not-pass" ||
-      round.outcome === "cancelled" ||
-      datedPast;
-    return counts ? Math.max(max, roundNumber) : max;
-  }, 0);
+  const activeCurrentIndex = nextIndex ?? (highestKnown > 0 ? highestKnown : null);
+  const isRejected = status === "rejected";
+  const isNegativeClosed = status === "rejected" || status === "withdrew" || status === "ghosted";
+  const failedIndex = isRejected ? Math.max(1, activeCurrentIndex ?? highestKnown ?? 1) : null;
+  const currentIndex =
+    !isNegativeClosed && status !== "accepted" && status !== "offer"
+      ? activeCurrentIndex
+      : null;
+  const total = Math.max(plannedTotal, currentIndex ?? 0, failedIndex ?? 0);
+  const explicitPassed = new Set<number>();
 
-  if (status === "accepted" || status === "offer" || status === "awaiting") {
-    return { total, filled: total, terminalIndex: null, terminalTone: "positive" };
+  for (const [index, round] of rounds.entries()) {
+    const number = getRoundNumber(round, index + 1) ?? index + 1;
+    if (round.outcome === "passed") explicitPassed.add(number);
   }
 
-  if (status === "rejected" || status === "withdrew" || status === "ghosted") {
-    const terminalIndex = Math.min(total, Math.max(1, completed || currentNumber || rounds.length || 1));
-    return {
-      total,
-      filled: terminalIndex,
-      terminalIndex,
-      terminalTone: status === "rejected" ? "negative" : null,
-    };
-  }
+  const terminalIndex = failedIndex ?? currentIndex;
+  const successTerminal = status === "accepted" || status === "offer";
+  const successThrough = successTerminal ? highestKnown : 0;
+  const dots: RoundProgressDot[] = Array.from({ length: total }, (_, index) => {
+    const number = index + 1;
+    if (failedIndex === number) return { number, tone: "failed" };
+    if (currentIndex === number) return { number, tone: "current" };
+    if (
+      explicitPassed.has(number) ||
+      (terminalIndex !== null && number < terminalIndex) ||
+      (successThrough > 0 && number <= successThrough)
+    ) {
+      return { number, tone: "passed" };
+    }
+    return { number, tone: "empty" };
+  });
 
+  const passed = dots.filter((dot) => dot.tone === "passed").length;
+  const awaiting = currentIndex ? `, round ${currentIndex} awaiting` : "";
+  const failed = failedIndex ? `, rejected at round ${failedIndex}` : "";
   return {
     total,
-    filled: Math.min(total, Math.max(completed, currentNumber ?? 0)),
-    terminalIndex: null,
-    terminalTone: null,
+    passed,
+    currentIndex,
+    failedIndex,
+    dots,
+    label: `${passed} passed${awaiting}${failed}, ${total} expected`,
   };
 }
 

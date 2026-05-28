@@ -13,6 +13,7 @@ import {
   getFirstRoundAt,
   getLastRoundAt,
   getNextRoundAt,
+  getPlannedRoundCount,
   isClosedOpportunity,
   nextStepLabel,
   visibleRounds,
@@ -61,6 +62,7 @@ export function OpportunityCard({
   const currentRound = getCurrentRound(opp);
   const isClosed = isClosedOpportunity(opp);
   const rounds = visibleRounds(opp, 4);
+  const plannedRoundCount = getPlannedRoundCount(opp);
   const nextLabel = nextStepLabel(opp);
   const focusDate = isClosed ? lastRound : nextRound;
   const displayStatus = !isClosed && !nextRound ? "awaiting" : opp.status;
@@ -79,7 +81,7 @@ export function OpportunityCard({
         </div>
         <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
           <RoundProgressDots opp={opp} />
-          <span>{opp.plannedRounds ?? (rounds.length || 1)} round process</span>
+          <span>{plannedRoundCount} round process</span>
         </div>
 
         {(nextLabel || nextRound || firstRound || rounds.length > 0) && (

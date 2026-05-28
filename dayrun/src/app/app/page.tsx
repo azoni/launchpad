@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
   collection,
   doc,
@@ -33,6 +33,50 @@ type ActionItemPreview = ChecklistItem & {
   role: string;
 };
 
+type EventScope = "all" | "pipeline";
+
+const EVENT_SCOPE_STORAGE_KEY = "dayrun.app.eventScope";
+const EVENT_SCOPE_CHANGE_EVENT = "dayrun:event-scope-change";
+
+function isEventScope(value: string | null): value is EventScope {
+  return value === "all" || value === "pipeline";
+}
+
+function getStoredEventScope(): EventScope {
+  if (typeof window === "undefined") return "all";
+  try {
+    const savedScope = window.localStorage.getItem(EVENT_SCOPE_STORAGE_KEY);
+    return isEventScope(savedScope) ? savedScope : "all";
+  } catch {
+    return "all";
+  }
+}
+
+function subscribeToEventScopeChange(onChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === EVENT_SCOPE_STORAGE_KEY) onChange();
+  };
+
+  window.addEventListener("storage", handleStorage);
+  window.addEventListener(EVENT_SCOPE_CHANGE_EVENT, onChange);
+
+  return () => {
+    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener(EVENT_SCOPE_CHANGE_EVENT, onChange);
+  };
+}
+
+function saveEventScope(scope: EventScope) {
+  try {
+    window.localStorage.setItem(EVENT_SCOPE_STORAGE_KEY, scope);
+    window.dispatchEvent(new Event(EVENT_SCOPE_CHANGE_EVENT));
+  } catch {
+    // Ignore storage errors; the filter still falls back to the default scope.
+  }
+}
+
 function inferCompanyFromEvent(summary: string) {
   const quoted = summary.match(/"([^"]+)"/)?.[1]?.trim();
   const fromDash = summary.split(/\s[-–—]\s/).find((part) => !/charlton|smith/i.test(part))?.trim();
@@ -50,11 +94,15 @@ export default function AppPage() {
   const [opportunities, setOpportunities] = useState<OpportunityDoc[]>([]);
   const [actionItems, setActionItems] = useState<ActionItemPreview[]>([]);
   const [eventNotes, setEventNotes] = useState<Map<string, EventNotesDoc>>(new Map());
-  const [eventScope, setEventScope] = useState<"all" | "pipeline">("all");
+  const eventScope = useSyncExternalStore(subscribeToEventScopeChange, getStoredEventScope, () => "all");
   const [syncing, setSyncing] = useState(false);
   const [bulkPending, setBulkPending] = useState<"public" | "private" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
+
+  const toggleEventScope = useCallback(() => {
+    saveEventScope(eventScope === "all" ? "pipeline" : "all");
+  }, [eventScope]);
 
   useEffect(() => {
     if (!user) {
@@ -263,6 +311,17 @@ export default function AppPage() {
     if (!res.ok) throw new Error(await res.text());
   }
 
+  async function linkEventToPipeline(event: EventDoc, opportunityId: string) {
+    if (!user) return;
+    const idToken = await user.getIdToken();
+    const res = await fetch(`/api/pipeline/${opportunityId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ linkedEventIds: [event.googleEventId] }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
   async function bulkAll(scope: "upcoming" | "all", next: boolean) {
     if (!user) return;
     const setKind = next ? "public" : "private";
@@ -364,7 +423,7 @@ export default function AppPage() {
             {events.length > 0 && (
               <>
                 <button
-                  onClick={() => setEventScope((scope) => (scope === "all" ? "pipeline" : "all"))}
+                  onClick={toggleEventScope}
                   className={`btn-chunky text-sm py-2 px-3 ${
                     eventScope === "pipeline" ? "btn-grape" : "btn-ghost"
                   }`}
@@ -454,7 +513,13 @@ export default function AppPage() {
         <TimelineView
           events={filteredEvents}
           editable
-          actions={{ toggleOne, toggleMany, saveEventNotes, createPipelineFromEvent }}
+          actions={{
+            toggleOne,
+            toggleMany,
+            saveEventNotes,
+            createPipelineFromEvent,
+            linkEventToPipeline,
+          }}
           opportunitiesById={oppsById}
           eventNotesById={eventNotes}
           ownerView

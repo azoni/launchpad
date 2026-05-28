@@ -6,6 +6,7 @@ import {
   INTERVIEW_ROUND_OUTCOMES,
   LOCATION_TYPES,
   OPPORTUNITY_STATUSES,
+  type EventDoc,
   type InterviewRound,
   type InterviewRoundOutcome,
   type ChecklistItem,
@@ -15,6 +16,7 @@ import {
   type OpportunityStatus,
   type Contact,
 } from "@/lib/firebase/collections";
+import { refreshOpportunityTimingFromEvents } from "@/lib/auto-link";
 
 export const runtime = "nodejs";
 
@@ -102,6 +104,16 @@ function sanitizePlannedRounds(v: unknown): number | null | undefined {
   return Math.min(12, Math.max(1, Math.trunc(n)));
 }
 
+function sanitizeLinkedEventIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const ids = new Set<string>();
+  for (const entry of value) {
+    const id = clean(entry, 300);
+    if (id) ids.add(id);
+  }
+  return [...ids].slice(0, 20);
+}
+
 function sanitizeInterviewRounds(value: unknown): InterviewRound[] | undefined {
   if (!Array.isArray(value)) return undefined;
   return value
@@ -159,6 +171,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const ref = adminDb.collection(COLLECTIONS.opportunities(uid)).doc(id);
   const snap = await ref.get();
   if (!snap.exists) return NextResponse.json({ error: "not found" }, { status: 404 });
+  const currentOpp = { id: snap.id, ...(snap.data() as Omit<OpportunityDoc, "id">) };
 
   // Build update objects (only set keys present in body).
   const safeUpdate: Partial<OpportunityDoc> = { updatedAt: Date.now() };
@@ -198,7 +211,44 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const newIsPublic = body.isPublic === true;
   if (isPublicChanging) safeUpdate.isPublic = newIsPublic;
 
+  const linkedEventIds = sanitizeLinkedEventIds(body.linkedEventIds);
+  const eventSnaps =
+    linkedEventIds.length > 0
+      ? await Promise.all(
+          linkedEventIds.map((eventId) =>
+            adminDb.collection(COLLECTIONS.events(uid)).doc(eventId).get(),
+          ),
+        )
+      : [];
+  const missingEvent = eventSnaps.find((eventSnap) => !eventSnap.exists);
+  if (missingEvent) {
+    return NextResponse.json(
+      { error: `event not found: ${missingEvent.id}` },
+      { status: 404 },
+    );
+  }
+
   await ref.update(safeUpdate);
+
+  if (eventSnaps.length > 0) {
+    const batch = adminDb.batch();
+    const affectedOpportunityIds = new Set<string>([id]);
+    const linkedIsPublic = isPublicChanging ? newIsPublic : currentOpp.isPublic;
+
+    for (const eventSnap of eventSnaps) {
+      const event = eventSnap.data() as EventDoc;
+      if (event.opportunityId && event.opportunityId !== id) {
+        affectedOpportunityIds.add(event.opportunityId);
+      }
+      batch.update(eventSnap.ref, {
+        opportunityId: id,
+        isPublic: linkedIsPublic,
+      });
+    }
+
+    await batch.commit();
+    await refreshOpportunityTimingFromEvents(adminDb, uid, [...affectedOpportunityIds]);
+  }
 
   // Cascade visibility to all linked events when the pipeline item's public flag changes.
   // Public pipeline item → linked events public. Private → linked events private. Per-event

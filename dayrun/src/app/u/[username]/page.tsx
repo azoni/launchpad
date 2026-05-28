@@ -26,6 +26,7 @@ import {
   getFirstRoundAt,
   getLastRoundAt,
   getNextRoundAt,
+  getPlannedRoundCount,
   isClosedOpportunity,
   nextStepLabel,
   visibleRounds,
@@ -340,6 +341,7 @@ function OppCard({
   const focusDate = isClosed ? lastRoundAt : nextRoundAt;
   const waiting = !isClosed && !nextRoundAt;
   const displayStatus = waiting ? "awaiting" : opp.status;
+  const plannedRoundCount = getPlannedRoundCount(opp);
   const rounds = visibleRounds(opp, 5);
   const comp = opp.publicCompensation;
   const hasComp = !!(comp?.base || comp?.equity || comp?.other);
@@ -378,7 +380,7 @@ function OppCard({
 
       <div className="mb-3 flex items-center gap-2 text-[12px] text-[color:var(--faded)]">
         <RoundProgressDots opp={opp} />
-        <span>{opp.plannedRounds ?? (rounds.length || 1)} round process</span>
+        <span>{plannedRoundCount} round process</span>
       </div>
 
       {hasComp && (

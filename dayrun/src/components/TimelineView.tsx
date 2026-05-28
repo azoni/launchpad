@@ -20,7 +20,7 @@ import type {
   OpportunityStatus,
   RoundOutcome,
 } from "@/lib/firebase/collections";
-import { ROUND_OUTCOMES } from "@/lib/firebase/collections";
+import { ROUND_OUTCOMES, isActive } from "@/lib/firebase/collections";
 import { expandSpans, spanLabel, type DisplayEvent } from "@/lib/event-span";
 import {
   calendarDayDate,
@@ -49,7 +49,6 @@ function timeLabel(ev: DisplayEvent) {
   return formatCalendarTime(ev);
 }
 
-const CLOSED_STATUSES: OpportunityStatus[] = ["accepted", "rejected", "withdrew", "ghosted"];
 const NEGATIVE_CLOSED: OpportunityStatus[] = ["rejected", "withdrew", "ghosted"];
 
 type DayBucket = { date: Date; key: string; items: DisplayEvent[] };
@@ -69,6 +68,7 @@ export type TimelineActions = {
   toggleOne: (id: string, next: boolean) => Promise<void>;
   toggleMany: (ids: string[], next: boolean) => Promise<void>;
   createPipelineFromEvent?: (event: EventDoc) => Promise<void>;
+  linkEventToPipeline?: (event: EventDoc, opportunityId: string) => Promise<void>;
   saveEventNotes?: (
     eventId: string,
     update: Partial<EventNotesDoc>,
@@ -356,8 +356,11 @@ function EventRow({
 } & RowSharedProps) {
   const [pendingPublic, setPendingPublic] = useState(false);
   const [creatingPipeline, setCreatingPipeline] = useState(false);
+  const [linkingPipelineId, setLinkingPipelineId] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [optimisticPublic, setOptimisticPublic] = useState(event.isPublic);
   const [expanded, setExpanded] = useState(false);
+  const [now] = useState(() => Date.now());
 
   if (event.isPublic !== optimisticPublic && !pendingPublic) {
     setOptimisticPublic(event.isPublic);
@@ -366,13 +369,22 @@ function EventRow({
   const opp = event.opportunityId
     ? (opportunitiesById?.get(event.opportunityId) ?? null)
     : null;
+  const pipelineOptions = useMemo(
+    () =>
+      [...(opportunitiesById?.values() ?? [])].sort((a, b) => {
+        const activeDelta = Number(isActive(b.status)) - Number(isActive(a.status));
+        if (activeDelta !== 0) return activeDelta;
+        return a.company.localeCompare(b.company);
+      }),
+    [opportunitiesById],
+  );
   const notes = eventNotesById?.get(event.googleEventId);
   const closedNegative = opp && NEGATIVE_CLOSED.includes(opp.status);
 
   // An event is "in the past" once its end time is before now. For all-day events,
   // event.end is the exclusive next-day date — strict less-than still works.
   const endTime = event.end || event.start;
-  const isPast = endTime ? new Date(endTime).getTime() < Date.now() : false;
+  const isPast = endTime ? new Date(endTime).getTime() < now : false;
   const struck = !!(closedNegative || isPast);
 
   async function flipPublic() {
@@ -396,6 +408,19 @@ function EventRow({
       await actions.createPipelineFromEvent(event);
     } finally {
       setCreatingPipeline(false);
+    }
+  }
+
+  async function linkToPipeline(opportunityId: string) {
+    if (!editable || !actions?.linkEventToPipeline || linkingPipelineId) return;
+    setLinkError(null);
+    setLinkingPipelineId(opportunityId);
+    try {
+      await actions.linkEventToPipeline(event, opportunityId);
+    } catch {
+      setLinkError("Link failed");
+    } finally {
+      setLinkingPipelineId(null);
     }
   }
 
@@ -471,6 +496,32 @@ function EventRow({
           </div>
         </div>
         <div className="flex items-center justify-end gap-1 sm:gap-1.5 shrink-0 flex-wrap">
+          {editable &&
+            ownerView &&
+            actions?.linkEventToPipeline &&
+            pipelineOptions.length > 0 && (
+              <select
+                value={linkingPipelineId ?? event.opportunityId ?? ""}
+                onChange={(e) => {
+                  const opportunityId = e.target.value;
+                  if (opportunityId && opportunityId !== event.opportunityId) {
+                    void linkToPipeline(opportunityId);
+                  }
+                }}
+                disabled={!!linkingPipelineId}
+                className="min-h-[36px] max-w-[190px] rounded-full border-2 border-ink bg-card px-2 py-1.5 text-xs font-bold disabled:opacity-60"
+                title="Link this event to an existing pipeline item"
+                aria-label="Link event to pipeline"
+              >
+                <option value="">{opp ? "Move to..." : "Link to..."}</option>
+                {pipelineOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.company}
+                    {option.role ? ` - ${option.role}` : ""}
+                  </option>
+                ))}
+              </select>
+            )}
           {editable && ownerView && !opp && actions?.createPipelineFromEvent && (
             <button
               onClick={createPipeline}
@@ -513,6 +564,9 @@ function EventRow({
           )}
         </div>
       </div>
+      {linkError && (
+        <p className="mt-2 text-[0.7rem] font-semibold text-red-700">{linkError}</p>
+      )}
 
       {expanded && editable && actions?.saveEventNotes && (
         <RoundEditor
