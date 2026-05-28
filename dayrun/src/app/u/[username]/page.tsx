@@ -7,6 +7,7 @@ import {
   COLLECTIONS,
   isActive,
   normalizeOpportunityStatus,
+  type Compensation,
   type EventDoc,
   type OpportunityDoc,
   type OpportunityStatus,
@@ -35,6 +36,9 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 type PageProps = { params: Promise<{ username: string }> };
+type PublicOpportunity = OpportunityDoc & {
+  publicCompensation?: Compensation | null;
+};
 
 function opportunityFromDoc(id: string, data: Record<string, unknown>): OpportunityDoc {
   return {
@@ -70,8 +74,21 @@ async function loadProfile(username: string) {
     .where("isPublic", "==", true)
     .limit(100)
     .get();
-  const opportunities = oppsSnap.docs
-    .map((d) => opportunityFromDoc(d.id, d.data()))
+  const opportunities = (
+    await Promise.all(
+      oppsSnap.docs.map(async (d): Promise<PublicOpportunity> => {
+        const opp = opportunityFromDoc(d.id, d.data());
+        const privateSnap = await adminDb
+          .collection(COLLECTIONS.opportunityPrivate(uid, opp.id))
+          .doc("data")
+          .get();
+        const compensation = privateSnap.exists
+          ? ((privateSnap.data()?.compensation ?? null) as Compensation | null)
+          : null;
+        return { ...opp, publicCompensation: compensation };
+      }),
+    )
+  )
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, 50);
 
@@ -145,10 +162,10 @@ export default async function PublicProfilePage({ params }: PageProps) {
       />
 
       <Navbar />
-      <main className="mx-auto max-w-5xl px-5 sm:px-8 pt-8 sm:pt-12 pb-20">
+      <main className="mx-auto max-w-5xl px-4 sm:px-8 pt-6 sm:pt-12 pb-20">
         {/* Identity */}
         <section className="chunky p-4 md:p-5">
-          <div className="flex items-start gap-5">
+          <div className="flex items-start gap-3 sm:gap-5">
           {user.photoURL ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -171,7 +188,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
             </div>
           )}
           <div className="min-w-0 pt-1">
-            <h1 className="dy-display text-[30px] sm:text-[38px]">
+            <h1 className="dy-display text-[28px] sm:text-[38px] leading-none">
               {user.displayName ?? `@${username}`}
             </h1>
             <p className="mt-1.5 text-[14px] text-[color:var(--ink-soft)] flex items-center gap-2 flex-wrap">
@@ -187,7 +204,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
             </p>
           </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 mt-5">
+          <div className="grid grid-cols-3 gap-2 mt-4 sm:mt-5">
             <ProfileStat label="open" value={nowOpps.length} />
             <ProfileStat label="scheduled" value={nextDated} />
             <ProfileStat label="closed" value={accepted.length + closed.length} />
@@ -295,12 +312,21 @@ function ProfileStat({ label, value }: { label: string; value: number }) {
   );
 }
 
+function InfoChip({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="rounded-full border border-[color:var(--hairline)] bg-[color:var(--surface)] px-2.5 py-1 text-[12px] text-[color:var(--ink-soft)]">
+      <span className="dy-eyebrow mr-1">{label}</span>
+      <span className="font-medium text-[color:var(--ink)]">{value}</span>
+    </span>
+  );
+}
+
 function OppCard({
   opp,
   muted,
   tone,
 }: {
-  opp: OpportunityDoc;
+  opp: PublicOpportunity;
   muted?: boolean;
   tone?: "positive" | "negative";
 }) {
@@ -315,6 +341,8 @@ function OppCard({
   const waiting = !isClosed && !nextRoundAt;
   const displayStatus = waiting ? "awaiting" : opp.status;
   const rounds = visibleRounds(opp, 5);
+  const comp = opp.publicCompensation;
+  const hasComp = !!(comp?.base || comp?.equity || comp?.other);
   const topBorderColor =
     tone === "positive" || opp.status === "accepted"
       ? "var(--positive)"
@@ -352,6 +380,14 @@ function OppCard({
         <RoundProgressDots opp={opp} />
         <span>{opp.plannedRounds ?? (rounds.length || 1)} round process</span>
       </div>
+
+      {hasComp && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {comp?.base && <InfoChip label="base" value={comp.base} />}
+          {comp?.equity && <InfoChip label="equity" value={comp.equity} />}
+          {comp?.other && <InfoChip label="other" value={comp.other} />}
+        </div>
+      )}
 
       {(firstRoundAt || nextRoundAt || nextLabel || rounds.length > 0) && (
         <div className="mt-4 space-y-2">

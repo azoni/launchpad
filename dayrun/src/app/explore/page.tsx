@@ -133,13 +133,13 @@ export default async function ExplorePage() {
   return (
     <>
       <Navbar />
-      <main className="flex-1 mx-auto max-w-6xl w-full px-4 py-10 space-y-8">
-        <header className="chunky p-5 md:p-6">
+      <main className="flex-1 mx-auto max-w-6xl w-full px-4 py-6 md:py-10 space-y-6 md:space-y-8">
+        <header className="chunky p-4 md:p-6">
           <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-5 items-end">
-            <div className="space-y-3">
+            <div className="space-y-2 md:space-y-3">
               <span className="sticker">explore</span>
-              <h1 className="font-heading text-4xl md:text-5xl font-bold">Interview pipelines</h1>
-              <p className="text-muted-foreground text-base md:text-lg max-w-2xl">
+              <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold">Interview pipelines</h1>
+              <p className="text-muted-foreground text-sm md:text-lg max-w-2xl">
                 Browse public interview pipelines, upcoming rounds, and recently closed processes.
               </p>
             </div>

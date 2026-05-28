@@ -68,6 +68,7 @@ function bucketByDay(events: DisplayEvent[]): DayBucket[] {
 export type TimelineActions = {
   toggleOne: (id: string, next: boolean) => Promise<void>;
   toggleMany: (ids: string[], next: boolean) => Promise<void>;
+  createPipelineFromEvent?: (event: EventDoc) => Promise<void>;
   saveEventNotes?: (
     eventId: string,
     update: Partial<EventNotesDoc>,
@@ -109,7 +110,7 @@ export function TimelineView({
   const sharedProps = { opportunitiesById, eventNotesById, ownerView, editable, actions };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 md:space-y-8">
       <Section
         label="Today"
         sublabel={formatCalendarDayDate(today, { weekday: "long", month: "short", day: "numeric" })}
@@ -212,7 +213,7 @@ function DayCard({
 } & RowSharedProps) {
   const ids = bucket.items.map((e) => e.googleEventId);
   const allPublic = bucket.items.every((e) => e.isPublic);
-  const cls = highlight ? "chunky chunky-coral p-4 md:p-5" : "chunky p-4 md:p-5";
+  const cls = highlight ? "chunky chunky-coral p-3 md:p-5" : "chunky p-3 md:p-5";
   return (
     <div className={cls + (past ? " opacity-90" : "")}>
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
@@ -354,6 +355,7 @@ function EventRow({
   event: DisplayEvent;
 } & RowSharedProps) {
   const [pendingPublic, setPendingPublic] = useState(false);
+  const [creatingPipeline, setCreatingPipeline] = useState(false);
   const [optimisticPublic, setOptimisticPublic] = useState(event.isPublic);
   const [expanded, setExpanded] = useState(false);
 
@@ -387,6 +389,16 @@ function EventRow({
     }
   }
 
+  async function createPipeline() {
+    if (!editable || !actions?.createPipelineFromEvent || creatingPipeline || opp) return;
+    setCreatingPipeline(true);
+    try {
+      await actions.createPipelineFromEvent(event);
+    } finally {
+      setCreatingPipeline(false);
+    }
+  }
+
   const rowBg =
     closedNegative
       ? "bg-card opacity-70"
@@ -397,8 +409,8 @@ function EventRow({
           : "bg-card";
 
   return (
-    <div className={`border-2 border-ink rounded-xl p-3 transition-colors ${rowBg}`}>
-      <div className="flex items-start gap-2 sm:gap-3">
+    <div className={`border-2 border-ink rounded-xl p-2.5 sm:p-3 transition-colors ${rowBg}`}>
+      <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
         <span
           className={`shrink-0 px-2 py-1 text-[0.7rem] sm:text-xs rounded-md font-bold border-2 border-ink ${
             isPast
@@ -458,7 +470,18 @@ function EventRow({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+        <div className="flex items-center justify-end gap-1 sm:gap-1.5 shrink-0 flex-wrap">
+          {editable && ownerView && !opp && actions?.createPipelineFromEvent && (
+            <button
+              onClick={createPipeline}
+              disabled={creatingPipeline}
+              className="min-h-[36px] inline-flex items-center justify-center gap-1 rounded-full border-2 border-ink bg-grape px-3 py-1.5 text-xs font-bold text-white transition-all hover:brightness-105 disabled:opacity-60"
+              title="Create a pipeline item from this calendar event"
+            >
+              <Briefcase size={13} />
+              {creatingPipeline ? "adding..." : "pipeline"}
+            </button>
+          )}
           {editable && actions?.saveEventNotes && opp && (
             <button
               onClick={() => setExpanded((s) => !s)}

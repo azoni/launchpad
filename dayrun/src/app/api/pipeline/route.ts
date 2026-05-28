@@ -62,6 +62,16 @@ function sanitizePlannedRounds(v: unknown): number | null {
   return Math.min(12, Math.max(1, Math.trunc(n)));
 }
 
+function sanitizeLinkedEventIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const ids = new Set<string>();
+  for (const entry of value) {
+    const id = clean(entry, 300);
+    if (id) ids.add(id);
+  }
+  return [...ids].slice(0, 20);
+}
+
 function sanitizeInterviewRounds(value: unknown): InterviewRound[] {
   if (!Array.isArray(value)) return [];
   return value
@@ -103,6 +113,7 @@ export async function POST(req: Request) {
 
   const now = Date.now();
   const ref = adminDb.collection(COLLECTIONS.opportunities(uid)).doc();
+  const linkedEventIds = sanitizeLinkedEventIds(body.linkedEventIds);
   const doc: OpportunityDoc = {
     id: ref.id,
     company,
@@ -129,6 +140,18 @@ export async function POST(req: Request) {
     .doc("data")
     .set({ notes: "", feedback: "", contacts: [] });
 
+  if (linkedEventIds.length > 0) {
+    const batch = adminDb.batch();
+    const eventsCol = adminDb.collection(COLLECTIONS.events(uid));
+    for (const eventId of linkedEventIds) {
+      batch.update(eventsCol.doc(eventId), {
+        opportunityId: ref.id,
+        isPublic: doc.isPublic,
+      });
+    }
+    await batch.commit();
+  }
+
   // Auto-link any matching events.
   const plans = await planAutoLinks(adminDb, uid);
   await applyAutoLinks(adminDb, uid, plans);
@@ -143,5 +166,9 @@ export async function POST(req: Request) {
     await batch.commit();
   }
 
-  return NextResponse.json({ ok: true, opportunity: doc, linkedEvents: plans.length });
+  return NextResponse.json({
+    ok: true,
+    opportunity: doc,
+    linkedEvents: linkedEventIds.length + plans.length,
+  });
 }

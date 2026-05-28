@@ -10,7 +10,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Navbar />
-      <main className="flex-1 mx-auto max-w-6xl w-full px-4 py-8">{children}</main>
+      <main className="flex-1 mx-auto max-w-6xl w-full px-4 py-5 md:py-8">{children}</main>
       <Footer />
     </>
   );

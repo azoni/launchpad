@@ -33,6 +33,16 @@ type ActionItemPreview = ChecklistItem & {
   role: string;
 };
 
+function inferCompanyFromEvent(summary: string) {
+  const quoted = summary.match(/"([^"]+)"/)?.[1]?.trim();
+  const fromDash = summary.split(/\s[-–—]\s/).find((part) => !/charlton|smith/i.test(part))?.trim();
+  const cleaned = summary
+    .replace(/\b(interview|intro|screen|call|chat|meeting|loop|onsite|technical|behavioral)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return quoted || fromDash || cleaned || summary || "New opportunity";
+}
+
 export default function AppPage() {
   const { user, loading } = useAuthUser();
   const [profile, setProfile] = useState<UserDoc | null>(null);
@@ -224,6 +234,35 @@ export default function AppPage() {
     if (!res.ok) throw new Error(await res.text());
   }
 
+  async function createPipelineFromEvent(event: EventDoc) {
+    if (!user) return;
+    const idToken = await user.getIdToken();
+    const res = await fetch("/api/pipeline", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({
+        company: inferCompanyFromEvent(event.summary),
+        role: "Interview process",
+        status: "ongoing",
+        source: `From calendar: "${event.summary}"`,
+        firstRoundAt: event.start,
+        nextRoundAt: event.start,
+        linkedEventIds: [event.googleEventId],
+        interviewRounds: [
+          {
+            id: `round_${Date.now()}`,
+            roundNumber: 1,
+            title: event.summary,
+            scheduledAt: event.start,
+            outcome: new Date(event.end || event.start).getTime() < Date.now() ? "completed" : "scheduled",
+            eventId: event.googleEventId,
+          },
+        ],
+      }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
   async function bulkAll(scope: "upcoming" | "all", next: boolean) {
     if (!user) return;
     const setKind = next ? "public" : "private";
@@ -249,9 +288,9 @@ export default function AppPage() {
 
   if (!user) {
     return (
-      <div className="grid md:grid-cols-2 gap-8 items-start">
+      <div className="grid md:grid-cols-2 gap-5 md:gap-8 items-start">
         <div className="space-y-4">
-          <h1 className="font-heading text-4xl md:text-5xl font-bold">Sign in to DayRun</h1>
+          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold">Sign in to DayRun</h1>
           <p className="text-muted-foreground text-lg">
             Read-only access to your Google Calendar. Nothing public unless you flip the toggle.
           </p>
@@ -272,11 +311,11 @@ export default function AppPage() {
   const hasUsername = !!profile?.username;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1 min-w-0">
-          <h1 className="font-heading text-4xl md:text-5xl font-bold">
+          <h1 className="font-heading text-3xl sm:text-4xl md:text-5xl font-bold">
             Hi, {user.displayName?.split(" ")[0] ?? "there"} 👋
           </h1>
           {hasUsername ? (
@@ -300,15 +339,15 @@ export default function AppPage() {
             </p>
           )}
         </div>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <Link href="/app/pipeline" className="btn-chunky btn-grape text-sm py-2 px-3 sm:text-base sm:py-3 sm:px-5">
+        <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
+          <Link href="/app/pipeline" className="btn-chunky btn-grape justify-center text-sm py-2 px-3 sm:text-base sm:py-3 sm:px-5">
             <Briefcase size={14} />
             Pipeline{activeOppsCount > 0 ? ` · ${activeOppsCount}` : ""}
           </Link>
-          <Link href="/app/settings" className="btn-chunky btn-ghost text-sm py-2 px-3 sm:text-base sm:py-3 sm:px-5">
+          <Link href="/app/settings" className="btn-chunky btn-ghost justify-center text-sm py-2 px-3 sm:text-base sm:py-3 sm:px-5">
             Settings
           </Link>
-          <button onClick={() => signOut()} className="btn-chunky btn-ghost text-sm py-2 px-3 sm:text-base sm:py-3 sm:px-5">
+          <button onClick={() => signOut()} className="btn-chunky btn-ghost justify-center text-sm py-2 px-3 sm:text-base sm:py-3 sm:px-5 col-span-2 sm:col-span-1">
             Sign out
           </button>
         </div>
@@ -415,7 +454,7 @@ export default function AppPage() {
         <TimelineView
           events={filteredEvents}
           editable
-          actions={{ toggleOne, toggleMany, saveEventNotes }}
+          actions={{ toggleOne, toggleMany, saveEventNotes, createPipelineFromEvent }}
           opportunitiesById={oppsById}
           eventNotesById={eventNotes}
           ownerView
