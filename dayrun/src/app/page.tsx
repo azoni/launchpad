@@ -49,8 +49,8 @@ export default function Home() {
 
         {/* Hero */}
         <section className="mx-auto max-w-6xl px-4 pt-10 pb-12 md:pt-20 md:pb-24">
-          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
-            <div className="space-y-5 md:space-y-6">
+          <div className="grid min-w-0 md:grid-cols-2 gap-8 md:gap-12 items-center">
+            <div className="min-w-0 space-y-5 md:space-y-6">
               <span className="dy-eyebrow pop-in">an opt-in calendar</span>
               <h1
                 className="dy-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl"
@@ -76,11 +76,11 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="relative">
-              <div className="chunky chunky-coral p-5 md:p-6 tilt-hover bg-card">
-                <div className="flex items-center justify-between mb-4">
+            <div className="relative min-w-0">
+              <div className="chunky chunky-coral mx-auto w-full max-w-[22rem] min-w-0 p-4 sm:max-w-md sm:p-5 md:max-w-none md:p-6 tilt-hover bg-card">
+                <div className="flex items-center justify-between gap-3 mb-4">
                   <p className="font-heading text-xl">This week</p>
-                  <span className="sticker bg-grape text-white">live demo</span>
+                  <span className="sticker shrink-0 bg-grape text-white">live demo</span>
                 </div>
                 <div className="space-y-3">
                   <DemoEvent time="Mon · 10:00" title="GEICO Staff Engineer — round 2" color="primary" pub />
@@ -156,21 +156,21 @@ function DemoEvent({
         ? "bg-sun text-ink"
         : "bg-grape text-white";
   return (
-    <div className="flex items-start gap-3 border-2 border-ink rounded-xl p-3 bg-card">
+    <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-2 border-2 border-ink rounded-xl p-2.5 bg-card sm:flex sm:items-start sm:gap-3 sm:p-3">
       <span
-        className={`shrink-0 px-2 py-1 text-xs rounded-md font-bold border-2 border-ink ${bg}`}
+        className={`shrink-0 px-1.5 py-1 text-[0.68rem] rounded-md font-bold border-2 border-ink sm:px-2 sm:text-xs ${bg}`}
       >
         {time}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="font-semibold truncate">{title}</p>
+        <p className="truncate text-sm font-semibold sm:text-base">{title}</p>
       </div>
       {pub ? (
-        <span className="sticker bg-sun" aria-label="public">
+        <span className="sticker col-start-2 w-fit bg-sun sm:col-start-auto sm:shrink-0" aria-label="public">
           public
         </span>
       ) : (
-        <span className="text-xs text-muted-foreground border-2 border-dashed border-muted-foreground rounded-full px-2 py-0.5">
+        <span className="col-start-2 w-fit text-xs text-muted-foreground border-2 border-dashed border-muted-foreground rounded-full px-2 py-0.5 sm:col-start-auto sm:shrink-0">
           private
         </span>
       )}
