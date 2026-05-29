@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { collection, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { useAuthUser } from "@/lib/auth";
 import {
   COLLECTIONS,
+  type Compensation,
   type EventDoc,
   type OpportunityDoc,
+  type OpportunityPrivateDoc,
   CLOSED_STATUSES,
   isActive,
   normalizeOpportunityStatus,
@@ -29,9 +31,11 @@ export default function PipelinePage() {
   const { user, loading } = useAuthUser();
   const [opps, setOpps] = useState<OpportunityDoc[]>([]);
   const [events, setEvents] = useState<EventDoc[]>([]);
+  const [compensationByOppId, setCompensationByOppId] = useState<Record<string, Compensation | null>>({});
   const [bootstrapped, setBootstrapped] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
   const [bulkPending, setBulkPending] = useState<"public" | "private" | null>(null);
+  const oppIdsKey = useMemo(() => opps.map((opp) => opp.id).sort().join("|"), [opps]);
 
   useEffect(() => {
     if (!user) return;
@@ -61,9 +65,33 @@ export default function PipelinePage() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const ids = oppIdsKey ? oppIdsKey.split("|") : [];
+    const unsubs = ids.map((id) => {
+      const ref = doc(db, COLLECTIONS.opportunityPrivate(user.uid, id), "data");
+      return onSnapshot(ref, (snap) => {
+        const data = snap.exists() ? (snap.data() as Partial<OpportunityPrivateDoc>) : null;
+        setCompensationByOppId((current) => ({
+          ...current,
+          [id]: data?.compensation ?? null,
+        }));
+      });
+    });
+
+    return () => {
+      unsubs.forEach((unsub) => unsub());
+    };
+  }, [oppIdsKey, user]);
+
   const displayOpps = useMemo(
-    () => opps.map((opp) => enhanceOpportunityWithEvents(opp, events)),
-    [events, opps],
+    () =>
+      opps.map((opp) => ({
+        ...enhanceOpportunityWithEvents(opp, events),
+        compensation: compensationByOppId[opp.id] ?? null,
+      })),
+    [compensationByOppId, events, opps],
   );
 
   if (loading) return <div className="chunky p-8">Loading…</div>;

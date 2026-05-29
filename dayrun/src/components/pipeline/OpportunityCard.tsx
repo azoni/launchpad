@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { CalendarClock, ExternalLink, Eye, EyeOff } from "lucide-react";
-import type { OpportunityDoc } from "@/lib/firebase/collections";
+import type { Compensation, OpportunityDoc } from "@/lib/firebase/collections";
 import { useAuthUser } from "@/lib/auth";
 import {
   compactRoundNumberLabel,
@@ -25,7 +25,7 @@ export function OpportunityCard({
   opp,
   href,
 }: {
-  opp: OpportunityDoc;
+  opp: OpportunityDoc & { compensation?: Compensation | null };
   href: string;
 }) {
   const { user } = useAuthUser();
@@ -65,6 +65,7 @@ export function OpportunityCard({
   const plannedRoundCount = getPlannedRoundCount(opp);
   const nextLabel = nextStepLabel(opp);
   const focusDate = isClosed ? lastRound : nextRound;
+  const compensation = formatCompensation(opp.compensation);
 
   return (
     <div className="block chunky p-4 md:p-5 tilt-hover relative">
@@ -151,6 +152,7 @@ export function OpportunityCard({
 
         <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
           {opp.locationType && <span>{opp.locationType}</span>}
+          {compensation && <span>comp {compensation}</span>}
           {opp.source && <span>via {opp.source}</span>}
           {opp.link && (
             <span className="inline-flex items-center gap-1">
@@ -186,4 +188,14 @@ export function OpportunityCard({
       </div>
     </div>
   );
+}
+
+function formatCompensation(compensation?: Compensation | null): string | null {
+  if (!compensation) return null;
+  const parts = [
+    compensation.base?.trim() ? `base ${compensation.base.trim()}` : null,
+    compensation.equity?.trim() ? `equity ${compensation.equity.trim()}` : null,
+    compensation.other?.trim() ? compensation.other.trim() : null,
+  ].filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? parts.join(" / ") : null;
 }
