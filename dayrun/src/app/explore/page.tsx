@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CheckSquare } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { adminDb } from "@/lib/firebase/admin";
@@ -7,6 +8,7 @@ import {
   COLLECTIONS,
   isActive,
   normalizeOpportunityStatus,
+  type ChecklistItem,
   type EventDoc,
   type OpportunityDoc,
   type OpportunityStatus,
@@ -93,8 +95,26 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
       .limit(300)
       .get();
     const events = eventsSnap.docs.map((d) => d.data() as EventDoc);
-    const opps = oppsSnap.docs
-      .map((d) => opportunityFromDoc(d.id, d.data()))
+    const opps = (
+      await Promise.all(
+        oppsSnap.docs.map(async (d) => {
+          const opp = opportunityFromDoc(d.id, d.data());
+          const privateSnap = await adminDb
+            .collection(COLLECTIONS.opportunityPrivate(userDoc.id, opp.id))
+            .doc("data")
+            .get();
+          const checklist = privateSnap.exists
+            ? (((privateSnap.data()?.checklist ?? []) as ChecklistItem[]).filter(
+                (item) => item && !item.done,
+              ))
+            : [];
+          return {
+            ...opp,
+            hasOpenActionItems: opp.hasOpenActionItems === true || checklist.length > 0,
+          };
+        }),
+      )
+    )
       .map((opp) => enhanceOpportunityWithEvents(opp, events))
       .sort(compareOpportunitiesByNext);
     summaries.push({
@@ -204,6 +224,12 @@ export default async function ExplorePage() {
                         <div className="mt-1 flex sm:justify-end">
                           <RoundProgressDots opp={opp} compact />
                         </div>
+                        {opp.hasOpenActionItems && (
+                          <span className="dy-pill dy-pill-accent mt-1">
+                            <CheckSquare size={12} />
+                            action needed
+                          </span>
+                        )}
                       </div>
                     </div>
                   </Link>
@@ -357,24 +383,35 @@ function OpportunityPreview({ opp }: { opp: OpportunityDoc }) {
   const nextLabel = roundTitleWithNumber(currentRound) ?? nextStepLabel(opp);
   const closed = isClosedOpportunity(opp);
   const rounds = visibleRounds(opp);
+  const hasOpenActionItems = opp.hasOpenActionItems === true && !closed;
   return (
     <div
-      className="rounded-lg border border-hairline bg-surface px-3 py-2 border-l-[4px]"
-      style={{ borderLeftColor: statusAccent(opp.status) }}
+      className={`rounded-lg border bg-surface px-3 py-2 border-l-[4px] ${
+        hasOpenActionItems ? "border-primary/50" : "border-hairline"
+      }`}
+      style={{ borderLeftColor: hasOpenActionItems ? "var(--primary)" : statusAccent(opp.status) }}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="font-semibold text-sm leading-snug truncate">{opp.company}</p>
           <p className="text-xs text-muted-foreground truncate">{opp.role}</p>
         </div>
-        <StatusPill status={opp.status} size="sm" />
+        <div className="flex items-center justify-end gap-1.5 flex-wrap">
+          {hasOpenActionItems && (
+            <span className="dy-pill dy-pill-accent">
+              <CheckSquare size={12} />
+              action needed
+            </span>
+          )}
+          <StatusPill status={opp.status} size="sm" />
+        </div>
       </div>
       <div className="mt-2">
         <RoundProgressDots opp={opp} compact />
       </div>
-      {(next || nextLabel) && (
+      {(hasOpenActionItems || next || nextLabel) && (
         <p className="text-xs text-muted-foreground mt-1 truncate">
-          {closed ? "Closed" : nextLabel ?? "Waiting on response"} -{" "}
+          {hasOpenActionItems ? "Action item open" : closed ? "Closed" : nextLabel ?? "Waiting on response"} -{" "}
           {formatPipelineDate(closed ? last : next, closed ? "final date TBD" : "date TBD")}
         </p>
       )}

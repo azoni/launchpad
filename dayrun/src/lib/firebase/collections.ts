@@ -134,6 +134,8 @@ export type OpportunityDoc = {
   interviewRounds?: InterviewRound[];
   /** Working arrangement — visible publicly if the item is public. */
   locationType?: LocationType | null;
+  /** Public-safe signal that private checklist work is still open. Does not expose item text. */
+  hasOpenActionItems?: boolean;
   isPublic: boolean;
   createdAt: number;
   updatedAt: number;

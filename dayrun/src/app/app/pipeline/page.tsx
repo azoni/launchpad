@@ -8,6 +8,7 @@ import { db } from "@/lib/firebase/client";
 import { useAuthUser } from "@/lib/auth";
 import {
   COLLECTIONS,
+  type ChecklistItem,
   type Compensation,
   type EventDoc,
   type OpportunityDoc,
@@ -27,11 +28,16 @@ import {
   todayStartMs,
 } from "@/lib/pipeline";
 
+type OpportunityPrivatePreview = {
+  compensation: Compensation | null;
+  openActionItemCount: number;
+};
+
 export default function PipelinePage() {
   const { user, loading } = useAuthUser();
   const [opps, setOpps] = useState<OpportunityDoc[]>([]);
   const [events, setEvents] = useState<EventDoc[]>([]);
-  const [compensationByOppId, setCompensationByOppId] = useState<Record<string, Compensation | null>>({});
+  const [privateByOppId, setPrivateByOppId] = useState<Record<string, OpportunityPrivatePreview>>({});
   const [bootstrapped, setBootstrapped] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
   const [bulkPending, setBulkPending] = useState<"public" | "private" | null>(null);
@@ -73,9 +79,15 @@ export default function PipelinePage() {
       const ref = doc(db, COLLECTIONS.opportunityPrivate(user.uid, id), "data");
       return onSnapshot(ref, (snap) => {
         const data = snap.exists() ? (snap.data() as Partial<OpportunityPrivateDoc>) : null;
-        setCompensationByOppId((current) => ({
+        const checklist = ((data?.checklist ?? []) as ChecklistItem[]).filter(
+          (item) => item && !item.done,
+        );
+        setPrivateByOppId((current) => ({
           ...current,
-          [id]: data?.compensation ?? null,
+          [id]: {
+            compensation: data?.compensation ?? null,
+            openActionItemCount: checklist.length,
+          },
         }));
       });
     });
@@ -89,9 +101,13 @@ export default function PipelinePage() {
     () =>
       opps.map((opp) => ({
         ...enhanceOpportunityWithEvents(opp, events),
-        compensation: compensationByOppId[opp.id] ?? null,
+        compensation: privateByOppId[opp.id]?.compensation ?? null,
+        openActionItemCount: privateByOppId[opp.id]?.openActionItemCount ?? 0,
+        hasOpenActionItems:
+          (privateByOppId[opp.id]?.openActionItemCount ?? 0) > 0 ||
+          opp.hasOpenActionItems === true,
       })),
-    [compensationByOppId, events, opps],
+    [events, opps, privateByOppId],
   );
 
   if (loading) return <div className="chunky p-8">Loading…</div>;

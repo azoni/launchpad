@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { CheckSquare } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { adminDb } from "@/lib/firebase/admin";
 import {
   COLLECTIONS,
   isActive,
   normalizeOpportunityStatus,
+  type ChecklistItem,
   type Compensation,
   type EventDoc,
   type OpportunityDoc,
@@ -84,10 +86,16 @@ async function loadProfile(username: string) {
           .collection(COLLECTIONS.opportunityPrivate(uid, opp.id))
           .doc("data")
           .get();
-        const compensation = privateSnap.exists
-          ? ((privateSnap.data()?.compensation ?? null) as Compensation | null)
-          : null;
-        return { ...opp, publicCompensation: compensation };
+        const privateData = privateSnap.exists ? privateSnap.data() : null;
+        const compensation = (privateData?.compensation ?? null) as Compensation | null;
+        const checklist = ((privateData?.checklist ?? []) as ChecklistItem[]).filter(
+          (item) => item && !item.done,
+        );
+        return {
+          ...opp,
+          hasOpenActionItems: opp.hasOpenActionItems === true || checklist.length > 0,
+          publicCompensation: compensation,
+        };
       }),
     )
   )
@@ -346,8 +354,11 @@ function OppCard({
   const rounds = visibleRounds(opp, 5);
   const comp = opp.publicCompensation;
   const hasComp = !!(comp?.base || comp?.equity || comp?.other);
+  const hasOpenActionItems = opp.hasOpenActionItems === true && !isClosed;
   const topBorderColor =
-    tone === "positive" || opp.status === "accepted"
+    hasOpenActionItems
+      ? "var(--primary)"
+      : tone === "positive" || opp.status === "accepted"
       ? "var(--positive)"
       : tone === "negative" || opp.status === "rejected"
         ? "var(--negative)"
@@ -376,7 +387,15 @@ function OppCard({
             )}
           </p>
         </div>
-        <StatusPill status={opp.status} />
+        <div className="flex items-center justify-end gap-1.5 flex-wrap">
+          {hasOpenActionItems && (
+            <span className="dy-pill dy-pill-accent">
+              <CheckSquare size={12} />
+              action needed
+            </span>
+          )}
+          <StatusPill status={opp.status} />
+        </div>
       </header>
 
       <div className="mb-3 flex items-center gap-2 text-[12px] text-[color:var(--faded)]">
@@ -392,15 +411,19 @@ function OppCard({
         </div>
       )}
 
-      {(firstRoundAt || nextRoundAt || nextLabel || rounds.length > 0) && (
+      {(hasOpenActionItems || firstRoundAt || nextRoundAt || nextLabel || rounds.length > 0) && (
         <div className="mt-4 space-y-2">
           <div
             className="rounded-md border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2"
             style={{ boxShadow: isClosed ? undefined : "inset 2px 0 0 0 var(--primary)" }}
           >
-            <p className="dy-eyebrow">{isClosed ? "closed with" : waiting ? "waiting" : "focus next"}</p>
+            <p className="dy-eyebrow">
+              {isClosed ? "closed with" : hasOpenActionItems ? "blocked" : waiting ? "waiting" : "focus next"}
+            </p>
             <p className="text-[13px] font-medium text-[color:var(--ink)] mt-1">
-              {nextLabel ?? (isClosed ? "Process closed" : "Waiting on response")}
+              {hasOpenActionItems
+                ? "Action item open"
+                : nextLabel ?? (isClosed ? "Process closed" : "Waiting on response")}
             </p>
             <p className="text-[12px] text-[color:var(--faded)] mt-0.5">
               {formatPipelineDateLong(focusDate, isClosed ? "no final date" : "no date")}

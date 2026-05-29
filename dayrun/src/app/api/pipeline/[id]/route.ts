@@ -210,6 +210,18 @@ export async function PATCH(req: Request, ctx: Ctx) {
   const isPublicChanging = "isPublic" in body;
   const newIsPublic = body.isPublic === true;
   if (isPublicChanging) safeUpdate.isPublic = newIsPublic;
+  const checklistUpdate = "checklist" in body ? sanitizeChecklist(body.checklist) : undefined;
+  if (checklistUpdate) {
+    const hasOpenActionItems = checklistUpdate.some((item) => !item.done);
+    safeUpdate.hasOpenActionItems = hasOpenActionItems;
+    if (!("status" in body)) {
+      if (hasOpenActionItems && currentOpp.status === "awaiting") {
+        safeUpdate.status = "ongoing";
+      } else if (!hasOpenActionItems && currentOpp.status === "ongoing") {
+        safeUpdate.status = "awaiting";
+      }
+    }
+  }
 
   const linkedEventIds = sanitizeLinkedEventIds(body.linkedEventIds);
   const eventSnaps =
@@ -281,8 +293,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     if (c) privateUpdate.compensation = c;
   }
   if ("checklist" in body) {
-    const c = sanitizeChecklist(body.checklist);
-    if (c) privateUpdate.checklist = c;
+    if (checklistUpdate) privateUpdate.checklist = checklistUpdate;
   }
   if (Object.keys(privateUpdate).length > 0) {
     await adminDb

@@ -127,6 +127,7 @@ export async function POST(req: Request) {
     nextRoundAt: cleanDate(body.nextRoundAt),
     plannedRounds: sanitizePlannedRounds(body.plannedRounds),
     interviewRounds: sanitizeInterviewRounds(body.interviewRounds),
+    hasOpenActionItems: false,
     // Public by default — users opted into a public profile, the friction belongs on hiding, not sharing.
     isPublic: body.isPublic !== false,
     createdAt: now,

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarClock, ExternalLink, Eye, EyeOff } from "lucide-react";
+import { CalendarClock, CheckSquare, ExternalLink, Eye, EyeOff } from "lucide-react";
 import type { Compensation, OpportunityDoc } from "@/lib/firebase/collections";
 import { useAuthUser } from "@/lib/auth";
 import {
@@ -25,7 +25,7 @@ export function OpportunityCard({
   opp,
   href,
 }: {
-  opp: OpportunityDoc & { compensation?: Compensation | null };
+  opp: OpportunityDoc & { compensation?: Compensation | null; openActionItemCount?: number };
   href: string;
 }) {
   const { user } = useAuthUser();
@@ -66,9 +66,11 @@ export function OpportunityCard({
   const nextLabel = nextStepLabel(opp);
   const focusDate = isClosed ? lastRound : nextRound;
   const compensation = formatCompensation(opp.compensation);
+  const openActionItemCount = opp.openActionItemCount ?? (opp.hasOpenActionItems ? 1 : 0);
+  const hasOpenActionItems = openActionItemCount > 0 || opp.hasOpenActionItems === true;
 
   return (
-    <div className="block chunky p-4 md:p-5 tilt-hover relative">
+    <div className={`block chunky p-4 md:p-5 tilt-hover relative ${hasOpenActionItems ? "chunky-coral" : ""}`}>
       <Link href={href} className="block hover:no-underline">
         <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
           <div className="min-w-0">
@@ -77,29 +79,46 @@ export function OpportunityCard({
             </p>
             <p className="text-muted-foreground">{opp.role}</p>
           </div>
-          <StatusPill status={opp.status} />
+          <div className="flex items-center justify-end gap-1.5 flex-wrap">
+            {hasOpenActionItems && (
+              <span className="dy-pill dy-pill-accent">
+                <CheckSquare size={12} />
+                {openActionItemCount > 1 ? `${openActionItemCount} actions` : "action needed"}
+              </span>
+            )}
+            <StatusPill status={opp.status} />
+          </div>
         </div>
         <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
           <RoundProgressDots opp={opp} />
           <span>{plannedRoundCount} round process</span>
         </div>
 
-        {(nextLabel || nextRound || firstRound || rounds.length > 0) && (
+        {(hasOpenActionItems || nextLabel || nextRound || firstRound || rounds.length > 0) && (
           <div className="mt-3 space-y-2">
             <div
               className={`rounded-lg border px-3 py-2 ${
-                isClosed ? "border-hairline bg-surface" : "border-primary/50 bg-sun/10"
+                isClosed
+                  ? "border-hairline bg-surface"
+                  : hasOpenActionItems
+                    ? "border-primary/50 bg-accent-soft/60"
+                    : "border-primary/50 bg-sun/10"
               }`}
             >
-              <p className="dy-eyebrow">{isClosed ? "closed with" : "focus next"}</p>
+              <p className="dy-eyebrow">
+                {isClosed ? "closed with" : hasOpenActionItems ? "blocked" : "focus next"}
+              </p>
               <p className="text-sm font-semibold text-ink mt-1">
-                {nextLabel ?? (isClosed ? "Process closed" : "Next step TBD")}
+                {hasOpenActionItems && !isClosed
+                  ? "Action item open"
+                  : nextLabel ?? (isClosed ? "Process closed" : "Next step TBD")}
               </p>
               <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-xs text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <CalendarClock size={12} />
                   {formatPipelineDateLong(focusDate, isClosed ? "No final date" : "No next date")}
                 </span>
+                {hasOpenActionItems && !isClosed && <span>move to awaiting when done</span>}
                 {!isClosed && currentRound?.outcome && <span>{currentRound.outcome}</span>}
                 {!isClosed && opp.nextStepBy && <span>{opp.nextStepBy}</span>}
               </div>
