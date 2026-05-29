@@ -147,7 +147,14 @@ export default async function PublicProfilePage({ params }: PageProps) {
   const nowOpps = sortedOpps.filter((o) => isActive(o.status));
   const accepted = sortedOpps.filter((o) => o.status === "accepted");
   const closed = sortedOpps.filter((o) => NEGATIVE_CLOSED.includes(o.status));
-  const nextDated = nowOpps.filter((o) => !!getNextRoundAt(o)).length;
+  const scheduled = nowOpps.filter((o) => !!getNextRoundAt(o));
+  const actionBlocked = nowOpps.filter((o) => o.hasOpenActionItems === true);
+  const awaitingFeedback = nowOpps.filter(
+    (o) => o.status === "awaiting" && !o.hasOpenActionItems && !getNextRoundAt(o),
+  );
+  const waitingToSchedule = nowOpps.filter(
+    (o) => o.status === "ongoing" && !o.hasOpenActionItems && !getNextRoundAt(o),
+  );
 
   const lastSyncedHuman = user.lastSyncedAt ? humanRelative(user.lastSyncedAt) : null;
   const dateLine = todayLine();
@@ -215,9 +222,12 @@ export default async function PublicProfilePage({ params }: PageProps) {
             </p>
           </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 mt-4 sm:mt-5">
+          <div className="grid grid-cols-2 gap-2 mt-4 sm:mt-5 sm:grid-cols-3 lg:grid-cols-6">
             <ProfileStat label="open" value={nowOpps.length} />
-            <ProfileStat label="scheduled" value={nextDated} />
+            <ProfileStat label="scheduled" value={scheduled.length} />
+            <ProfileStat label="action items" value={actionBlocked.length} />
+            <ProfileStat label="awaiting" value={awaitingFeedback.length} />
+            <ProfileStat label="to schedule" value={waitingToSchedule.length} />
             <ProfileStat label="closed" value={accepted.length + closed.length} />
           </div>
         </section>
