@@ -99,10 +99,10 @@ export default function Home() {
           <h2 className="font-heading text-3xl md:text-4xl font-bold mb-8">How it works</h2>
           <div className="grid md:grid-cols-3 gap-5 md:gap-6">
             <Card emoji="🔑" title="Sign in">
-              One tap with your Google account. We ask for read-only Calendar access. That&apos;s it.
+              One tap with your Google account. Daily asks for read-only Calendar access.
             </Card>
             <Card emoji="🔄" title="Sync">
-              We pull your upcoming events into your private dashboard. Everything starts hidden.
+              Daily pulls your upcoming events into your private dashboard. Everything starts hidden.
             </Card>
             <Card emoji="👁️" title="Toggle public">
               Flip individual events into the public view. Your profile lives at{" "}
@@ -118,7 +118,7 @@ export default function Home() {
               Made for chaotic weeks.
             </h2>
             <p className="text-lg max-w-3xl text-muted-foreground">
-              Built when our maker was running 4+ interviews a day, three side projects, and a
+              I built it while running 4+ interviews a day, three side projects, and a
               social life that needed a shared brain. A nicer way to say <em>here&apos;s where I&apos;ll be</em>{" "}
               than copy-pasting into Slack.
             </p>
@@ -126,7 +126,7 @@ export default function Home() {
               <Link href="/app" className="btn-chunky">
                 Sign in with Google
               </Link>
-              <Link href="/u/charltonuw" className="btn-chunky btn-sun">
+              <Link href="/u/azoni" className="btn-chunky btn-sun">
                 See an example
               </Link>
             </div>
