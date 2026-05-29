@@ -340,7 +340,6 @@ function OppCard({
   const nextLabel = nextStepLabel(opp);
   const focusDate = isClosed ? lastRoundAt : nextRoundAt;
   const waiting = !isClosed && !nextRoundAt;
-  const displayStatus = waiting ? "awaiting" : opp.status;
   const plannedRoundCount = getPlannedRoundCount(opp);
   const rounds = visibleRounds(opp, 5);
   const comp = opp.publicCompensation;
@@ -375,7 +374,7 @@ function OppCard({
             )}
           </p>
         </div>
-          <StatusPill status={displayStatus} />
+        <StatusPill status={opp.status} />
       </header>
 
       <div className="mb-3 flex items-center gap-2 text-[12px] text-[color:var(--faded)]">

@@ -65,7 +65,6 @@ export function OpportunityCard({
   const plannedRoundCount = getPlannedRoundCount(opp);
   const nextLabel = nextStepLabel(opp);
   const focusDate = isClosed ? lastRound : nextRound;
-  const displayStatus = !isClosed && !nextRound ? "awaiting" : opp.status;
 
   return (
     <div className="block chunky p-4 md:p-5 tilt-hover relative">
@@ -77,7 +76,7 @@ export function OpportunityCard({
             </p>
             <p className="text-muted-foreground">{opp.role}</p>
           </div>
-          <StatusPill status={displayStatus} />
+          <StatusPill status={opp.status} />
         </div>
         <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
           <RoundProgressDots opp={opp} />

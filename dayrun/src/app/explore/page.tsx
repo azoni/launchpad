@@ -346,7 +346,6 @@ function OpportunityPreview({ opp }: { opp: OpportunityDoc }) {
   const currentRound = getCurrentRound(opp);
   const nextLabel = roundTitleWithNumber(currentRound) ?? nextStepLabel(opp);
   const closed = isClosedOpportunity(opp);
-  const displayStatus = !closed && !next ? "awaiting" : opp.status;
   const rounds = visibleRounds(opp);
   return (
     <div
@@ -358,7 +357,7 @@ function OpportunityPreview({ opp }: { opp: OpportunityDoc }) {
           <p className="font-semibold text-sm leading-snug truncate">{opp.company}</p>
           <p className="text-xs text-muted-foreground truncate">{opp.role}</p>
         </div>
-        <StatusPill status={displayStatus} size="sm" />
+        <StatusPill status={opp.status} size="sm" />
       </div>
       <div className="mt-2">
         <RoundProgressDots opp={opp} compact />

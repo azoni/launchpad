@@ -228,7 +228,14 @@ export function getRoundProgress(opp: OpportunityDoc): RoundProgress {
   });
 
   const passed = dots.filter((dot) => dot.tone === "passed").length;
-  const awaiting = currentIndex ? `, round ${currentIndex} awaiting` : "";
+  const currentState =
+    currentIndex && nextIndex
+      ? `, round ${currentIndex} scheduled`
+      : currentIndex && status === "ongoing"
+        ? `, round ${currentIndex} ongoing`
+        : currentIndex
+          ? `, round ${currentIndex} awaiting`
+          : "";
   const failed = failedIndex ? `, rejected at round ${failedIndex}` : "";
   return {
     total,
@@ -236,7 +243,7 @@ export function getRoundProgress(opp: OpportunityDoc): RoundProgress {
     currentIndex,
     failedIndex,
     dots,
-    label: `${passed} passed${awaiting}${failed}, ${total} expected`,
+    label: `${passed} passed${currentState}${failed}, ${total} expected`,
   };
 }
 
