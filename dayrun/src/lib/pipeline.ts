@@ -205,16 +205,37 @@ function inferRoundTitleFromEvent(summary: string, index: number): string {
   return `Round ${index + 1}`;
 }
 
-function eventRound(event: EventDoc, index: number): InterviewRound {
+function eventOutcome(event: EventDoc): InterviewRound["outcome"] {
   const ts = parsePipelineDate(event.start);
+  return ts !== null && ts < todayStartMs() ? "completed" : "scheduled";
+}
+
+function eventRound(event: EventDoc, index: number): InterviewRound {
   return {
     id: `event_${event.googleEventId.slice(0, 64)}`,
     eventId: event.googleEventId,
     roundNumber: index + 1,
     title: inferRoundTitleFromEvent(event.summary, index),
     scheduledAt: event.start,
-    outcome: ts !== null && ts < todayStartMs() ? "completed" : "scheduled",
+    outcome: eventOutcome(event),
     publicNote: null,
+  };
+}
+
+function hydrateEventRound(round: InterviewRound, event: EventDoc, index: number): InterviewRound {
+  const inferred = eventRound(event, index);
+  const manualOutcome =
+    round.outcome === "passed" || round.outcome === "did-not-pass" || round.outcome === "cancelled";
+
+  return {
+    ...round,
+    id: round.id || inferred.id,
+    eventId: event.googleEventId,
+    roundNumber: round.roundNumber ?? inferred.roundNumber,
+    title: round.title.trim() ? round.title : inferred.title,
+    scheduledAt: round.scheduledAt ?? inferred.scheduledAt,
+    outcome: manualOutcome ? round.outcome : inferred.outcome,
+    publicNote: round.publicNote ?? inferred.publicNote,
   };
 }
 
@@ -222,19 +243,24 @@ export function enhanceOpportunityWithEvents<T extends OpportunityDoc>(
   opp: T,
   events: EventDoc[],
 ): T {
+  const existingRounds = opp.interviewRounds ?? [];
+  const existingEventIds = new Set(existingRounds.map((round) => round.eventId).filter(Boolean));
   const matchingEvents = events
-    .filter((event) => eventMatchesOpportunity(event, opp))
+    .filter((event) => existingEventIds.has(event.googleEventId) || eventMatchesOpportunity(event, opp))
     .filter((event) => parsePipelineDate(event.start) !== null)
     .sort((a, b) => parsePipelineDate(a.start)! - parsePipelineDate(b.start)!);
 
   if (matchingEvents.length === 0) return opp;
 
-  const existingRounds = opp.interviewRounds ?? [];
-  const existingEventIds = new Set(existingRounds.map((round) => round.eventId).filter(Boolean));
+  const matchingEventsById = new Map(matchingEvents.map((event) => [event.googleEventId, event]));
+  const hydratedRounds = existingRounds.map((round, index) => {
+    const event = round.eventId ? matchingEventsById.get(round.eventId) : null;
+    return event ? hydrateEventRound(round, event, index) : round;
+  });
   const additions = matchingEvents
-    .filter((event) => !existingEventIds.has(event.googleEventId))
-    .map((event, index) => eventRound(event, existingRounds.length + index));
-  const rounds = visibleRounds({ ...opp, interviewRounds: [...existingRounds, ...additions] }).map(
+    .filter((event) => !hydratedRounds.some((round) => round.eventId === event.googleEventId))
+    .map((event, index) => eventRound(event, hydratedRounds.length + index));
+  const rounds = visibleRounds({ ...opp, interviewRounds: [...hydratedRounds, ...additions] }).map(
     (round, index) => ({
       ...round,
       roundNumber: index + 1,
