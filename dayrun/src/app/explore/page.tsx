@@ -7,6 +7,7 @@ import {
   COLLECTIONS,
   isActive,
   normalizeOpportunityStatus,
+  type EventDoc,
   type OpportunityDoc,
   type OpportunityStatus,
   type UserDoc,
@@ -16,6 +17,7 @@ import { RoundProgressDots } from "@/components/pipeline/RoundProgressDots";
 import { APP_NAME, APP_URL } from "@/lib/utils";
 import {
   compareOpportunitiesByNext,
+  enhanceOpportunityWithEvents,
   formatPipelineDate,
   getCurrentRound,
   getFirstRoundAt,
@@ -84,8 +86,16 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
       .collection(COLLECTIONS.opportunities(userDoc.id))
       .where("isPublic", "==", true)
       .get();
+    const eventsSnap = await adminDb
+      .collection(COLLECTIONS.events(userDoc.id))
+      .where("isPublic", "==", true)
+      .orderBy("start", "asc")
+      .limit(300)
+      .get();
+    const events = eventsSnap.docs.map((d) => d.data() as EventDoc);
     const opps = oppsSnap.docs
       .map((d) => opportunityFromDoc(d.id, d.data()))
+      .map((opp) => enhanceOpportunityWithEvents(opp, events))
       .sort(compareOpportunitiesByNext);
     summaries.push({
       username: u.username,

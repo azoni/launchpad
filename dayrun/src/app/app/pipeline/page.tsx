@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { useAuthUser } from "@/lib/auth";
 import {
   COLLECTIONS,
+  type EventDoc,
   type OpportunityDoc,
   CLOSED_STATUSES,
   isActive,
@@ -17,6 +18,7 @@ import { OpportunityCard } from "@/components/pipeline/OpportunityCard";
 import { QuickAdd } from "@/components/pipeline/QuickAdd";
 import {
   compareOpportunitiesByNext,
+  enhanceOpportunityWithEvents,
   formatPipelineDateLong,
   getNextRoundAt,
   parsePipelineDate,
@@ -26,13 +28,14 @@ import {
 export default function PipelinePage() {
   const { user, loading } = useAuthUser();
   const [opps, setOpps] = useState<OpportunityDoc[]>([]);
+  const [events, setEvents] = useState<EventDoc[]>([]);
   const [bootstrapped, setBootstrapped] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
   const [bulkPending, setBulkPending] = useState<"public" | "private" | null>(null);
 
   useEffect(() => {
     if (!user) return;
-    const unsub = onSnapshot(
+    const unsubOpps = onSnapshot(
       query(collection(db, COLLECTIONS.opportunities(user.uid)), orderBy("updatedAt", "desc")),
       (snap) => {
         setOpps(
@@ -48,8 +51,20 @@ export default function PipelinePage() {
         setBootstrapped(true);
       },
     );
-    return () => unsub();
+    const unsubEvents = onSnapshot(
+      query(collection(db, COLLECTIONS.events(user.uid)), orderBy("start", "asc")),
+      (snap) => setEvents(snap.docs.map((d) => d.data() as EventDoc)),
+    );
+    return () => {
+      unsubOpps();
+      unsubEvents();
+    };
   }, [user]);
+
+  const displayOpps = useMemo(
+    () => opps.map((opp) => enhanceOpportunityWithEvents(opp, events)),
+    [events, opps],
+  );
 
   if (loading) return <div className="chunky p-8">Loading…</div>;
   if (!user)
@@ -59,13 +74,13 @@ export default function PipelinePage() {
       </div>
     );
 
-  const active = opps
+  const active = displayOpps
     .filter((o) => isActive(o.status))
     .sort(compareOpportunitiesByNext);
-  const closed = opps
+  const closed = displayOpps
     .filter((o) => CLOSED_STATUSES.includes(normalizeOpportunityStatus(o.status)))
     .sort((a, b) => b.updatedAt - a.updatedAt);
-  const publicCount = opps.filter((o) => o.isPublic).length;
+  const publicCount = displayOpps.filter((o) => o.isPublic).length;
   const upcomingCount = active.filter((o) => {
     const next = parsePipelineDate(getNextRoundAt(o));
     return next !== null && next >= todayStartMs();
@@ -81,7 +96,7 @@ export default function PipelinePage() {
     try {
       const idToken = await user.getIdToken();
       await Promise.all(
-        opps
+        displayOpps
           .filter((o) => o.isPublic !== next)
           .map((o) =>
             fetch(`/api/pipeline/${o.id}`, {
@@ -108,7 +123,7 @@ export default function PipelinePage() {
         </p>
       </div>
 
-      {opps.length > 0 && (
+      {displayOpps.length > 0 && (
         <section className="grid sm:grid-cols-3 gap-3">
           <div className="chunky p-4">
             <p className="dy-eyebrow">active</p>
@@ -134,7 +149,7 @@ export default function PipelinePage() {
 
       <QuickAdd />
 
-      {opps.length > 0 && (
+      {displayOpps.length > 0 && (
         <div className={`chunky p-4 space-y-3 ${publicCount === 0 ? "chunky-sun" : ""}`}>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <p className="text-sm font-mono">
@@ -154,7 +169,7 @@ export default function PipelinePage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => bulkSetVisibility(true)}
-              disabled={!!bulkPending || opps.every((o) => o.isPublic)}
+              disabled={!!bulkPending || displayOpps.every((o) => o.isPublic)}
               className="btn-chunky btn-sun text-sm py-2 px-3 flex-1 sm:flex-initial"
               title="Mark every pipeline item public (linked events cascade too)"
             >
@@ -163,7 +178,7 @@ export default function PipelinePage() {
             </button>
             <button
               onClick={() => bulkSetVisibility(false)}
-              disabled={!!bulkPending || opps.every((o) => !o.isPublic)}
+              disabled={!!bulkPending || displayOpps.every((o) => !o.isPublic)}
               className="btn-chunky btn-ghost text-sm py-2 px-3 flex-1 sm:flex-initial"
               title="Mark every pipeline item private"
             >
@@ -174,7 +189,7 @@ export default function PipelinePage() {
         </div>
       )}
 
-      {bootstrapped && opps.length === 0 ? (
+      {bootstrapped && displayOpps.length === 0 ? (
         <div className="chunky p-8 text-center space-y-2">
           <p className="font-heading text-2xl">Nothing in your pipeline yet.</p>
           <p className="text-muted-foreground">

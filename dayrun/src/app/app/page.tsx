@@ -26,6 +26,7 @@ import {
   isActive,
   normalizeOpportunityStatus,
 } from "@/lib/firebase/collections";
+import { enhanceOpportunityWithEvents } from "@/lib/pipeline";
 
 type ActionItemPreview = ChecklistItem & {
   opportunityId: string;
@@ -157,14 +158,19 @@ export default function AppPage() {
     };
   }, [user]);
 
+  const displayOpportunities = useMemo(
+    () => opportunities.map((opp) => enhanceOpportunityWithEvents(opp, events)),
+    [events, opportunities],
+  );
+
   const oppsById = useMemo(() => {
     const m = new Map<string, OpportunityDoc>();
-    for (const o of opportunities) m.set(o.id, o);
+    for (const o of displayOpportunities) m.set(o.id, o);
     return m;
-  }, [opportunities]);
+  }, [displayOpportunities]);
   const activeOppsCount = useMemo(
-    () => opportunities.filter((o) => isActive(o.status)).length,
-    [opportunities],
+    () => displayOpportunities.filter((o) => isActive(o.status)).length,
+    [displayOpportunities],
   );
   const filteredEvents = useMemo(
     () => (eventScope === "pipeline" ? events.filter((event) => !!event.opportunityId) : events),

@@ -1,6 +1,7 @@
 import {
   CLOSED_STATUSES,
   normalizeOpportunityStatus,
+  type EventDoc,
   type InterviewRound,
   type OpportunityDoc,
   type OpportunityStatus,
@@ -178,6 +179,82 @@ export function getPlannedRoundCount(opp: OpportunityDoc): number {
     0,
   );
   return clampRoundCount(opp.plannedRounds, Math.max(highestRoundNumber, rounds.length, 1));
+}
+
+function normalizeMatchText(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function eventMatchesOpportunity(event: EventDoc, opp: OpportunityDoc): boolean {
+  if (event.opportunityId === opp.id) return true;
+  if (event.opportunityId) return false;
+
+  const title = normalizeMatchText(event.summary);
+  const words = normalizeMatchText(opp.company).split(" ").filter(Boolean);
+  return words.length > 0 && words.every((word) => new RegExp(`\\b${word}\\b`).test(title));
+}
+
+function inferRoundTitleFromEvent(summary: string, index: number): string {
+  const text = normalizeMatchText(summary);
+  if (/\b(recruiter|intro|screen|screening|phone)\b/.test(text)) return "Recruiter screen";
+  if (/\b(technical|coding|pair|code)\b/.test(text)) return "Technical round";
+  if (/\b(system|design|architecture)\b/.test(text)) return "System design";
+  if (/\b(behavioral|values|culture|manager|hiring)\b/.test(text)) return "Hiring manager";
+  if (/\b(onsite|on site|virtual onsite|panel)\b/.test(text)) return "Onsite";
+  if (/\b(final)\b/.test(text)) return "Final round";
+  return `Round ${index + 1}`;
+}
+
+function eventRound(event: EventDoc, index: number): InterviewRound {
+  const ts = parsePipelineDate(event.start);
+  return {
+    id: `event_${event.googleEventId.slice(0, 64)}`,
+    eventId: event.googleEventId,
+    roundNumber: index + 1,
+    title: inferRoundTitleFromEvent(event.summary, index),
+    scheduledAt: event.start,
+    outcome: ts !== null && ts < todayStartMs() ? "completed" : "scheduled",
+    publicNote: null,
+  };
+}
+
+export function enhanceOpportunityWithEvents<T extends OpportunityDoc>(
+  opp: T,
+  events: EventDoc[],
+): T {
+  const matchingEvents = events
+    .filter((event) => eventMatchesOpportunity(event, opp))
+    .filter((event) => parsePipelineDate(event.start) !== null)
+    .sort((a, b) => parsePipelineDate(a.start)! - parsePipelineDate(b.start)!);
+
+  if (matchingEvents.length === 0) return opp;
+
+  const existingRounds = opp.interviewRounds ?? [];
+  const existingEventIds = new Set(existingRounds.map((round) => round.eventId).filter(Boolean));
+  const additions = matchingEvents
+    .filter((event) => !existingEventIds.has(event.googleEventId))
+    .map((event, index) => eventRound(event, existingRounds.length + index));
+  const rounds = visibleRounds({ ...opp, interviewRounds: [...existingRounds, ...additions] }).map(
+    (round, index) => ({
+      ...round,
+      roundNumber: index + 1,
+    }),
+  );
+  const dated = rounds.filter((round) => parsePipelineDate(round.scheduledAt) !== null);
+  const nextRoundAt =
+    dated.find((round) => {
+      const ts = parsePipelineDate(round.scheduledAt);
+      return ts !== null && ts >= todayStartMs() && round.outcome === "scheduled";
+    })?.scheduledAt ??
+    opp.nextRoundAt ??
+    null;
+
+  return {
+    ...opp,
+    interviewRounds: rounds,
+    firstRoundAt: opp.firstRoundAt ?? dated[0]?.scheduledAt ?? null,
+    nextRoundAt,
+  };
 }
 
 export function getRoundProgress(opp: OpportunityDoc): RoundProgress {

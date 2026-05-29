@@ -20,6 +20,7 @@ import { APP_NAME, APP_URL } from "@/lib/utils";
 import {
   compareOpportunitiesByNext,
   compactRoundNumberLabel,
+  enhanceOpportunityWithEvents,
   formatPipelineDate,
   formatPipelineDateLong,
   getCurrentRound,
@@ -90,6 +91,7 @@ async function loadProfile(username: string) {
       }),
     )
   )
+    .map((opp) => enhanceOpportunityWithEvents(opp, events))
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, 50);
 
