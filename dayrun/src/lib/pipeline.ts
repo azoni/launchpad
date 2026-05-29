@@ -50,8 +50,8 @@ export function todayStartMs(): number {
   return d.getTime();
 }
 
-function isOpenRound(round: InterviewRound): boolean {
-  return round.outcome === "scheduled" || round.outcome === "completed";
+function isScheduledRound(round: InterviewRound): boolean {
+  return round.outcome === "scheduled";
 }
 
 export function isClosedOpportunity(opp: OpportunityDoc): boolean {
@@ -107,7 +107,7 @@ export function getFirstRoundAt(opp: OpportunityDoc): string | null {
 export function getNextRoundAt(opp: OpportunityDoc): string | null {
   const floor = todayStartMs();
   const round = (opp.interviewRounds ?? [])
-    .filter((r) => isOpenRound(r))
+    .filter((r) => isScheduledRound(r))
     .filter((r) => {
       const ts = parsePipelineDate(r.scheduledAt);
       return ts !== null && ts >= floor;
@@ -128,7 +128,7 @@ export function getCurrentRound(opp: OpportunityDoc): InterviewRound | null {
   return (
     (opp.interviewRounds ?? []).find((round) => {
       const roundTs = parsePipelineDate(round.scheduledAt);
-      return roundTs !== null && roundTs === nextTs && isOpenRound(round);
+      return roundTs !== null && roundTs === nextTs && isScheduledRound(round);
     }) ?? null
   );
 }
@@ -187,14 +187,23 @@ export function getRoundProgress(opp: OpportunityDoc): RoundProgress {
   const floor = todayStartMs();
   const roundNumbers = rounds.map((round, index) => getRoundNumber(round, index + 1) ?? index + 1);
   const highestKnown = Math.max(0, ...roundNumbers);
+  const firstRoundTs = parsePipelineDate(opp.firstRoundAt);
+  const explicitNextTs = parsePipelineDate(opp.nextRoundAt);
+  const fallbackKnown = Math.max(highestKnown, firstRoundTs !== null ? 1 : 0);
   const nextRound = rounds.find((round) => {
     const ts = parsePipelineDate(round.scheduledAt);
-    return ts !== null && ts >= floor && isOpenRound(round);
+    return ts !== null && ts >= floor && isScheduledRound(round);
   });
   const nextIndex = nextRound
     ? (getRoundNumber(nextRound, rounds.findIndex((round) => round.id === nextRound.id) + 1) ?? null)
     : null;
-  const activeCurrentIndex = nextIndex ?? (highestKnown > 0 ? highestKnown : null);
+  const explicitNextIndex =
+    !nextIndex && explicitNextTs !== null && explicitNextTs >= floor
+      ? firstRoundTs !== null && firstRoundTs < explicitNextTs
+        ? Math.max(fallbackKnown, 2)
+        : Math.max(fallbackKnown, 1)
+      : null;
+  const activeCurrentIndex = nextIndex ?? explicitNextIndex ?? (fallbackKnown > 0 ? fallbackKnown : null);
   const isRejected = status === "rejected";
   const isNegativeClosed = status === "rejected" || status === "withdrew" || status === "ghosted";
   const failedIndex = isRejected ? Math.max(1, activeCurrentIndex ?? highestKnown ?? 1) : null;
