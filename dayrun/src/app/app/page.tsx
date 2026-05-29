@@ -193,7 +193,7 @@ export default function AppPage() {
             ? ((snap.data().checklist ?? []) as ChecklistItem[])
             : [];
           return checklist
-            .filter((item) => !item.done)
+            .filter((item) => item.done !== true)
             .map((item) => ({
               ...item,
               opportunityId: opp.id,

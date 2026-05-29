@@ -89,7 +89,7 @@ async function loadProfile(username: string) {
         const privateData = privateSnap.exists ? privateSnap.data() : null;
         const compensation = (privateData?.compensation ?? null) as Compensation | null;
         const checklist = ((privateData?.checklist ?? []) as ChecklistItem[]).filter(
-          (item) => item && !item.done,
+          (item) => item && item.done !== true,
         );
         return {
           ...opp,
@@ -359,12 +359,32 @@ function OppCard({
   const currentRound = getCurrentRound(opp);
   const nextLabel = nextStepLabel(opp);
   const focusDate = isClosed ? lastRoundAt : nextRoundAt;
-  const waiting = !isClosed && !nextRoundAt;
   const plannedRoundCount = getPlannedRoundCount(opp);
   const rounds = visibleRounds(opp, 5);
   const comp = opp.publicCompensation;
   const hasComp = !!(comp?.base || comp?.equity || comp?.other);
   const hasOpenActionItems = opp.hasOpenActionItems === true && !isClosed;
+  const awaitingFeedback = !isClosed && opp.status === "awaiting" && !nextRoundAt;
+  const waitingToSchedule = !isClosed && opp.status === "ongoing" && !nextRoundAt;
+  const focusEyebrow = isClosed
+    ? "closed with"
+    : hasOpenActionItems
+      ? "blocked"
+      : awaitingFeedback
+        ? "awaiting"
+        : waitingToSchedule
+          ? "to schedule"
+          : "focus next";
+  const focusTitle = hasOpenActionItems
+    ? "Action item open"
+    : nextLabel ??
+      (isClosed
+        ? "Process closed"
+        : awaitingFeedback
+          ? "Waiting on feedback"
+          : waitingToSchedule
+            ? "Waiting to schedule"
+            : "Next step TBD");
   const topBorderColor =
     hasOpenActionItems
       ? "var(--primary)"
@@ -427,14 +447,8 @@ function OppCard({
             className="rounded-md border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2"
             style={{ boxShadow: isClosed ? undefined : "inset 2px 0 0 0 var(--primary)" }}
           >
-            <p className="dy-eyebrow">
-              {isClosed ? "closed with" : hasOpenActionItems ? "blocked" : waiting ? "waiting" : "focus next"}
-            </p>
-            <p className="text-[13px] font-medium text-[color:var(--ink)] mt-1">
-              {hasOpenActionItems
-                ? "Action item open"
-                : nextLabel ?? (isClosed ? "Process closed" : "Waiting on response")}
-            </p>
+            <p className="dy-eyebrow">{focusEyebrow}</p>
+            <p className="text-[13px] font-medium text-[color:var(--ink)] mt-1">{focusTitle}</p>
             <p className="text-[12px] text-[color:var(--faded)] mt-0.5">
               {formatPipelineDateLong(focusDate, isClosed ? "no final date" : "no date")}
               {!isClosed && currentRound?.outcome ? ` - ${currentRound.outcome}` : ""}

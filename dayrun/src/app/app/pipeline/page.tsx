@@ -80,7 +80,7 @@ export default function PipelinePage() {
       return onSnapshot(ref, (snap) => {
         const data = snap.exists() ? (snap.data() as Partial<OpportunityPrivateDoc>) : null;
         const checklist = ((data?.checklist ?? []) as ChecklistItem[]).filter(
-          (item) => item && !item.done,
+          (item) => item && item.done !== true,
         );
         setPrivateByOppId((current) => ({
           ...current,

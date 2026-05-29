@@ -212,7 +212,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (isPublicChanging) safeUpdate.isPublic = newIsPublic;
   const checklistUpdate = "checklist" in body ? sanitizeChecklist(body.checklist) : undefined;
   if (checklistUpdate) {
-    const hasOpenActionItems = checklistUpdate.some((item) => !item.done);
+    const hasOpenActionItems = checklistUpdate.some((item) => item.done !== true);
     safeUpdate.hasOpenActionItems = hasOpenActionItems;
     if (!("status" in body)) {
       if (hasOpenActionItems && currentOpp.status === "awaiting") {

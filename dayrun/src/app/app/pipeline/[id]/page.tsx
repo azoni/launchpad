@@ -58,7 +58,7 @@ export default function OpportunityDetailPage(props: PageProps) {
   const [opp, setOpp] = useState<OpportunityDoc | null>(null);
   const [priv, setPriv] = useState<OpportunityPrivateDoc>({ notes: "", feedback: "", contacts: [], brief: null });
   const [linkedEvents, setLinkedEvents] = useState<EventDoc[]>([]);
-  const [savingPatch, setSavingPatch] = useState<Record<string, boolean>>({});
+  const [, setSavingPatch] = useState<Record<string, boolean>>({});
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -221,7 +221,7 @@ export default function OpportunityDetailPage(props: PageProps) {
     );
 
   const actionItems = priv.checklist ?? [];
-  const openActionItems = actionItems.filter((item) => !item.done).length;
+  const openActionItems = actionItems.filter((item) => item.done !== true).length;
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -869,7 +869,7 @@ function NotesEditor({
   onSave: (v: string) => void;
 }) {
   const [local, setLocal] = useState(initial);
-  const [savingHint, setSavingHint] = useState(false);
+  const savingHint = local !== initial;
 
   if (initial !== local && document.activeElement?.tagName !== "TEXTAREA") {
     setLocal(initial);
@@ -878,10 +878,8 @@ function NotesEditor({
   // Debounced save: flush 1.2s after typing stops.
   useEffect(() => {
     if (local === initial) return;
-    setSavingHint(true);
     const t = setTimeout(() => {
       onSave(local);
-      setSavingHint(false);
     }, 1200);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -952,7 +950,7 @@ function ChecklistEditor({
     onSave(items);
   }
 
-  const remaining = items.filter((i) => !i.done).length;
+  const remaining = items.filter((i) => i.done !== true).length;
 
   return (
     <div className="space-y-2">

@@ -105,7 +105,7 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
             .get();
           const checklist = privateSnap.exists
             ? (((privateSnap.data()?.checklist ?? []) as ChecklistItem[]).filter(
-                (item) => item && !item.done,
+                (item) => item && item.done !== true,
               ))
             : [];
           return {
@@ -411,7 +411,11 @@ function OpportunityPreview({ opp }: { opp: OpportunityDoc }) {
       </div>
       {(hasOpenActionItems || next || nextLabel) && (
         <p className="text-xs text-muted-foreground mt-1 truncate">
-          {hasOpenActionItems ? "Action item open" : closed ? "Closed" : nextLabel ?? "Waiting on response"} -{" "}
+          {hasOpenActionItems
+            ? "Action item open"
+            : closed
+              ? "Closed"
+              : nextLabel ?? (opp.status === "awaiting" ? "Waiting on feedback" : "Waiting to schedule")} -{" "}
           {formatPipelineDate(closed ? last : next, closed ? "final date TBD" : "date TBD")}
         </p>
       )}
