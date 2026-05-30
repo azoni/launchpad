@@ -10,6 +10,8 @@ import {
 import { useAuthUser } from "@/lib/auth";
 import { parsePipelineDate, todayStartMs } from "@/lib/pipeline";
 
+const QUICK_ADD_STATUSES = INITIAL_STATUSES.filter((status) => status !== "referral");
+
 export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
   const { user } = useAuthUser();
   const [open, setOpen] = useState(false);
@@ -17,6 +19,7 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
   const [role, setRole] = useState("");
   const [status, setStatus] = useState<OpportunityStatus>("ongoing");
   const [source, setSource] = useState("");
+  const [hasReferral, setHasReferral] = useState(false);
   const [link, setLink] = useState("");
   const [nextStep, setNextStep] = useState("");
   const [firstRoundAt, setFirstRoundAt] = useState("");
@@ -31,6 +34,7 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
     setRole("");
     setStatus("ongoing");
     setSource("");
+    setHasReferral(false);
     setLink("");
     setNextStep("");
     setFirstRoundAt("");
@@ -82,6 +86,7 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
           role,
           status,
           source,
+          hasReferral,
           link,
           nextStep,
           firstRoundAt,
@@ -135,10 +140,14 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
         <Field label="Status">
           <select
             value={status}
-            onChange={(e) => setStatus(e.target.value as OpportunityStatus)}
+            onChange={(e) => {
+              const next = e.target.value as OpportunityStatus;
+              setStatus(next);
+              if (next === "referral") setHasReferral(true);
+            }}
             className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card"
           >
-            {INITIAL_STATUSES.map((s) => (
+            {QUICK_ADD_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
@@ -155,6 +164,15 @@ export function QuickAdd({ onCreated }: { onCreated?: (id: string) => void }) {
             placeholder="Direct referral from Vinh"
             className="w-full border-2 border-ink rounded-xl px-3 py-2 bg-card"
           />
+          <label className="mt-2 inline-flex items-center gap-2 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={hasReferral}
+              onChange={(e) => setHasReferral(e.target.checked)}
+              className="h-4 w-4 accent-primary"
+            />
+            Referral
+          </label>
         </Field>
         <Field label="Posting link">
           <input

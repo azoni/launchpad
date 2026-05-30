@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckSquare } from "lucide-react";
+import { CheckSquare, Handshake } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { adminDb } from "@/lib/firebase/admin";
@@ -518,6 +518,8 @@ function OpportunityPreview({ opp }: { opp: OpportunityDoc }) {
   const closed = isClosedOpportunity(opp);
   const rounds = visibleRounds(opp);
   const hasOpenActionItems = opp.hasOpenActionItems === true && !closed;
+  const hasReferral = opp.hasReferral === true || opp.status === "referral";
+  const showStatusPill = !(hasReferral && opp.status === "referral");
   return (
     <div
       className={`rounded-lg border bg-surface px-3 py-2 border-l-[4px] ${
@@ -531,13 +533,19 @@ function OpportunityPreview({ opp }: { opp: OpportunityDoc }) {
           <p className="text-xs text-muted-foreground truncate">{opp.role}</p>
         </div>
         <div className="flex items-center justify-end gap-1.5 flex-wrap">
+          {hasReferral && (
+            <span className="dy-pill dy-pill-outline">
+              <Handshake size={12} />
+              referral
+            </span>
+          )}
           {hasOpenActionItems && (
             <span className="dy-pill dy-pill-accent">
               <CheckSquare size={12} />
               action needed
             </span>
           )}
-          <StatusPill status={opp.status} size="sm" />
+          {showStatusPill && <StatusPill status={opp.status} size="sm" />}
         </div>
       </div>
       <div className="mt-2">

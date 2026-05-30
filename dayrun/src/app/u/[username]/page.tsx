@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CheckSquare } from "lucide-react";
+import { CheckSquare, Handshake } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { adminDb } from "@/lib/firebase/admin";
 import {
@@ -365,6 +365,8 @@ function OppCard({
   const hasComp = !!(comp?.base || comp?.equity || comp?.other);
   const hasInfoChips = !!opp.locationType || hasComp;
   const hasOpenActionItems = opp.hasOpenActionItems === true && !isClosed;
+  const hasReferral = opp.hasReferral === true || opp.status === "referral";
+  const showStatusPill = !(hasReferral && opp.status === "referral");
   const awaitingFeedback = !isClosed && opp.status === "awaiting" && !nextRoundAt;
   const waitingToSchedule = !isClosed && opp.status === "ongoing" && !nextRoundAt;
   const focusEyebrow = isClosed
@@ -414,13 +416,19 @@ function OppCard({
           <p className="text-[13.5px] text-[color:var(--ink-soft)] mt-0.5">{opp.role}</p>
         </div>
         <div className="flex items-center justify-end gap-1.5 flex-wrap">
+          {hasReferral && (
+            <span className="dy-pill dy-pill-outline">
+              <Handshake size={12} />
+              referral
+            </span>
+          )}
           {hasOpenActionItems && (
             <span className="dy-pill dy-pill-accent">
               <CheckSquare size={12} />
               action needed
             </span>
           )}
-          <StatusPill status={opp.status} />
+          {showStatusPill && <StatusPill status={opp.status} />}
         </div>
       </header>
 

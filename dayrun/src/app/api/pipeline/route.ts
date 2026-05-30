@@ -107,6 +107,7 @@ export async function POST(req: Request) {
 
   const company = clean(body.company, 200);
   const role = clean(body.role, 200);
+  const status = sanitizeStatus(body.status);
   if (!company || !role) {
     return NextResponse.json({ error: "company and role required" }, { status: 400 });
   }
@@ -118,7 +119,7 @@ export async function POST(req: Request) {
     id: ref.id,
     company,
     role,
-    status: sanitizeStatus(body.status),
+    status,
     source: clean(body.source, 500),
     link: clean(body.link, 1000),
     nextStep: clean(body.nextStep, 500),
@@ -127,6 +128,7 @@ export async function POST(req: Request) {
     nextRoundAt: cleanDate(body.nextRoundAt),
     plannedRounds: sanitizePlannedRounds(body.plannedRounds),
     interviewRounds: sanitizeInterviewRounds(body.interviewRounds),
+    hasReferral: body.hasReferral === true || status === "referral",
     hasOpenActionItems: false,
     // Public by default — users opted into a public profile, the friction belongs on hiding, not sharing.
     isPublic: body.isPublic !== false,

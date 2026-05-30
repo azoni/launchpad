@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarClock, CheckSquare, ExternalLink, Eye, EyeOff } from "lucide-react";
+import { CalendarClock, CheckSquare, ExternalLink, Eye, EyeOff, Handshake } from "lucide-react";
 import type { Compensation, OpportunityDoc } from "@/lib/firebase/collections";
 import { useAuthUser } from "@/lib/auth";
 import {
@@ -68,6 +68,8 @@ export function OpportunityCard({
   const compensation = formatCompensation(opp.compensation);
   const openActionItemCount = opp.openActionItemCount ?? (opp.hasOpenActionItems ? 1 : 0);
   const hasOpenActionItems = openActionItemCount > 0 || opp.hasOpenActionItems === true;
+  const hasReferral = opp.hasReferral === true || opp.status === "referral";
+  const showStatusPill = !(hasReferral && opp.status === "referral");
 
   return (
     <div className={`block chunky p-4 md:p-5 tilt-hover relative ${hasOpenActionItems ? "chunky-coral" : ""}`}>
@@ -80,13 +82,19 @@ export function OpportunityCard({
             <p className="text-muted-foreground">{opp.role}</p>
           </div>
           <div className="flex items-center justify-end gap-1.5 flex-wrap">
+            {hasReferral && (
+              <span className="dy-pill dy-pill-outline">
+                <Handshake size={12} />
+                referral
+              </span>
+            )}
             {hasOpenActionItems && (
               <span className="dy-pill dy-pill-accent">
                 <CheckSquare size={12} />
                 {openActionItemCount > 1 ? `${openActionItemCount} actions` : "action needed"}
               </span>
             )}
-            <StatusPill status={opp.status} />
+            {showStatusPill && <StatusPill status={opp.status} />}
           </div>
         </div>
         <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">

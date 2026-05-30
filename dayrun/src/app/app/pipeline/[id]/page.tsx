@@ -15,6 +15,7 @@ import {
   Check,
   ClipboardList,
   ExternalLink,
+  Handshake,
   Eye,
   EyeOff,
   Plus,
@@ -50,6 +51,7 @@ import {
 import { formatCalendarDateTime } from "@/lib/calendar-time";
 
 type PageProps = { params: Promise<{ id: string }> };
+const EDITABLE_STATUSES = OPPORTUNITY_STATUSES.filter((status) => status !== "referral");
 
 export default function OpportunityDetailPage(props: PageProps) {
   const { id } = use(props.params);
@@ -222,6 +224,9 @@ export default function OpportunityDetailPage(props: PageProps) {
 
   const actionItems = priv.checklist ?? [];
   const openActionItems = actionItems.filter((item) => item.done !== true).length;
+  const hasReferral = opp.hasReferral === true || opp.status === "referral";
+  const statusOptions =
+    opp.status === "referral" ? OPPORTUNITY_STATUSES : EDITABLE_STATUSES;
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -252,10 +257,16 @@ export default function OpportunityDetailPage(props: PageProps) {
           <div className="flex items-center gap-2 flex-wrap">
             <select
               value={opp.status}
-              onChange={(e) => patch({ status: e.target.value as OpportunityStatus }, "status")}
+              onChange={(e) => {
+                const nextStatus = e.target.value as OpportunityStatus;
+                patch(
+                  { status: nextStatus, hasReferral: hasReferral || nextStatus === "referral" },
+                  "status",
+                );
+              }}
               className="border-2 border-ink rounded-full px-3 py-2 bg-card font-semibold uppercase text-xs min-h-[36px]"
             >
-              {OPPORTUNITY_STATUSES.map((s) => (
+              {statusOptions.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
@@ -274,6 +285,29 @@ export default function OpportunityDetailPage(props: PageProps) {
             >
               {opp.isPublic ? <Eye size={13} /> : <EyeOff size={13} />}
               {opp.isPublic ? "public" : "private"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const nextHasReferral = !hasReferral;
+                patch(
+                  {
+                    hasReferral: nextHasReferral,
+                    ...(nextHasReferral === false && opp.status === "referral"
+                      ? { status: "ongoing" as OpportunityStatus }
+                      : {}),
+                  },
+                  "hasReferral",
+                );
+              }}
+              aria-pressed={hasReferral}
+              className={`min-h-[36px] inline-flex items-center gap-1 px-3 py-1.5 rounded-full border-2 border-ink text-xs font-bold ${
+                hasReferral ? "bg-accent-soft text-primary" : "bg-card text-muted-foreground"
+              }`}
+              title="Mark this opportunity as referral-sourced"
+            >
+              <Handshake size={13} />
+              referral
             </button>
             {opp.isPublic && (
               <span className="text-[0.7rem] text-muted-foreground italic">

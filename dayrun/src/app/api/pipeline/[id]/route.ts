@@ -187,7 +187,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
   }
   if ("status" in body) {
     const v = sanitizeStatus(body.status);
-    if (v) safeUpdate.status = v;
+    if (v) {
+      safeUpdate.status = v;
+      if (v === "referral" && !("hasReferral" in body)) safeUpdate.hasReferral = true;
+    }
   }
   if ("source" in body) safeUpdate.source = clean(body.source, 500);
   if ("link" in body) safeUpdate.link = clean(body.link, 1000);
@@ -207,6 +210,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
     const v = sanitizeLocation(body.locationType);
     if (v !== undefined) safeUpdate.locationType = v;
   }
+  if ("hasReferral" in body) safeUpdate.hasReferral = body.hasReferral === true;
   const isPublicChanging = "isPublic" in body;
   const newIsPublic = body.isPublic === true;
   if (isPublicChanging) safeUpdate.isPublic = newIsPublic;
