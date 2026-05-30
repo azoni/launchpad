@@ -363,6 +363,7 @@ function OppCard({
   const rounds = visibleRounds(opp, 5);
   const comp = opp.publicCompensation;
   const hasComp = !!(comp?.base || comp?.equity || comp?.other);
+  const hasInfoChips = !!opp.locationType || hasComp;
   const hasOpenActionItems = opp.hasOpenActionItems === true && !isClosed;
   const awaitingFeedback = !isClosed && opp.status === "awaiting" && !nextRoundAt;
   const waitingToSchedule = !isClosed && opp.status === "ongoing" && !nextRoundAt;
@@ -410,12 +411,7 @@ function OppCard({
           >
             {opp.company}
           </h3>
-          <p className="text-[13.5px] text-[color:var(--ink-soft)] mt-0.5">
-            {opp.role}
-            {opp.locationType && (
-              <span className="text-[color:var(--faded)]"> · {opp.locationType}</span>
-            )}
-          </p>
+          <p className="text-[13.5px] text-[color:var(--ink-soft)] mt-0.5">{opp.role}</p>
         </div>
         <div className="flex items-center justify-end gap-1.5 flex-wrap">
           {hasOpenActionItems && (
@@ -433,8 +429,9 @@ function OppCard({
         <span>{plannedRoundCount} round process</span>
       </div>
 
-      {hasComp && (
+      {hasInfoChips && (
         <div className="mb-3 flex flex-wrap gap-2">
+          {opp.locationType && <InfoChip label="location" value={opp.locationType} />}
           {comp?.base && <InfoChip label="base" value={comp.base} />}
           {comp?.equity && <InfoChip label="equity" value={comp.equity} />}
           {comp?.other && <InfoChip label="other" value={comp.other} />}
