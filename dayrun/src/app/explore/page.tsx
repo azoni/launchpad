@@ -30,6 +30,16 @@ import {
   roundTitleWithNumber,
   visibleRounds,
 } from "@/lib/pipeline";
+import {
+  DEFAULT_PIPELINE_FILTERS,
+  PIPELINE_LOCATION_FILTERS,
+  PIPELINE_STATUS_FILTERS,
+  hasActivePipelineFilters,
+  matchesPipelineFilters,
+  normalizePipelineLocationFilter,
+  normalizePipelineStatusFilter,
+  type PipelineFilters,
+} from "@/lib/pipeline-filters";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -50,6 +60,10 @@ type PipelinePreview = OpportunityDoc & {
   username: string;
   displayName: string | null;
   photoURL: string | null;
+};
+
+type ExplorePageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 type ProfileSummary = {
@@ -124,7 +138,7 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
       lastSyncedAt: u.lastSyncedAt,
       activePipeline: opps.filter((o) => isActive(o.status)).length,
       closedPipeline: opps.filter((o) => isClosedOpportunity(o)).length,
-      publicPipeline: opps.slice(0, 6),
+      publicPipeline: opps,
       publicPipelineCount: opps.length,
     });
   }
@@ -137,28 +151,65 @@ async function loadPublicProfiles(): Promise<ProfileSummary[]> {
   return summaries;
 }
 
-export default async function ExplorePage() {
+function firstParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function exploreFilterHref(filters: PipelineFilters): string {
+  const params = new URLSearchParams();
+  if (filters.location !== DEFAULT_PIPELINE_FILTERS.location) {
+    params.set("location", filters.location);
+  }
+  if (filters.status !== DEFAULT_PIPELINE_FILTERS.status) {
+    params.set("status", filters.status);
+  }
+  const query = params.toString();
+  return query ? `/explore?${query}` : "/explore";
+}
+
+export default async function ExplorePage({ searchParams }: ExplorePageProps) {
+  const params = searchParams ? await searchParams : {};
+  const filters: PipelineFilters = {
+    location: normalizePipelineLocationFilter(firstParam(params.location)),
+    status: normalizePipelineStatusFilter(firstParam(params.status)),
+  };
+  const filtersActive = hasActivePipelineFilters(filters);
   const profiles = await loadPublicProfiles();
-  const withActivity = profiles.filter((p) => p.publicPipeline.length > 0);
-  const empty = profiles.filter((p) => p.publicPipeline.length === 0);
-  const upcoming: PipelinePreview[] = profiles
+  const filteredProfiles = profiles.map((profile) => {
+    const publicPipeline = profile.publicPipeline.filter((opp) =>
+      matchesPipelineFilters(opp, filters),
+    );
+    return {
+      ...profile,
+      activePipeline: publicPipeline.filter((o) => isActive(o.status)).length,
+      closedPipeline: publicPipeline.filter((o) => isClosedOpportunity(o)).length,
+      publicPipeline: publicPipeline.slice(0, 6),
+      publicPipelineCount: publicPipeline.length,
+    };
+  });
+  const withActivity = filteredProfiles.filter((p) => p.publicPipeline.length > 0);
+  const empty = filtersActive ? [] : filteredProfiles.filter((p) => p.publicPipeline.length === 0);
+  const matchingPreviews: PipelinePreview[] = profiles
     .flatMap((p) =>
-      p.publicPipeline.map((opp) => ({
-        ...opp,
-        username: p.username,
-        displayName: p.displayName,
-        photoURL: p.photoURL,
-      })),
-    )
+      p.publicPipeline
+        .filter((opp) => matchesPipelineFilters(opp, filters))
+        .map((opp) => ({
+          ...opp,
+          username: p.username,
+          displayName: p.displayName,
+          photoURL: p.photoURL,
+        })),
+    );
+  const upcoming: PipelinePreview[] = matchingPreviews
     .filter((opp) => {
       const next = getNextRoundAt(opp);
       return next ? Date.parse(next) >= new Date().setHours(0, 0, 0, 0) : false;
     })
     .sort(compareOpportunitiesByNext)
     .slice(0, 8);
-  const totalActive = profiles.reduce((sum, p) => sum + p.activePipeline, 0);
-  const totalClosed = profiles.reduce((sum, p) => sum + p.closedPipeline, 0);
-  const totalPipeline = profiles.reduce((sum, p) => sum + p.publicPipelineCount, 0);
+  const totalActive = filteredProfiles.reduce((sum, p) => sum + p.activePipeline, 0);
+  const totalClosed = filteredProfiles.reduce((sum, p) => sum + p.closedPipeline, 0);
+  const totalPipeline = filteredProfiles.reduce((sum, p) => sum + p.publicPipelineCount, 0);
 
   return (
     <>
@@ -183,6 +234,44 @@ export default async function ExplorePage() {
             {totalPipeline} public pipeline items shown from live profile data.
           </p>
         </header>
+
+        <section className="chunky p-4 md:p-5 space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <p className="dy-eyebrow">filters</p>
+              <p className="text-sm text-muted-foreground">
+                {totalPipeline} matching public {totalPipeline === 1 ? "card" : "cards"}
+              </p>
+            </div>
+            {filtersActive && (
+              <Link href="/explore" className="dy-pill dy-pill-outline hover:opacity-80">
+                Clear
+              </Link>
+            )}
+          </div>
+          <FilterRow label="location">
+            {PIPELINE_LOCATION_FILTERS.map((filter) => (
+              <FilterLink
+                key={filter.value}
+                active={filters.location === filter.value}
+                href={exploreFilterHref({ ...filters, location: filter.value })}
+              >
+                {filter.label}
+              </FilterLink>
+            ))}
+          </FilterRow>
+          <FilterRow label="status">
+            {PIPELINE_STATUS_FILTERS.map((filter) => (
+              <FilterLink
+                key={filter.value}
+                active={filters.status === filter.value}
+                href={exploreFilterHref({ ...filters, status: filter.value })}
+              >
+                {filter.label}
+              </FilterLink>
+            ))}
+          </FilterRow>
+        </section>
 
         {upcoming.length > 0 && (
           <section className="chunky p-4 md:p-5 space-y-3">
@@ -241,13 +330,23 @@ export default async function ExplorePage() {
 
         {withActivity.length === 0 ? (
           <div className="chunky p-8 text-center space-y-2">
-            <p className="font-heading text-2xl">No public profiles with activity yet.</p>
+            <p className="font-heading text-2xl">
+              {filtersActive ? "No public cards match those filters." : "No public profiles with activity yet."}
+            </p>
             <p className="text-muted-foreground">
-              Be the first.{" "}
-              <Link href="/app" className="underline font-semibold">
-                Sign in
-              </Link>{" "}
-              and toggle a pipeline item public.
+              {filtersActive ? (
+                <Link href="/explore" className="underline font-semibold">
+                  Clear filters
+                </Link>
+              ) : (
+                <>
+                  Be the first.{" "}
+                  <Link href="/app" className="underline font-semibold">
+                    Sign in
+                  </Link>{" "}
+                  and toggle a pipeline item public.
+                </>
+              )}
             </p>
           </div>
         ) : (
@@ -293,6 +392,41 @@ export default async function ExplorePage() {
       </main>
       <Footer />
     </>
+  );
+}
+
+function FilterRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <span className="dy-eyebrow sm:w-20">{label}</span>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </div>
+  );
+}
+
+function FilterLink({
+  active,
+  href,
+  children,
+}: {
+  active: boolean;
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`dy-pill ${active ? "dy-pill-ink" : "dy-pill-outline"} hover:opacity-80`}
+      aria-current={active ? "true" : undefined}
+    >
+      {children}
+    </Link>
   );
 }
 

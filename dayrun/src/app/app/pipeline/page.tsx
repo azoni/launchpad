@@ -27,6 +27,15 @@ import {
   parsePipelineDate,
   todayStartMs,
 } from "@/lib/pipeline";
+import {
+  DEFAULT_PIPELINE_FILTERS,
+  PIPELINE_LOCATION_FILTERS,
+  PIPELINE_STATUS_FILTERS,
+  hasActivePipelineFilters,
+  matchesPipelineFilters,
+  type PipelineLocationFilter,
+  type PipelineStatusFilter,
+} from "@/lib/pipeline-filters";
 
 type OpportunityPrivatePreview = {
   compensation: Compensation | null;
@@ -41,6 +50,12 @@ export default function PipelinePage() {
   const [bootstrapped, setBootstrapped] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
   const [bulkPending, setBulkPending] = useState<"public" | "private" | null>(null);
+  const [locationFilter, setLocationFilter] = useState<PipelineLocationFilter>(
+    DEFAULT_PIPELINE_FILTERS.location,
+  );
+  const [statusFilter, setStatusFilter] = useState<PipelineStatusFilter>(
+    DEFAULT_PIPELINE_FILTERS.status,
+  );
   const oppIdsKey = useMemo(() => opps.map((opp) => opp.id).sort().join("|"), [opps]);
 
   useEffect(() => {
@@ -109,6 +124,15 @@ export default function PipelinePage() {
       })),
     [events, opps, privateByOppId],
   );
+  const pipelineFilters = useMemo(
+    () => ({ location: locationFilter, status: statusFilter }),
+    [locationFilter, statusFilter],
+  );
+  const filteredOpps = useMemo(
+    () => displayOpps.filter((opp) => matchesPipelineFilters(opp, pipelineFilters)),
+    [displayOpps, pipelineFilters],
+  );
+  const filtersActive = hasActivePipelineFilters(pipelineFilters);
 
   if (loading) return <div className="chunky p-8">Loading…</div>;
   if (!user)
@@ -118,10 +142,10 @@ export default function PipelinePage() {
       </div>
     );
 
-  const active = displayOpps
+  const active = filteredOpps
     .filter((o) => isActive(o.status))
     .sort(compareOpportunitiesByNext);
-  const closed = displayOpps
+  const closed = filteredOpps
     .filter((o) => CLOSED_STATUSES.includes(normalizeOpportunityStatus(o.status)))
     .sort((a, b) => b.updatedAt - a.updatedAt);
   const publicCount = displayOpps.filter((o) => o.isPublic).length;
@@ -133,6 +157,8 @@ export default function PipelinePage() {
     const next = parsePipelineDate(getNextRoundAt(o));
     return next !== null && next >= todayStartMs();
   });
+  const showClosedCards =
+    showClosed || statusFilter === "rejected" || statusFilter === "accepted";
 
   async function bulkSetVisibility(next: boolean) {
     if (!user) return;
@@ -194,6 +220,53 @@ export default function PipelinePage() {
       <QuickAdd />
 
       {displayOpps.length > 0 && (
+        <section className="chunky p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <p className="dy-eyebrow">filters</p>
+              <p className="text-sm text-muted-foreground">
+                {filteredOpps.length} of {displayOpps.length} cards
+              </p>
+            </div>
+            {filtersActive && (
+              <button
+                type="button"
+                onClick={() => {
+                  setLocationFilter(DEFAULT_PIPELINE_FILTERS.location);
+                  setStatusFilter(DEFAULT_PIPELINE_FILTERS.status);
+                }}
+                className="dy-pill dy-pill-outline hover:opacity-80"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          <FilterGroup label="location">
+            {PIPELINE_LOCATION_FILTERS.map((filter) => (
+              <FilterButton
+                key={filter.value}
+                active={locationFilter === filter.value}
+                onClick={() => setLocationFilter(filter.value)}
+              >
+                {filter.label}
+              </FilterButton>
+            ))}
+          </FilterGroup>
+          <FilterGroup label="status">
+            {PIPELINE_STATUS_FILTERS.map((filter) => (
+              <FilterButton
+                key={filter.value}
+                active={statusFilter === filter.value}
+                onClick={() => setStatusFilter(filter.value)}
+              >
+                {filter.label}
+              </FilterButton>
+            ))}
+          </FilterGroup>
+        </section>
+      )}
+
+      {displayOpps.length > 0 && (
         <div className={`chunky p-4 space-y-3 ${publicCount === 0 ? "chunky-sun" : ""}`}>
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <p className="text-sm font-mono">
@@ -242,6 +315,13 @@ export default function PipelinePage() {
         </div>
       ) : (
         <>
+          {filtersActive && filteredOpps.length === 0 && (
+            <div className="chunky p-6 text-center">
+              <p className="font-heading text-2xl">No cards match those filters.</p>
+              <p className="text-sm text-muted-foreground mt-1">Clear filters or try a different status.</p>
+            </div>
+          )}
+
           {active.length > 0 && (
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -264,13 +344,27 @@ export default function PipelinePage() {
           {/* Closed (collapsed) */}
           {closed.length > 0 && (
             <section className="space-y-3">
-              <button
-                onClick={() => setShowClosed((s) => !s)}
-                className="btn-chunky btn-ghost w-full justify-center"
-              >
-                {showClosed ? "Hide" : "Show"} {closed.length} closed
-              </button>
-              {showClosed && (
+              {statusFilter === "rejected" || statusFilter === "accepted" ? (
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <h2 className="font-heading text-2xl font-bold">
+                      {statusFilter === "accepted" ? "Accepted" : "Rejected"}
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                      Matching closed pipeline cards.
+                    </p>
+                  </div>
+                  <span className="dy-mono">{closed.length} shown</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowClosed((s) => !s)}
+                  className="btn-chunky btn-ghost w-full justify-center"
+                >
+                  {showClosed ? "Hide" : "Show"} {closed.length} closed
+                </button>
+              )}
+              {showClosedCards && (
                 <div className="grid md:grid-cols-2 gap-3 opacity-80">
                   {closed.map((o) => (
                     <OpportunityCard key={o.id} opp={o} href={`/app/pipeline/${o.id}`} />
@@ -282,5 +376,41 @@ export default function PipelinePage() {
         </>
       )}
     </div>
+  );
+}
+
+function FilterGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <span className="dy-eyebrow sm:w-20">{label}</span>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </div>
+  );
+}
+
+function FilterButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`dy-pill ${active ? "dy-pill-ink" : "dy-pill-outline"} hover:opacity-80`}
+      aria-pressed={active}
+    >
+      {children}
+    </button>
   );
 }
