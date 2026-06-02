@@ -138,6 +138,9 @@ export default async function PublicProfilePage({ params }: PageProps) {
     const next = parsePipelineDate(getNextRoundAt(o));
     return next !== null && next >= todayStartMs();
   }).length;
+  const actionCount = opportunities.filter(
+    (o) => o.hasOpenActionItems === true && isActive(o.status),
+  ).length;
   const totalCount = activeCount + closedCount;
 
   const lastSyncedHuman = user.lastSyncedAt ? humanRelative(user.lastSyncedAt) : null;
@@ -207,10 +210,11 @@ export default async function PublicProfilePage({ params }: PageProps) {
             </div>
           </div>
           <div className="dy-rule mt-4" />
-          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 sm:divide-x divide-[color:var(--hairline)]">
+          <div className="mt-4 grid grid-cols-3 sm:grid-cols-5 gap-y-3 sm:gap-y-0 sm:divide-x divide-[color:var(--hairline)]">
             <StatCell label="total" value={totalCount} />
             <StatCell label="active" value={activeCount} />
             <StatCell label="interviewing" value={interviewingCount} />
+            <StatCell label="action" value={actionCount} accent />
             <StatCell label="closed" value={closedCount} />
           </div>
         </section>
@@ -274,10 +278,23 @@ export default async function PublicProfilePage({ params }: PageProps) {
   );
 }
 
-function StatCell({ label, value }: { label: string; value: number }) {
+function StatCell({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+}) {
   return (
-    <div className="py-2 sm:py-0 sm:px-4 sm:first:pl-0">
-      <p className="font-heading text-2xl font-bold leading-none">{value}</p>
+    <div className="sm:px-4 sm:first:pl-0">
+      <p
+        className="font-heading text-2xl font-bold leading-none"
+        style={accent && value > 0 ? { color: "var(--primary)" } : undefined}
+      >
+        {value}
+      </p>
       <p className="dy-eyebrow mt-1">{label}</p>
     </div>
   );

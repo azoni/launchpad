@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import { isActive } from "@/lib/firebase/collections";
 import {
   compareOpportunitiesByNext,
@@ -39,11 +40,19 @@ export function ProfileBoard({
   const [statusFilter, setStatusFilter] = useState<PipelineStatusFilter>(
     DEFAULT_PIPELINE_FILTERS.status,
   );
+  const [showFilters, setShowFilters] = useState(false);
   const filters = useMemo(
     () => ({ location: locationFilter, status: statusFilter }),
     [locationFilter, statusFilter],
   );
   const filtersActive = hasActivePipelineFilters(filters);
+  const activeFilterCount =
+    (locationFilter !== DEFAULT_PIPELINE_FILTERS.location ? 1 : 0) +
+    (statusFilter !== DEFAULT_PIPELINE_FILTERS.status ? 1 : 0);
+  const clearFilters = () => {
+    setLocationFilter(DEFAULT_PIPELINE_FILTERS.location);
+    setStatusFilter(DEFAULT_PIPELINE_FILTERS.status);
+  };
 
   const sorted = useMemo(
     () => [...opportunities].sort(compareOpportunitiesByNext),
@@ -127,55 +136,67 @@ export function ProfileBoard({
         )}
       </section>
 
-      {/* Filters */}
-      <section className="mt-8 chunky p-4 space-y-3">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <p className="dy-eyebrow">filters</p>
-            <p className="text-sm text-[color:var(--ink-soft)]">
-              {filtered.length} of {opportunities.length} shown
-            </p>
-          </div>
+      {/* Filters — compact disclosure, quiet by default */}
+      <section className="mt-8">
+        <div className="flex items-center flex-wrap gap-x-3 gap-y-2">
+          <button
+            type="button"
+            onClick={() => setShowFilters((s) => !s)}
+            className={`dy-pill ${filtersActive || showFilters ? "dy-pill-ink" : "dy-pill-outline"} hover:opacity-80 py-2`}
+            aria-expanded={showFilters}
+            aria-controls="profile-filter-panel"
+          >
+            <SlidersHorizontal size={13} />
+            Filter
+            {activeFilterCount > 0 && (
+              <span className="ml-0.5 inline-grid place-items-center min-w-[16px] h-4 px-1 rounded-full bg-[color:var(--paper)] text-[color:var(--ink)] text-[10px] font-semibold leading-none">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
           {filtersActive && (
-            <button
-              type="button"
-              onClick={() => {
-                setLocationFilter(DEFAULT_PIPELINE_FILTERS.location);
-                setStatusFilter(DEFAULT_PIPELINE_FILTERS.status);
-              }}
-              className="dy-pill dy-pill-outline hover:opacity-80 py-2"
-              aria-label="Clear filters"
-            >
-              Clear
-            </button>
+            <span className="text-sm text-[color:var(--ink-soft)]">
+              {filtered.length} of {opportunities.length} shown
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="ml-2 underline decoration-[color:var(--hairline-strong)] underline-offset-2 hover:decoration-[color:var(--primary)]"
+              >
+                Clear
+              </button>
+            </span>
           )}
         </div>
-        <FilterGroup label="status">
-          {PIPELINE_STATUS_FILTERS.map((filter) => (
-            <FilterButton
-              key={filter.value}
-              active={statusFilter === filter.value}
-              onClick={() => setStatusFilter(filter.value)}
-            >
-              {filter.label}
-            </FilterButton>
-          ))}
-        </FilterGroup>
-        <FilterGroup label="location">
-          {PIPELINE_LOCATION_FILTERS.map((filter) => (
-            <FilterButton
-              key={filter.value}
-              active={locationFilter === filter.value}
-              onClick={() => setLocationFilter(filter.value)}
-            >
-              {filter.label}
-            </FilterButton>
-          ))}
-        </FilterGroup>
+        {showFilters && (
+          <div id="profile-filter-panel" className="mt-3 space-y-2 pop-in">
+            <FilterGroup label="status">
+              {PIPELINE_STATUS_FILTERS.map((filter) => (
+                <FilterButton
+                  key={filter.value}
+                  active={statusFilter === filter.value}
+                  onClick={() => setStatusFilter(filter.value)}
+                >
+                  {filter.label}
+                </FilterButton>
+              ))}
+            </FilterGroup>
+            <FilterGroup label="location">
+              {PIPELINE_LOCATION_FILTERS.map((filter) => (
+                <FilterButton
+                  key={filter.value}
+                  active={locationFilter === filter.value}
+                  onClick={() => setLocationFilter(filter.value)}
+                >
+                  {filter.label}
+                </FilterButton>
+              ))}
+            </FilterGroup>
+          </div>
+        )}
       </section>
 
       {filtersActive && filtered.length === 0 && (
-        <div className="mt-8 chunky p-6 text-center">
+        <div className="mt-4 chunky p-6 text-center">
           <p className="font-heading text-2xl">No items match those filters.</p>
           <p className="text-sm text-[color:var(--ink-soft)] mt-1">
             Clear filters or try a different status.
@@ -184,7 +205,7 @@ export function ProfileBoard({
       )}
 
       {open.length > 0 && (
-        <section className="mt-8">
+        <section className="mt-4">
           <SectionHeader title="Open pipeline" count={open.length} />
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {open.map((o) => (
