@@ -1,38 +1,28 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CheckSquare, Handshake } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { adminDb } from "@/lib/firebase/admin";
 import {
   COLLECTIONS,
+  CLOSED_STATUSES,
   isActive,
   normalizeOpportunityStatus,
   type ChecklistItem,
   type Compensation,
   type EventDoc,
   type OpportunityDoc,
-  type OpportunityStatus,
   type UserDoc,
 } from "@/lib/firebase/collections";
 import { PublicTimeline } from "@/components/PublicTimeline";
-import { StatusPill } from "@/components/pipeline/StatusPill";
-import { RoundProgressDots } from "@/components/pipeline/RoundProgressDots";
+import { ProfileBoard } from "@/components/profile/ProfileBoard";
+import type { PublicOpportunity } from "@/components/profile/PublicOppCard";
 import { APP_NAME, APP_URL } from "@/lib/utils";
 import {
-  compareOpportunitiesByNext,
-  compactRoundNumberLabel,
   enhanceOpportunityWithEvents,
-  formatPipelineDate,
-  formatPipelineDateLong,
-  getCurrentRound,
-  getFirstRoundAt,
-  getLastRoundAt,
   getNextRoundAt,
-  getPlannedRoundCount,
-  isClosedOpportunity,
-  nextStepLabel,
-  visibleRounds,
+  parsePipelineDate,
+  todayStartMs,
 } from "@/lib/pipeline";
 import { formatCalendarDayDate, todayInTimeZone } from "@/lib/calendar-time";
 
@@ -40,9 +30,6 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 type PageProps = { params: Promise<{ username: string }> };
-type PublicOpportunity = OpportunityDoc & {
-  publicCompensation?: Compensation | null;
-};
 
 function opportunityFromDoc(id: string, data: Record<string, unknown>): OpportunityDoc {
   return {
@@ -133,8 +120,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-const NEGATIVE_CLOSED: OpportunityStatus[] = ["rejected", "withdrew", "ghosted"];
-
 export default async function PublicProfilePage({ params }: PageProps) {
   const { username } = await params;
   const data = await loadProfile(username);
@@ -142,19 +127,18 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
   const { user, events, opportunities } = data;
   const oppsById = new Map(opportunities.map((o) => [o.id, o]));
-  const sortedOpps = [...opportunities].sort(compareOpportunitiesByNext);
 
-  const nowOpps = sortedOpps.filter((o) => isActive(o.status));
-  const accepted = sortedOpps.filter((o) => o.status === "accepted");
-  const closed = sortedOpps.filter((o) => NEGATIVE_CLOSED.includes(o.status));
-  const scheduled = nowOpps.filter((o) => !!getNextRoundAt(o));
-  const actionBlocked = nowOpps.filter((o) => o.hasOpenActionItems === true);
-  const awaitingFeedback = nowOpps.filter(
-    (o) => o.status === "awaiting" && !o.hasOpenActionItems && !getNextRoundAt(o),
-  );
-  const waitingToSchedule = nowOpps.filter(
-    (o) => o.status === "ongoing" && !o.hasOpenActionItems && !getNextRoundAt(o),
-  );
+  // Global stat ribbon (unfiltered) — open + closed.
+  const activeCount = opportunities.filter((o) => isActive(o.status)).length;
+  const closedCount = opportunities.filter((o) =>
+    CLOSED_STATUSES.includes(normalizeOpportunityStatus(o.status)),
+  ).length;
+  const interviewingCount = opportunities.filter((o) => {
+    if (!isActive(o.status)) return false;
+    const next = parsePipelineDate(getNextRoundAt(o));
+    return next !== null && next >= todayStartMs();
+  }).length;
+  const totalCount = activeCount + closedCount;
 
   const lastSyncedHuman = user.lastSyncedAt ? humanRelative(user.lastSyncedAt) : null;
   const dateLine = todayLine();
@@ -184,73 +168,55 @@ export default async function PublicProfilePage({ params }: PageProps) {
         {/* Identity */}
         <section className="chunky p-4 md:p-5">
           <div className="flex items-start gap-3 sm:gap-5">
-          {user.photoURL ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={user.photoURL}
-              alt={`${user.displayName ?? username}`}
-              width={64}
-              height={64}
-              className="rounded-full border border-[color:var(--hairline-strong)]"
-            />
-          ) : (
-            <div
-              className="h-16 w-16 rounded-full grid place-items-center text-[20px] font-medium"
-              style={{
-                background: "var(--accent-soft)",
-                color: "var(--primary)",
-                fontFamily: "var(--font-heading)",
-              }}
-            >
-              {(user.displayName ?? username).slice(0, 1).toUpperCase()}
+            {user.photoURL ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.photoURL}
+                alt={`${user.displayName ?? username}`}
+                width={64}
+                height={64}
+                className="rounded-full border border-[color:var(--hairline-strong)]"
+              />
+            ) : (
+              <div
+                className="h-16 w-16 rounded-full grid place-items-center text-[20px] font-medium"
+                style={{
+                  background: "var(--accent-soft)",
+                  color: "var(--primary)",
+                  fontFamily: "var(--font-heading)",
+                }}
+              >
+                {(user.displayName ?? username).slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0 pt-1">
+              <h1 className="dy-display text-[28px] sm:text-[38px] leading-none">
+                {user.displayName ?? `@${username}`}
+              </h1>
+              <p className="mt-1.5 text-[14px] text-[color:var(--ink-soft)] flex items-center gap-2 flex-wrap">
+                <span className="dy-mono text-[color:var(--faded)]">@{username}</span>
+                <span className="text-[color:var(--faded)]">·</span>
+                <span>{dateLine}</span>
+                {lastSyncedHuman && (
+                  <>
+                    <span className="text-[color:var(--faded)]">·</span>
+                    <span className="text-[color:var(--faded)]">synced {lastSyncedHuman}</span>
+                  </>
+                )}
+              </p>
             </div>
-          )}
-          <div className="min-w-0 pt-1">
-            <h1 className="dy-display text-[28px] sm:text-[38px] leading-none">
-              {user.displayName ?? `@${username}`}
-            </h1>
-            <p className="mt-1.5 text-[14px] text-[color:var(--ink-soft)] flex items-center gap-2 flex-wrap">
-              <span className="dy-mono text-[color:var(--faded)]">@{username}</span>
-              <span className="text-[color:var(--faded)]">·</span>
-              <span>{dateLine}</span>
-              {lastSyncedHuman && (
-                <>
-                  <span className="text-[color:var(--faded)]">·</span>
-                  <span className="text-[color:var(--faded)]">synced {lastSyncedHuman}</span>
-                </>
-              )}
-            </p>
           </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 mt-4 sm:mt-5 sm:grid-cols-3 lg:grid-cols-6">
-            <ProfileStat label="open" value={nowOpps.length} />
-            <ProfileStat label="scheduled" value={scheduled.length} />
-            <ProfileStat label="action items" value={actionBlocked.length} />
-            <ProfileStat label="awaiting" value={awaitingFeedback.length} />
-            <ProfileStat label="to schedule" value={waitingToSchedule.length} />
-            <ProfileStat label="closed" value={accepted.length + closed.length} />
+          <div className="dy-rule mt-4" />
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 sm:divide-x divide-[color:var(--hairline)]">
+            <StatCell label="total" value={totalCount} />
+            <StatCell label="active" value={activeCount} />
+            <StatCell label="interviewing" value={interviewingCount} />
+            <StatCell label="closed" value={closedCount} />
           </div>
         </section>
 
-        {/* Pipeline */}
-        {sortedOpps.length > 0 && (
-          <section className="mt-8">
-            <SectionHeader title="Open pipeline" count={nowOpps.length} />
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {nowOpps.map((o) => <OppCard key={o.id} opp={o} />)}
-            </div>
-          </section>
-        )}
-
-        {(accepted.length > 0 || closed.length > 0) && (
-          <section className="mt-8">
-            <SectionHeader title="Closed outcomes" count={accepted.length + closed.length} />
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {accepted.map((o) => <OppCard key={o.id} opp={o} tone="positive" />)}
-              {closed.map((o) => <OppCard key={o.id} opp={o} tone="negative" muted />)}
-            </div>
-          </section>
-        )}
+        {/* Upcoming + filters + pipeline (client island) */}
+        <ProfileBoard opportunities={opportunities} />
 
         {/* Calendar */}
         <details className="mt-8 chunky p-4 md:p-5">
@@ -308,226 +274,12 @@ export default async function PublicProfilePage({ params }: PageProps) {
   );
 }
 
-function SectionHeader({ title, count }: { title: string; count?: number }) {
+function StatCell({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 pb-2 border-b border-[color:var(--hairline)]">
-      <h2
-        className="dy-display text-[20px] sm:text-[22px]"
-        style={{ fontFamily: "var(--font-heading)", fontWeight: 500 }}
-      >
-        {title}
-      </h2>
-      {count !== undefined && (
-        <span className="dy-mono text-[color:var(--faded)]">{count}</span>
-      )}
-    </div>
-  );
-}
-
-function ProfileStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-lg border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2">
-      <p className="font-heading text-xl font-bold leading-none">{value}</p>
+    <div className="py-2 sm:py-0 sm:px-4 sm:first:pl-0">
+      <p className="font-heading text-2xl font-bold leading-none">{value}</p>
       <p className="dy-eyebrow mt-1">{label}</p>
     </div>
-  );
-}
-
-function InfoChip({ label, value }: { label: string; value: string }) {
-  return (
-    <span className="rounded-full border border-[color:var(--hairline)] bg-[color:var(--surface)] px-2.5 py-1 text-[12px] text-[color:var(--ink-soft)]">
-      <span className="dy-eyebrow mr-1">{label}</span>
-      <span className="font-medium text-[color:var(--ink)]">{value}</span>
-    </span>
-  );
-}
-
-function OppCard({
-  opp,
-  muted,
-  tone,
-}: {
-  opp: PublicOpportunity;
-  muted?: boolean;
-  tone?: "positive" | "negative";
-}) {
-  const isStruck = NEGATIVE_CLOSED.includes(opp.status);
-  const isClosed = isClosedOpportunity(opp);
-  const firstRoundAt = getFirstRoundAt(opp);
-  const nextRoundAt = getNextRoundAt(opp);
-  const lastRoundAt = getLastRoundAt(opp);
-  const currentRound = getCurrentRound(opp);
-  const nextLabel = nextStepLabel(opp);
-  const focusDate = isClosed ? lastRoundAt : nextRoundAt;
-  const plannedRoundCount = getPlannedRoundCount(opp);
-  const rounds = visibleRounds(opp, 5);
-  const comp = opp.publicCompensation;
-  const hasComp = !!(comp?.base || comp?.equity || comp?.other);
-  const hasInfoChips = !!opp.locationType || hasComp;
-  const hasOpenActionItems = opp.hasOpenActionItems === true && !isClosed;
-  const hasReferral = opp.hasReferral === true || opp.status === "referral";
-  const showStatusPill = !(hasReferral && opp.status === "referral");
-  const awaitingFeedback = !isClosed && opp.status === "awaiting" && !nextRoundAt;
-  const waitingToSchedule = !isClosed && opp.status === "ongoing" && !nextRoundAt;
-  const focusEyebrow = isClosed
-    ? "closed with"
-    : hasOpenActionItems
-      ? "blocked"
-      : awaitingFeedback
-        ? "awaiting"
-        : waitingToSchedule
-          ? "to schedule"
-          : "focus next";
-  const focusTitle = hasOpenActionItems
-    ? "Action item open"
-    : nextLabel ??
-      (isClosed
-        ? "Process closed"
-        : awaitingFeedback
-          ? "Waiting on feedback"
-          : waitingToSchedule
-            ? "Waiting to schedule"
-            : "Next step TBD");
-  const topBorderColor =
-    hasOpenActionItems
-      ? "var(--primary)"
-      : tone === "positive" || opp.status === "accepted"
-      ? "var(--positive)"
-      : tone === "negative" || opp.status === "rejected"
-        ? "var(--negative)"
-        : opp.status === "withdrew" || opp.status === "ghosted"
-          ? "var(--hairline-strong)"
-          : "var(--positive)";
-  return (
-    <article
-      className={`chunky p-5 ${muted ? "opacity-70" : ""}`}
-      style={{ boxShadow: `inset 0 2px 0 0 ${topBorderColor}` }}
-    >
-      <header className="flex items-start justify-between gap-2 flex-wrap mb-2">
-        <div className="min-w-0">
-          <h3
-            className={`text-[18px] font-medium leading-tight tracking-tight ${
-              isStruck ? "line-through text-[color:var(--faded)]" : ""
-            }`}
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            {opp.company}
-          </h3>
-          <p className="text-[13.5px] text-[color:var(--ink-soft)] mt-0.5">{opp.role}</p>
-        </div>
-        <div className="flex items-center justify-end gap-1.5 flex-wrap">
-          {hasReferral && (
-            <span className="dy-pill dy-pill-outline">
-              <Handshake size={12} />
-              referral
-            </span>
-          )}
-          {hasOpenActionItems && (
-            <span className="dy-pill dy-pill-accent">
-              <CheckSquare size={12} />
-              action needed
-            </span>
-          )}
-          {showStatusPill && <StatusPill status={opp.status} />}
-        </div>
-      </header>
-
-      <div className="mb-3 flex items-center gap-2 text-[12px] text-[color:var(--faded)]">
-        <RoundProgressDots opp={opp} />
-        <span>{plannedRoundCount} round process</span>
-      </div>
-
-      {hasInfoChips && (
-        <div className="mb-3 flex flex-wrap gap-2">
-          {opp.locationType && <InfoChip label="location" value={opp.locationType} />}
-          {comp?.base && <InfoChip label="base" value={comp.base} />}
-          {comp?.equity && <InfoChip label="equity" value={comp.equity} />}
-          {comp?.other && <InfoChip label="other" value={comp.other} />}
-        </div>
-      )}
-
-      {(hasOpenActionItems || firstRoundAt || nextRoundAt || nextLabel || rounds.length > 0) && (
-        <div className="mt-4 space-y-2">
-          <div
-            className="rounded-md border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2"
-            style={{ boxShadow: isClosed ? undefined : "inset 2px 0 0 0 var(--primary)" }}
-          >
-            <p className="dy-eyebrow">{focusEyebrow}</p>
-            <p className="text-[13px] font-medium text-[color:var(--ink)] mt-1">{focusTitle}</p>
-            <p className="text-[12px] text-[color:var(--faded)] mt-0.5">
-              {formatPipelineDateLong(focusDate, isClosed ? "no final date" : "no date")}
-              {!isClosed && currentRound?.outcome ? ` - ${currentRound.outcome}` : ""}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-md border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2">
-              <p className="dy-eyebrow">first</p>
-              <p className="text-[13px] text-[color:var(--ink)] mt-1">
-                {formatPipelineDate(firstRoundAt, "not set")}
-              </p>
-            </div>
-            <div className="rounded-md border border-[color:var(--hairline)] bg-[color:var(--surface)] px-3 py-2">
-              <p className="dy-eyebrow">{isClosed ? "last" : "rounds"}</p>
-              <p className="text-[13px] text-[color:var(--ink)] mt-1">
-                {isClosed ? formatPipelineDate(lastRoundAt, "not set") : rounds.length}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {rounds.length > 0 && (
-        <ol className="mt-4 space-y-2">
-          {rounds.map((round, index) => (
-            <li key={round.id} className="flex items-start gap-2 text-[13px]">
-              <span
-                className="mt-[7px] h-1.5 w-1.5 rounded-full shrink-0"
-                style={{
-                  background:
-                    round.outcome === "passed"
-                      ? "var(--positive)"
-                      : round.outcome === "did-not-pass" || round.outcome === "cancelled"
-                        ? "var(--faded)"
-                        : "var(--primary)",
-                }}
-              />
-              <div className="min-w-0">
-                <p className="text-[color:var(--ink)] leading-snug">
-                  <span className="text-[color:var(--faded)]">
-                    {compactRoundNumberLabel(round, index + 1)} -{" "}
-                    {formatPipelineDate(round.scheduledAt, "TBD")}
-                  </span>{" "}
-                  {round.title}
-                  <span className="text-[color:var(--faded)]"> · {round.outcome}</span>
-                </p>
-                {round.publicNote && (
-                  <p className="text-[color:var(--ink-soft)] leading-snug mt-0.5">
-                    {round.publicNote}
-                  </p>
-                )}
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
-
-      {(opp.source || opp.link) && (
-        <p className="dy-mono text-[color:var(--faded)] mt-3">
-          {opp.source && <span>via {opp.source}</span>}
-          {opp.source && opp.link && " · "}
-          {opp.link && (
-            <a
-              href={opp.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline decoration-[color:var(--hairline-strong)] underline-offset-2 hover:decoration-[color:var(--primary)]"
-            >
-              posting
-            </a>
-          )}
-        </p>
-      )}
-    </article>
   );
 }
 

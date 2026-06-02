@@ -51,6 +51,43 @@ export function todayStartMs(): number {
   return d.getTime();
 }
 
+/**
+ * Whole days since the opportunity was last in contact. Derived from the last
+ * *past* interview round, falling back to `updatedAt`. The `<= todayStartMs()`
+ * guard matters because `getLastRoundAt` can return an upcoming date through its
+ * fallback chain — an upcoming round is not "last contact". Returns null when
+ * there's no usable timestamp.
+ */
+export function daysSinceLastContact(opp: OpportunityDoc): number | null {
+  const lastRoundTs = parsePipelineDate(getLastRoundAt(opp));
+  const reference =
+    lastRoundTs !== null && lastRoundTs <= todayStartMs()
+      ? lastRoundTs
+      : typeof opp.updatedAt === "number"
+        ? opp.updatedAt
+        : null;
+  if (reference === null) return null;
+  const diff = todayStartMs() - reference;
+  return diff < 0 ? null : Math.floor(diff / 86_400_000);
+}
+
+/**
+ * Short relative-day label for a future date string, used by the Upcoming strip.
+ * "Today" / "Tomorrow" / "in N days" / "next week" / formatted date for anything
+ * further out. Returns null for past or unparseable dates.
+ */
+export function relativeDayLabel(value?: string | null): string | null {
+  const ts = parsePipelineDate(value);
+  if (ts === null) return null;
+  const days = Math.round((ts - todayStartMs()) / 86_400_000);
+  if (days < 0) return null;
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  if (days < 7) return `in ${days} days`;
+  if (days < 14) return "next week";
+  return formatPipelineDate(value, "");
+}
+
 function isScheduledRound(round: InterviewRound): boolean {
   return round.outcome === "scheduled";
 }
