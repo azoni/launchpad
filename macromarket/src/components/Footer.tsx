@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/disclosure", label: "Affiliate Disclosure" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
+  { href: "/stats", label: "Stats" },
 ];
 
 export function Footer() {

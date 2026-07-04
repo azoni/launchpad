@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { searchCatalog } from "@/lib/catalog";
 import { logLlmCall } from "@/lib/claude/cost";
+import { logChat } from "@/lib/stats/log";
 import type { CatalogItem, CategorySlug, DietTag } from "@/lib/catalog/types";
 
 export const runtime = "nodejs";
@@ -187,6 +188,12 @@ export async function POST(req: Request) {
         logLlmCall({
           title: "MacroMarket coach",
           description: lastUser,
+          model: MODEL,
+          inputTokens: inTok,
+          outputTokens: outTok,
+        });
+        await logChat({
+          prompt: lastUser,
           model: MODEL,
           inputTokens: inTok,
           outputTokens: outTok,

@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MacroMarket
 
-## Getting Started
+Ranks foods, snacks, and supplements by **dollars per gram of protein** — the most
+protein for your money. Includes a protein-goal calculator, a deals tab, and a
+Claude-powered protein coach that recommends the cheapest picks.
 
-First, run the development server:
+Next.js (App Router) · TypeScript · Tailwind v4 · Firebase · Amazon Creators API ·
+Anthropic · deployed on Netlify → https://macromarket-app.netlify.app
+
+## Getting started
 
 ```bash
+npm install
+cp .env.example .env.local   # fill in what you need (all keys are optional)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The site works with zero configuration (curated baseline prices). Each env var in
+`.env.example` unlocks one capability.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Pricing: baseline vs. live
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Every catalog item ships with a curated **baseline** price so the site always
+renders. When enabled, live Amazon prices override the baseline automatically.
 
-## Learn More
+**Live pricing is double-gated** — both are required, or the catalog stays on
+baseline estimates:
 
-To learn more about Next.js, take a look at the following resources:
+1. `AMAZON_CLIENT_ID` + `AMAZON_CLIENT_SECRET` valid, **and**
+2. `AMAZON_LIVE_PRICING` set to exactly `"1"` (not `"true"`, not `"0"`).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+> The `AMAZON_LIVE_PRICING` flag is the macromarket equivalent of the oldways
+> backend's `AMAZON_REFRESH_ENABLED`. The **names differ**, so copying oldways'
+> env verbatim leaves live pricing off. See `src/lib/catalog/pricing.ts`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## ASINs (product identity)
 
-## Deploy on Vercel
+`src/data/verified.json` holds the **title-validated** ASIN + image for each
+product. Live pricing, buy links, and images all key off this file — never the
+raw seed ASINs (which were unreliable). Items without a validated ASIN fall back
+to an affiliate **search** link + baseline price.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Maintenance scripts (need `AMAZON_*` creds in env):
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npx tsx scripts/resolve-asins.ts   # search Amazon per product, keep title-matched ASINs → verified.json
+npx tsx scripts/audit-asins.ts     # report OK / WRONG / NODATA for current ASINs
+```
+
+`resolve-asins.ts` only accepts a search result whose title matches the product's
+brand + name, so a wrong-product ASIN can't get in — worst case an item is left on
+the search-link fallback.
+
+## Usage dashboard
+
+Public, no auth (`robots: noindex`):
+
+- **`/stats`** — AI-coach usage, token cost, and affiliate clicks.
+- **`/api/stats`** — the same data as JSON.
+
+Coach chats log to Firestore (`chatLogs`); affiliate clicks log to
+`affiliateClicks` via `/api/click`. Both require Firebase to be configured.
+
+## Deploy
+
+Monorepo app (`azoni/launchpad`), Netlify base directory `macromarket`. Set env
+vars in Netlify, push to `main`, and the git-triggered build deploys.

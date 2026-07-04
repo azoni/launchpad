@@ -53,13 +53,29 @@ function buildItem(seed: CatalogSeedItem, live: LivePricing | null): CatalogItem
   };
 }
 
-/** Resolve seed items → CatalogItems, applying live pricing where available. */
+/** The single validated ASIN for a slug (title-checked, in verified.json), or null. */
+function validatedAsin(id: string): string | null {
+  return VERIFIED[id]?.asin ?? null;
+}
+
+/**
+ * Resolve seed items → CatalogItems, applying live pricing where available.
+ *
+ * Live pricing is keyed off the VALIDATED ASIN (verified.json), never the raw seed
+ * ASIN — the seed ASINs were largely fabricated, so pricing on them would attach a
+ * wrong product's price. Items without a validated ASIN keep their curated baseline.
+ */
 export async function resolveItems(
   seeds: CatalogSeedItem[],
 ): Promise<CatalogItem[]> {
-  const asins = seeds.map((s) => s.asin).filter((a): a is string => !!a);
+  const asins = seeds
+    .map((s) => validatedAsin(s.id))
+    .filter((a): a is string => !!a);
   const live = await getLivePricing(asins);
-  return seeds.map((s) => buildItem(s, (s.asin && live.get(s.asin)) || null));
+  return seeds.map((s) => {
+    const asin = validatedAsin(s.id);
+    return buildItem(s, (asin && live.get(asin)) || null);
+  });
 }
 
 /** Cheapest $/g first; no-price items sink to the bottom. */
