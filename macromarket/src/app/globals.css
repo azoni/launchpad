@@ -1,0 +1,203 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ------------------------------------------------------------------ *
+ * MacroMarket — warm, editorial, considered. Inspired by the Old Ways
+ * Today design language: paper backgrounds, a brown text scale, a fresh
+ * leaf green for the value metric, terracotta CTAs, gold for deals, and
+ * soft layered shadows. Fraunces (display) + DM Sans (body).
+ * ------------------------------------------------------------------ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-body: var(--font-body);
+  --font-display: var(--font-display);
+  --font-heading: var(--font-display);
+
+  /* semantic (shadcn-style) so existing ui/* components restyle for free */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* named brand tokens */
+  --color-paper: #faf7f1;
+  --color-surface: #ffffff;
+  --color-ink: #2c2418;
+  --color-ink-soft: #5c4d3c;
+  --color-line: #ebe4d7;
+  --color-line-strong: #ddd2bf;
+  --color-leaf: #567b45;
+  --color-leaf-deep: #3f5f31;
+  --color-leaf-soft: #edf3e7;
+  --color-clay: #c26a45;
+  --color-clay-deep: #ad5a37;
+  --color-clay-soft: #f9ece4;
+  --color-gold: #c2912f;
+  --color-gold-soft: #faf1dc;
+  --color-berry: #b1402c;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+
+  --shadow-card: 0 2px 12px rgba(44, 36, 24, 0.05), 0 0 0 1px rgba(44, 36, 24, 0.045);
+  --shadow-card-hover: 0 12px 34px rgba(44, 36, 24, 0.1), 0 0 0 1px rgba(44, 36, 24, 0.05);
+}
+
+:root {
+  --background: #faf7f1;
+  --foreground: #2c2418;
+  --card: #ffffff;
+  --card-foreground: #2c2418;
+  --popover: #ffffff;
+  --popover-foreground: #2c2418;
+
+  --primary: #567b45; /* leaf green — the value/protein accent */
+  --primary-foreground: #ffffff;
+
+  --secondary: #edf3e7; /* soft leaf */
+  --secondary-foreground: #3f5f31;
+
+  --muted: #f2ece1; /* warm sand */
+  --muted-foreground: #8b7b65; /* brown-400 */
+
+  --accent: #faf1dc; /* soft gold (deals) */
+  --accent-foreground: #8a6414;
+
+  --destructive: #b1402c;
+  --destructive-foreground: #ffffff;
+
+  --border: #ebe4d7;
+  --input: #ebe4d7;
+  --ring: #567b45;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display), Georgia, "Times New Roman", serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+  }
+  /* tabular figures for prices / metrics */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* ---- Cards: soft, warm, photo-forward (redefines the old class name) ---- */
+.price-tag-card,
+.card-soft {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.price-tag-card:hover,
+.card-soft.is-interactive:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+.price-tag-card::before {
+  content: none; /* remove the old punched-hole detail */
+}
+
+/* ---- Buttons (redefines the old .btn-tag as a clean, soft button) ---- */
+.btn-tag,
+.btn-clay,
+.btn-soft {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-body), sans-serif;
+  font-weight: 600;
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid transparent;
+  box-shadow: 0 1px 2px rgba(44, 36, 24, 0.06);
+  transition: background-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+.btn-tag:hover,
+.btn-clay:hover,
+.btn-soft:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(44, 36, 24, 0.12);
+}
+.btn-tag:active,
+.btn-clay:active,
+.btn-soft:active {
+  transform: translateY(0);
+}
+/* primary CTA = terracotta */
+.btn-clay {
+  background: var(--color-clay);
+  color: #fff;
+}
+.btn-clay:hover {
+  background: var(--color-clay-deep);
+}
+/* soft neutral button */
+.btn-soft {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-color: var(--color-line-strong);
+}
+.btn-soft:hover {
+  background: #fbf8f2;
+}
+
+/* ---- Pills / metric chips ---- */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.6rem;
+}
+
+/* focus ring, sage tint */
+.focus-ring:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(86, 123, 69, 0.18);
+  border-color: var(--color-leaf);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-rise { animation: rise 0.3s ease-out; }

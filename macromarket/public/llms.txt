@@ -1,0 +1,22 @@
+# MacroMarket
+
+> MacroMarket ranks foods, snacks, and supplements by dollars per gram of protein, so people can hit their daily protein goal for the least money. It covers packaged products (whey and plant protein powder, bars, ready-to-drink shakes, jerky, canned fish, Greek yogurt, protein cereal, nut butters) and whole foods (chicken, eggs, lentils, tofu, seafood), with buy links to Amazon.
+
+## Key facts
+
+- The signature metric is cost per gram of protein: a product's price divided by the total grams of protein in the package.
+- Whole foods (chicken breast, eggs, canned tuna, dried lentils) are usually the cheapest protein per gram; bars, jerky, and ready-to-drink shakes cost the most per gram.
+- Protein and calorie data come from product labels and USDA FoodData Central. Prices are curated estimates and should be verified on Amazon.
+- MacroMarket earns Amazon affiliate commissions; this never affects rankings.
+
+## Pages
+
+- [Protein value leaderboard](https://macromarket-app.netlify.app/): every food ranked by cost per gram of protein, with filters for diet, category, and whole-foods.
+- [Protein goal calculator](https://macromarket-app.netlify.app/calculator): enter body weight and a goal to get a daily protein target and the cheapest foods to hit it.
+- [AI protein coach](https://macromarket-app.netlify.app/coach): a chatbot that answers protein questions and recommends the cheapest catalog products for your goal.
+- [How it works](https://macromarket-app.netlify.app/about): the methodology behind the cost-per-gram ranking and data sources.
+- [FAQ](https://macromarket-app.netlify.app/faq): common questions about the metric, prices, and protein needs.
+
+## Categories
+
+Whey & casein powder, plant protein powder, protein bars, ready-to-drink shakes, jerky & meat snacks, canned tuna & seafood, Greek yogurt & cottage cheese, protein cereal & snacks, nut & seed butters, chicken & lean meat, eggs & dairy, legumes & beans, tofu & soy, fresh & frozen seafood.

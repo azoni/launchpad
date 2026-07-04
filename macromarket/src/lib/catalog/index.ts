@@ -1,0 +1,167 @@
+import { CATALOG } from "@/data/catalog";
+import IMAGES from "@/data/images.json";
+import VERIFIED_JSON from "@/data/verified.json";
+import { affiliateSearchUrl, affiliateUrl } from "@/lib/amazon/asin";
+import { computeMetrics, costSortKey } from "./metrics";
+import { getLivePricing } from "./pricing";
+import type {
+  CatalogItem,
+  CatalogSeedItem,
+  CategorySlug,
+  DietTag,
+  LivePricing,
+} from "./types";
+
+export type { CatalogItem, CatalogSeedItem } from "./types";
+
+const IMAGE_MAP = IMAGES as Record<string, string>;
+const VERIFIED = VERIFIED_JSON as Record<string, { asin: string; image: string }>;
+
+function buildItem(seed: CatalogSeedItem, live: LivePricing | null): CatalogItem {
+  const priceIsLive = live?.priceCents != null;
+  const effectivePriceCents = priceIsLive
+    ? (live as LivePricing).priceCents
+    : seed.priceCents;
+
+  // Only VERIFIED ASINs are used — for a direct product link and a real Amazon
+  // photo. Unverified candidate ASINs fall back to an affiliate search link.
+  const verified = VERIFIED[seed.id];
+  const asin = verified?.asin ?? null;
+
+  const buyUrl = asin
+    ? affiliateUrl(asin)
+    : affiliateSearchUrl(`${seed.name} ${seed.brand ?? ""}`.trim());
+
+  // Image priority: live Amazon → verified Amazon photo → Open Food Facts → none.
+  const imageUrl =
+    live?.imageUrl || verified?.image || IMAGE_MAP[seed.id] || seed.imageUrl;
+
+  return {
+    ...seed,
+    asin,
+    imageUrl,
+    live,
+    effectivePriceCents,
+    priceIsLive,
+    priceIsEstimate: !priceIsLive,
+    inStock: live?.inStock ?? true,
+    rating: live?.rating ?? null,
+    reviewCount: live?.reviewCount ?? null,
+    savingsPercent: live?.savingsPercent ?? null,
+    buyUrl,
+    metrics: computeMetrics(seed, effectivePriceCents),
+  };
+}
+
+/** Resolve seed items → CatalogItems, applying live pricing where available. */
+export async function resolveItems(
+  seeds: CatalogSeedItem[],
+): Promise<CatalogItem[]> {
+  const asins = seeds.map((s) => s.asin).filter((a): a is string => !!a);
+  const live = await getLivePricing(asins);
+  return seeds.map((s) => buildItem(s, (s.asin && live.get(s.asin)) || null));
+}
+
+/** Cheapest $/g first; no-price items sink to the bottom. */
+export function sortByCost(items: CatalogItem[]): CatalogItem[] {
+  return [...items].sort(
+    (a, b) =>
+      costSortKey(a.metrics.costPerGramProteinCents) -
+      costSortKey(b.metrics.costPerGramProteinCents),
+  );
+}
+
+export async function getAllItems(): Promise<CatalogItem[]> {
+  return sortByCost(await resolveItems(CATALOG));
+}
+
+export async function getItemsByCategory(
+  category: CategorySlug,
+): Promise<CatalogItem[]> {
+  return sortByCost(
+    await resolveItems(CATALOG.filter((s) => s.category === category)),
+  );
+}
+
+export async function getItemBySlug(slug: string): Promise<CatalogItem | null> {
+  const seed = CATALOG.find((s) => s.id === slug);
+  if (!seed) return null;
+  const [item] = await resolveItems([seed]);
+  return item ?? null;
+}
+
+/** Neighbors around an item on the $/g ladder (for the "compare to" section). */
+export async function getNeighbors(
+  slug: string,
+  span = 3,
+): Promise<CatalogItem[]> {
+  const all = await getAllItems();
+  const idx = all.findIndex((i) => i.id === slug);
+  if (idx === -1) return [];
+  return all
+    .slice(Math.max(0, idx - span), idx + span + 1)
+    .filter((i) => i.id !== slug);
+}
+
+export function allSlugs(): string[] {
+  return CATALOG.map((s) => s.id);
+}
+
+/**
+ * Deals view: real Amazon sale items (when live pricing is on) plus the
+ * best-value pick in every category (the "best deal in each aisle").
+ */
+export async function getDeals(): Promise<{
+  onSale: CatalogItem[];
+  bestValue: CatalogItem[];
+  hasLiveDeals: boolean;
+}> {
+  const all = await getAllItems(); // sorted cheapest $/g first
+  const onSale = all
+    .filter((i) => (i.savingsPercent ?? 0) > 0 && i.inStock)
+    .sort((a, b) => (b.savingsPercent ?? 0) - (a.savingsPercent ?? 0));
+
+  const seen = new Set<string>();
+  const bestValue: CatalogItem[] = [];
+  for (const it of all) {
+    if (it.metrics.costPerGramProteinCents == null) continue;
+    if (!seen.has(it.category)) {
+      seen.add(it.category);
+      bestValue.push(it);
+    }
+  }
+  return { onSale, bestValue, hasLiveDeals: onSale.length > 0 };
+}
+
+export function seedBySlug(slug: string): CatalogSeedItem | undefined {
+  return CATALOG.find((s) => s.id === slug);
+}
+
+/** Server-side catalog search used by the AI coach's `search_catalog` tool. */
+export async function searchCatalog(opts: {
+  query?: string;
+  dietTag?: DietTag;
+  category?: CategorySlug;
+  maxCostPerGramCents?: number;
+  limit?: number;
+}): Promise<CatalogItem[]> {
+  let items = await getAllItems();
+  const q = opts.query?.toLowerCase().trim();
+  if (q) {
+    items = items.filter((i) =>
+      `${i.name} ${i.brand ?? ""} ${i.category} ${i.form} ${i.editorialBlurb}`
+        .toLowerCase()
+        .includes(q),
+    );
+  }
+  if (opts.dietTag) items = items.filter((i) => i.dietTags.includes(opts.dietTag!));
+  if (opts.category) items = items.filter((i) => i.category === opts.category);
+  if (opts.maxCostPerGramCents != null) {
+    items = items.filter(
+      (i) =>
+        i.metrics.costPerGramProteinCents != null &&
+        i.metrics.costPerGramProteinCents <= opts.maxCostPerGramCents!,
+    );
+  }
+  return items.slice(0, opts.limit ?? 5);
+}
