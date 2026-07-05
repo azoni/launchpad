@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { getAllItems } from "@/lib/catalog";
+import { CATALOG } from "@/data/catalog";
+import { computeMetrics } from "@/lib/catalog/metrics";
 import { logLlmCall } from "@/lib/claude/cost";
 import { formatPer10g } from "@/lib/format";
 import { allow } from "@/lib/rateLimit";
@@ -41,15 +42,19 @@ export async function POST(req: Request) {
   const topic = (b.topic ?? "").trim();
   if (!topic) return json({ error: "topic is required" }, 400);
 
-  const items = await getAllItems();
-  const data = items
-    .filter((i) => i.metrics.costPerGramProteinCents != null)
+  // Ground on curated BASELINE data (fast — no live catalog fetch), cheapest first.
+  const data = CATALOG.map((s) => ({
+    s,
+    cpg: computeMetrics(s, s.priceCents).costPerGramProteinCents,
+  }))
+    .filter((x): x is { s: (typeof CATALOG)[number]; cpg: number } => x.cpg != null)
+    .sort((a, b) => a.cpg - b.cpg)
     .slice(0, 30)
     .map(
-      (i) =>
-        `- ${i.name}${i.brand ? ` (${i.brand})` : ""} — ${formatPer10g(
-          i.metrics.costPerGramProteinCents,
-        )}/10g protein, ${i.proteinPerServing_g}g protein/serving, category ${i.category}, slug ${i.id}`,
+      ({ s, cpg }) =>
+        `- ${s.name}${s.brand ? ` (${s.brand})` : ""} — ${formatPer10g(
+          cpg,
+        )}/10g protein, ${s.proteinPerServing_g}g protein/serving, category ${s.category}, slug ${s.id}`,
     )
     .join("\n");
 
