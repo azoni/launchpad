@@ -7,7 +7,6 @@ export const metadata: Metadata = {
   description:
     "Chat with the MacroMarket protein coach — get the cheapest foods to hit your protein goal, grounded in real cost-per-gram data.",
   alternates: { canonical: `${APP_URL}/coach` },
-  robots: { index: false, follow: false },
 };
 
 export default function CoachPage() {

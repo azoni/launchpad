@@ -85,7 +85,7 @@
   {
     "name": "MacroMarket",
     "slug": "macromarket",
-    "description": "Ranks 146 foods, snacks, and supplements by dollars per gram of protein. Includes a protein-goal calculator, a deals tab, and a Claude-powered protein coach that recommends the cheapest picks.",
+    "description": "Ranks 187 foods, snacks, and supplements by dollars per gram of protein. Includes a protein-goal calculator, a deals tab, and a Claude-powered protein coach that recommends the cheapest picks.",
     "url": "https://macromarket-app.netlify.app",
     "tags": [
       "Next.js",

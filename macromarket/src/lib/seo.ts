@@ -59,6 +59,12 @@ export function itemListJsonLd(
   };
 }
 
+/** Absolute URL for an image that may be a remote URL or a site-relative path. */
+function absoluteUrl(src: string | null | undefined): string | undefined {
+  if (!src) return undefined;
+  return src.startsWith("http") ? src : `${APP_URL}${src}`;
+}
+
 export function productJsonLd(item: CatalogItem): Record<string, unknown> {
   const data: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -68,16 +74,26 @@ export function productJsonLd(item: CatalogItem): Record<string, unknown> {
     category: item.category,
     url: `${APP_URL}/food/${item.id}`,
   };
+  const image = absoluteUrl(item.imageUrl);
+  if (image) data.image = image;
   if (item.brand) data.brand = { "@type": "Brand", name: item.brand };
+  if (item.asin) data.sku = item.asin;
   if (item.effectivePriceCents != null) {
+    // Google requires a future priceValidUntil to show the price in rich results.
+    const priceValidUntil = new Date(Date.now() + 90 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
     data.offers = {
       "@type": "Offer",
       priceCurrency: "USD",
       price: (item.effectivePriceCents / 100).toFixed(2),
+      priceValidUntil,
+      itemCondition: "https://schema.org/NewCondition",
       availability: item.inStock
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
       url: item.buyUrl,
+      seller: { "@type": "Organization", name: "Amazon" },
     };
   }
   if (item.rating != null && item.reviewCount) {

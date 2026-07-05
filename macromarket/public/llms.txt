@@ -12,6 +12,7 @@
 ## Pages
 
 - [Protein value leaderboard](https://macromarket-app.netlify.app/): every food ranked by cost per gram of protein, with filters for diet, category, and whole-foods.
+- [Protein deals](https://macromarket-app.netlify.app/deals): current Amazon sale prices plus the best-value pick in every category, ranked by cost per gram of protein.
 - [Protein goal calculator](https://macromarket-app.netlify.app/calculator): enter body weight and a goal to get a daily protein target and the cheapest foods to hit it.
 - [AI protein coach](https://macromarket-app.netlify.app/coach): a chatbot that answers protein questions and recommends the cheapest catalog products for your goal.
 - [How it works](https://macromarket-app.netlify.app/about): the methodology behind the cost-per-gram ranking and data sources.
