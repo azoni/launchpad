@@ -19,12 +19,12 @@ export async function GET() {
     if (db) {
       const snap = await db
         .collection(COLLECTIONS.affiliateClicks)
-        .select("slug")
+        .orderBy("ts", "desc")
         .limit(CLICK_LIMIT)
         .get();
       clicks = snap.size;
       for (const doc of snap.docs) {
-        grams += totalProteinGForSlug(String(doc.get("slug") ?? ""));
+        grams += totalProteinGForSlug(String(doc.data().slug ?? ""));
       }
     }
   } catch {
