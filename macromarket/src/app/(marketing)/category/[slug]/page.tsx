@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ProductRow } from "@/components/ProductRow";
+import { ProductCard } from "@/components/ProductCard";
 import { JsonLd } from "@/components/JsonLd";
 import { getItemsByCategory } from "@/lib/catalog";
 import { CATEGORIES } from "@/lib/catalog/categories";
@@ -87,9 +87,9 @@ export default async function CategoryPage({
         </p>
       )}
 
-      <div className="mt-6 flex flex-col gap-3">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {items.map((it, i) => (
-          <ProductRow key={it.id} item={it} rank={i + 1} source="category" />
+          <ProductCard key={it.id} item={it} rank={i + 1} source="category" />
         ))}
       </div>
 

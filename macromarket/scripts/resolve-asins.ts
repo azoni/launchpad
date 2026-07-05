@@ -11,6 +11,7 @@
 import { writeFileSync } from "node:fs";
 import { CATALOG } from "../src/data/catalog";
 import { searchItems } from "../src/lib/amazon/client";
+import type { ProteinForm } from "../src/lib/catalog/types";
 
 const STOP = new Set([
   "the","and","for","with","protein","powder","organic","natural","pack","count",
@@ -18,6 +19,37 @@ const STOP = new Set([
 ]);
 const toks = (s: string) =>
   new Set((s.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter((t) => t.length > 2 && !/^\d+$/.test(t)));
+
+// Cross-type products a search can surface (same brand, wrong item) — reject these so a
+// "whey" item never matches a creatine tub, a bar never matches a drink mix, etc.
+const GENERIC_BAD = [
+  "shaker", "blender bottle", "funnel", "scoop", "sticker", "keychain",
+  "t-shirt", "tank top", "sample", "gift card", "variety try",
+];
+const FORBIDDEN: Partial<Record<ProteinForm, string[]>> = {
+  powder: [
+    "creatine", "pre-workout", "pre workout", "preworkout", "bcaa", "eaa",
+    "glutamine", "carnitine", "beta-alanine", "beta alanine", "nitric", "pump",
+    "multivitamin", "vitamin c", "greens", "electrolyte", "hydration",
+    "capsule", "tablet", "softgel", "gummy", "gummies",
+  ],
+  bar: ["powder", "drink mix", "creatine", "capsule", "gummies", "granola cereal"],
+  "rtd-shake": ["powder", "creatine", "capsule", "protein bar"],
+  "jerky-meat-snack": ["powder", "capsule", "dog treat", "cat treat"],
+  "canned-seafood": ["powder", "capsule", "oil supplement", "fish oil"],
+  "yogurt-dairy": ["powder", "capsule", "starter culture"],
+  "cereal-snack": ["powder", "creatine", "capsule"],
+  "nut-seed-butter": ["protein powder", "capsule", "powdered peanut"],
+  "tofu-soy": ["powder", "sauce", "soy milk", "candle"],
+  "whole-food": ["powder", "supplement", "capsule", "vitamin", "seasoning only"],
+};
+
+/** True if a candidate title is a wrong-type product for this item's form. */
+function isForbidden(form: ProteinForm, title: string): boolean {
+  const t = title.toLowerCase();
+  if (GENERIC_BAD.some((b) => t.includes(b))) return true;
+  return (FORBIDDEN[form] ?? []).some((b) => t.includes(b));
+}
 
 async function main() {
   const items = CATALOG.filter((c) => c.asin); // branded packaged products only (whole foods stay search-link)
@@ -35,6 +67,7 @@ async function main() {
       const results = await searchItems(query, "All");
       for (const r of results) {
         if (!r.asin || !r.title) continue;
+        if (isForbidden(c.form, r.title)) continue; // wrong-type variant (creatine vs whey, etc.)
         const tt = toks(r.title);
         const ov = [...nameToks].filter((t) => !STOP.has(t) && tt.has(t)).length;
         const brandOk = brandToks.size === 0 || [...brandToks].some((b) => tt.has(b));

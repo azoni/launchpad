@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BuyButton } from "@/components/BuyButton";
-import { ProductRow } from "@/components/ProductRow";
+import { ProductCard } from "@/components/ProductCard";
 import { PlaceholderImage } from "@/components/PlaceholderImage";
 import { Badge } from "@/components/ui/badge";
 import { JsonLd } from "@/components/JsonLd";
@@ -138,7 +138,7 @@ export default async function FoodPage({
 
       <div className="flex flex-col gap-6 sm:flex-row">
         <PlaceholderImage
-          form={item.form}
+          category={item.category}
           imageUrl={item.imageUrl}
           alt={item.imageAlt}
           className="h-32 w-32 shrink-0 rounded-xl border border-line"
@@ -254,9 +254,9 @@ export default async function FoodPage({
           <h2 className="mb-3 font-heading text-xl font-bold text-ink">
             Compare to similar-value options
           </h2>
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {neighbors.map((n) => (
-              <ProductRow key={n.id} item={n} source="compare" />
+              <ProductCard key={n.id} item={n} source="compare" />
             ))}
           </div>
         </section>

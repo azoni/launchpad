@@ -1,34 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { FORM_LABELS } from "@/lib/catalog/categories";
-import type { ProteinForm } from "@/lib/catalog/types";
+import { CategoryIcon } from "@/components/CategoryIcon";
+import type { CategorySlug } from "@/lib/catalog/types";
 import { cn } from "@/lib/utils";
 
-const FORM_EMOJI: Record<ProteinForm, string> = {
-  powder: "🥤",
-  bar: "🍫",
-  "rtd-shake": "🧴",
-  "jerky-meat-snack": "🥩",
-  "canned-seafood": "🐟",
-  "yogurt-dairy": "🥛",
-  "cereal-snack": "🥣",
-  "nut-seed-butter": "🥜",
-  "tofu-soy": "🧈",
-  "whole-food": "🍗",
-};
-
 /**
- * Product image tile. Shows a real photo when it loads; on any load error it
- * falls back to a clean branded tile — so a dead image URL never looks broken.
+ * Product image tile. Shows a real photo when it loads; on any load error — or for
+ * whole foods that have no product photo — it falls back to a clean illustrated tile
+ * with the category's custom line icon (chicken, egg, beans, fish…), never a broken
+ * image or a generic emoji.
  */
 export function PlaceholderImage({
-  form,
+  category,
   imageUrl,
   alt,
   className,
 }: {
-  form: ProteinForm;
+  category: CategorySlug;
   imageUrl?: string;
   alt: string;
   className?: string;
@@ -40,7 +29,7 @@ export function PlaceholderImage({
     <div
       className={cn(
         "flex shrink-0 items-center justify-center overflow-hidden",
-        showImg ? "bg-white" : "bg-muted",
+        showImg ? "bg-white" : "bg-[color:var(--color-leaf-soft)]",
         className,
       )}
     >
@@ -50,21 +39,16 @@ export function PlaceholderImage({
           src={imageUrl}
           alt={alt}
           onError={() => setFailed(true)}
-          className="h-full w-full object-contain p-1"
+          className="h-full w-full object-contain p-2"
           loading="lazy"
         />
       ) : (
         <div
           role="img"
           aria-label={alt}
-          className="flex flex-col items-center justify-center gap-0.5 text-muted-foreground"
+          className="flex h-full w-full items-center justify-center text-[color:var(--color-leaf-deep)]"
         >
-          <span className="text-2xl leading-none" aria-hidden="true">
-            {FORM_EMOJI[form]}
-          </span>
-          <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
-            {FORM_LABELS[form]}
-          </span>
+          <CategoryIcon slug={category} className="h-1/2 w-1/2" strokeWidth={1.5} />
         </div>
       )}
     </div>

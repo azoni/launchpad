@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Tag } from "lucide-react";
-import { ProductRow } from "@/components/ProductRow";
+import { ProductCard } from "@/components/ProductCard";
 import { JsonLd } from "@/components/JsonLd";
 import { getDeals } from "@/lib/catalog";
 import { itemListJsonLd } from "@/lib/seo";
@@ -40,9 +40,9 @@ export default async function DealsPage() {
           <h2 className="mb-3 font-heading text-2xl font-bold text-ink">
             🔥 On sale now
           </h2>
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {onSale.map((it, i) => (
-              <ProductRow key={it.id} item={it} rank={i + 1} source="leaderboard" />
+              <ProductCard key={it.id} item={it} rank={i + 1} source="leaderboard" />
             ))}
           </div>
         </section>
@@ -56,9 +56,9 @@ export default async function DealsPage() {
           The single cheapest-per-gram protein in each aisle — the best deal
           whether or not it&apos;s technically &ldquo;on sale.&rdquo;
         </p>
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {bestValue.map((it, i) => (
-            <ProductRow key={it.id} item={it} rank={i + 1} source="leaderboard" />
+            <ProductCard key={it.id} item={it} rank={i + 1} source="leaderboard" />
           ))}
         </div>
       </section>

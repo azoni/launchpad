@@ -59,7 +59,7 @@ function Column({ item }: { item: CatalogItem }) {
   return (
     <div className="price-tag-card flex-1 p-5">
       <PlaceholderImage
-        form={item.form}
+        category={item.category}
         imageUrl={item.imageUrl}
         alt={item.imageAlt}
         className="mb-3 h-20 w-20 rounded-lg border border-line"

@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, RotateCcw, Search, X } from "lucide-react";
-import { ProductRow } from "@/components/ProductRow";
+import { CategoryIcon } from "@/components/CategoryIcon";
+import { ProductCard } from "@/components/ProductCard";
 import {
   CATEGORIES,
   CATEGORY_BY_SLUG,
-  CATEGORY_EMOJI,
   CATEGORY_GROUPS,
   DIET_TAG_LABELS,
 } from "@/lib/catalog/categories";
@@ -51,7 +51,6 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
 
   const dirty = q !== "" || s.category !== "all" || s.diet !== "all";
 
-  // Count + cheapest $/g per category, from the full catalog (not the filtered view).
   const catStats = useMemo(() => {
     const m = new Map<CategorySlug, { count: number; best: number | null }>();
     for (const it of items) {
@@ -99,7 +98,6 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
   }, [items, q, s]);
 
   const activeCat = s.category !== "all" ? CATEGORY_BY_SLUG[s.category] : null;
-
   const setCat = (category: CategorySlug | "all") =>
     setS((p) => ({ ...p, category }));
 
@@ -111,23 +109,23 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder={`Search ${items.length} foods, brands, and snacks…`}
-          className="h-14 w-full rounded-xl border border-line-strong bg-white pl-12 pr-10 text-base font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          placeholder={`Search ${items.length} foods, brands, snacks…`}
+          className="h-14 w-full rounded-xl border border-line-strong bg-white pl-12 pr-11 text-base font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
           aria-label="Search foods"
         />
         {q && (
           <button
             onClick={() => setQ("")}
             aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-ink"
+            className="absolute right-2.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-ink"
           >
             <X className="size-4" />
           </button>
         )}
       </div>
 
-      {/* Browse by category — the whole point: everything visible at a glance */}
-      <section className="mt-4 rounded-xl border border-line bg-white p-3.5 sm:p-4">
+      {/* Browse by category — icons + counts, everything visible & tappable */}
+      <section className="mt-4 rounded-xl border border-line bg-white p-3 sm:p-4">
         <div className="mb-2.5 flex items-center justify-between">
           <h2 className="font-heading text-base font-bold text-ink">
             Browse by category
@@ -135,7 +133,7 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
           <button
             onClick={() => setCat("all")}
             className={cn(
-              "rounded-full px-3 py-1 text-xs font-bold transition-colors",
+              "rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors",
               s.category === "all"
                 ? "bg-primary text-primary-foreground"
                 : "border border-line bg-white text-ink hover:bg-secondary",
@@ -161,24 +159,31 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
                       onClick={() => setCat(active ? "all" : c.slug)}
                       aria-pressed={active}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-all",
+                        "flex min-h-14 items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-all",
                         active
                           ? "border-primary bg-secondary ring-1 ring-primary"
                           : "border-line bg-white hover:-translate-y-0.5 hover:border-line-strong hover:shadow-sm",
                       )}
                     >
-                      <span className="text-xl leading-none" aria-hidden>
-                        {CATEGORY_EMOJI[c.slug]}
+                      <span
+                        className={cn(
+                          "flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors",
+                          active
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-[color:var(--color-leaf-deep)]",
+                        )}
+                      >
+                        <CategoryIcon slug={c.slug} className="size-5" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-bold text-ink">
                           {c.short}
                         </span>
                         <span className="tabular block text-[11px] text-muted-foreground">
-                          {st?.count ?? 0} foods
+                          {st?.count ?? 0}
                           {st?.best != null && (
                             <>
-                              {" · from "}
+                              {" · "}
                               <span className="font-semibold text-[color:var(--color-leaf-deep)]">
                                 {formatCostPerGram(st.best)}/g
                               </span>
@@ -195,9 +200,9 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
         </div>
       </section>
 
-      {/* Diet filter chips */}
-      <div className="mt-4 flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+      {/* Diet filter chips — bigger tap targets */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="mr-0.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
           Diet
         </span>
         {DIETS.map((d) => {
@@ -205,12 +210,10 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
           return (
             <button
               key={d}
-              onClick={() =>
-                setS((p) => ({ ...p, diet: active ? "all" : d }))
-              }
+              onClick={() => setS((p) => ({ ...p, diet: active ? "all" : d }))}
               aria-pressed={active}
               className={cn(
-                "rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                "rounded-full px-3.5 py-2 text-sm font-semibold transition-colors",
                 active
                   ? "bg-primary text-primary-foreground"
                   : "border border-line bg-white text-ink hover:bg-secondary",
@@ -222,8 +225,8 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
         })}
       </div>
 
-      {/* Results header: count, active-category breadcrumb, sort */}
-      <div className="mb-2 mt-4 flex flex-wrap items-center justify-between gap-2">
+      {/* Results header */}
+      <div className="mb-3 mt-5 flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm text-muted-foreground">
           <span className="font-semibold text-ink">{filtered.length}</span>{" "}
           {filtered.length === 1 ? "food" : "foods"}
@@ -249,7 +252,7 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
             id="sort"
             value={s.sort}
             onChange={(e) => setS({ ...s, sort: e.target.value as Sort })}
-            className="h-9 rounded-md border border-line bg-white px-2.5 text-sm font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-ring"
+            className="h-10 rounded-md border border-line bg-white px-2.5 text-sm font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-ring"
           >
             {SORTS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -263,7 +266,7 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
                 setQ("");
                 setS(DEFAULT);
               }}
-              className="flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-semibold text-muted-foreground hover:text-ink"
+              className="flex h-10 items-center gap-1.5 rounded-md px-2.5 text-sm font-semibold text-muted-foreground hover:text-ink"
             >
               <RotateCcw className="size-3.5" /> Reset
             </button>
@@ -271,26 +274,27 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
         </div>
       </div>
 
-      {/* Results */}
-      <div className="flex flex-col gap-3">
-        {filtered.map((it, i) => (
-          <ProductRow key={it.id} item={it} rank={i + 1} source="leaderboard" />
-        ))}
-        {filtered.length === 0 && (
-          <p className="rounded-md border border-dashed border-line p-8 text-center text-muted-foreground">
-            No foods match those filters.{" "}
-            <button
-              onClick={() => {
-                setQ("");
-                setS(DEFAULT);
-              }}
-              className="font-semibold text-primary"
-            >
-              Reset filters
-            </button>
-          </p>
-        )}
-      </div>
+      {/* Results grid — photo-forward cards */}
+      {filtered.length === 0 ? (
+        <p className="rounded-md border border-dashed border-line p-8 text-center text-muted-foreground">
+          No foods match those filters.{" "}
+          <button
+            onClick={() => {
+              setQ("");
+              setS(DEFAULT);
+            }}
+            className="font-semibold text-primary"
+          >
+            Reset filters
+          </button>
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {filtered.map((it, i) => (
+            <ProductCard key={it.id} item={it} rank={i + 1} source="leaderboard" />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
