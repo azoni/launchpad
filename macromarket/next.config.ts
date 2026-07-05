@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // firebase-admin uses dynamic requires + gRPC and must NOT be bundled by the
+  // compiler, or files get dropped and it throws "Cannot find module" at runtime
+  // in the Netlify serverless function. Keep it external so node_modules is traced in.
+  serverExternalPackages: ["firebase-admin"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "m.media-amazon.com" },
