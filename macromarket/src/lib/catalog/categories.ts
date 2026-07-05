@@ -146,6 +146,31 @@ export const CATEGORY_BY_SLUG: Record<CategorySlug, CategoryMeta> =
     CategoryMeta
   >;
 
+/** A glanceable icon per category for the browse grid. */
+export const CATEGORY_EMOJI: Record<CategorySlug, string> = {
+  "whey-protein": "💪",
+  "plant-protein": "🌱",
+  "protein-bars": "🍫",
+  "rtd-shakes": "🥤",
+  "jerky-meat-snacks": "🥩",
+  "canned-seafood": "🥫",
+  "greek-yogurt-cottage-cheese": "🥛",
+  "protein-cereal-snacks": "🍿",
+  "nut-seed-butters": "🥜",
+  "poultry-lean-meat": "🍗",
+  "eggs-dairy": "🥚",
+  "legumes-beans": "🫘",
+  "tofu-tempeh-soy": "🫛",
+  "seafood-whole": "🦐",
+};
+
+/** Top-level shelves for the browse grid, in display order (snacks first). */
+export const CATEGORY_GROUPS: { key: CategoryMeta["group"]; label: string }[] = [
+  { key: "snack", label: "Snacks & on-the-go" },
+  { key: "supplement", label: "Powders & supplements" },
+  { key: "whole", label: "Whole foods" },
+];
+
 export const DIET_TAG_LABELS: Record<string, string> = {
   vegan: "Vegan",
   vegetarian: "Vegetarian",

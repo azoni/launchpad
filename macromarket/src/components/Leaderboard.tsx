@@ -1,15 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { RotateCcw, Search } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, RotateCcw, Search, X } from "lucide-react";
 import { ProductRow } from "@/components/ProductRow";
 import {
   CATEGORIES,
   CATEGORY_BY_SLUG,
+  CATEGORY_EMOJI,
+  CATEGORY_GROUPS,
   DIET_TAG_LABELS,
 } from "@/lib/catalog/categories";
 import { costSortKey } from "@/lib/catalog/metrics";
+import { formatCostPerGram } from "@/lib/format";
 import type { CatalogItem, CategorySlug, DietTag } from "@/lib/catalog/types";
+import { cn } from "@/lib/utils";
 
 type Sort = "cost" | "density" | "protein" | "price";
 
@@ -35,50 +40,40 @@ const DIETS: DietTag[] = [
 interface State {
   category: CategorySlug | "all";
   diet: DietTag | "all";
-  includeWhole: boolean;
   sort: Sort;
 }
 
-const DEFAULT: State = {
-  category: "all",
-  diet: "all",
-  includeWhole: true,
-  sort: "cost",
-};
-
-const PRESETS: { label: string; state: Partial<State> }[] = [
-  { label: "🏆 Best value", state: { ...DEFAULT } },
-  { label: "Whey powder", state: { category: "whey-protein" } },
-  { label: "Protein bars", state: { category: "protein-bars" } },
-  { label: "Vegan", state: { diet: "vegan" } },
-  { label: "Keto", state: { diet: "keto" } },
-  { label: "Supplements only", state: { includeWhole: false } },
-];
-
-const selectClass =
-  "h-10 rounded-md border border-line bg-white px-3 text-sm font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-ring";
+const DEFAULT: State = { category: "all", diet: "all", sort: "cost" };
 
 export function Leaderboard({ items }: { items: CatalogItem[] }) {
   const [q, setQ] = useState("");
   const [s, setS] = useState<State>(DEFAULT);
 
-  const dirty =
-    q !== "" ||
-    s.category !== "all" ||
-    s.diet !== "all" ||
-    !s.includeWhole ||
-    s.sort !== "cost";
+  const dirty = q !== "" || s.category !== "all" || s.diet !== "all";
+
+  // Count + cheapest $/g per category, from the full catalog (not the filtered view).
+  const catStats = useMemo(() => {
+    const m = new Map<CategorySlug, { count: number; best: number | null }>();
+    for (const it of items) {
+      const cur = m.get(it.category) ?? { count: 0, best: null };
+      cur.count += 1;
+      const c = it.metrics.costPerGramProteinCents;
+      if (c != null && (cur.best == null || c < cur.best)) cur.best = c;
+      m.set(it.category, cur);
+    }
+    return m;
+  }, [items]);
 
   const filtered = useMemo(() => {
     const query = q.toLowerCase().trim();
     const list = items.filter((it) => {
       if (s.category !== "all" && it.category !== s.category) return false;
       if (s.diet !== "all" && !it.dietTags.includes(s.diet)) return false;
-      if (!s.includeWhole && CATEGORY_BY_SLUG[it.category].group === "whole")
-        return false;
       if (
         query &&
-        !`${it.name} ${it.brand ?? ""} ${it.category}`.toLowerCase().includes(query)
+        !`${it.name} ${it.brand ?? ""} ${it.category} ${it.form}`
+          .toLowerCase()
+          .includes(query)
       )
         return false;
       return true;
@@ -103,68 +98,158 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
     });
   }, [items, q, s]);
 
+  const activeCat = s.category !== "all" ? CATEGORY_BY_SLUG[s.category] : null;
+
+  const setCat = (category: CategorySlug | "all") =>
+    setS((p) => ({ ...p, category }));
+
   return (
     <div>
-      {/* Quick views */}
-      <div className="mb-3 flex flex-wrap gap-2">
-        {PRESETS.map((p) => (
+      {/* Search — big and obvious */}
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={`Search ${items.length} foods, brands, and snacks…`}
+          className="h-14 w-full rounded-xl border border-line-strong bg-white pl-12 pr-10 text-base font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          aria-label="Search foods"
+        />
+        {q && (
           <button
-            key={p.label}
-            onClick={() => {
-              setQ("");
-              setS({ ...DEFAULT, ...p.state });
-            }}
-            className="rounded-full border border-line bg-white px-3 py-1.5 text-xs font-bold text-ink transition-colors hover:bg-accent"
+            onClick={() => setQ("")}
+            aria-label="Clear search"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-ink"
           >
-            {p.label}
+            <X className="size-4" />
           </button>
-        ))}
+        )}
       </div>
 
-      {/* Search + filters */}
-      <div className="rounded-xl border border-line bg-white p-3">
-        <div className="relative mb-2">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder={`Search ${items.length} foods and brands…`}
-            className="h-10 w-full rounded-md border border-line bg-white pl-9 pr-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
-            aria-label="Search foods"
-          />
+      {/* Browse by category — the whole point: everything visible at a glance */}
+      <section className="mt-4 rounded-xl border border-line bg-white p-3.5 sm:p-4">
+        <div className="mb-2.5 flex items-center justify-between">
+          <h2 className="font-heading text-base font-bold text-ink">
+            Browse by category
+          </h2>
+          <button
+            onClick={() => setCat("all")}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-bold transition-colors",
+              s.category === "all"
+                ? "bg-primary text-primary-foreground"
+                : "border border-line bg-white text-ink hover:bg-secondary",
+            )}
+          >
+            All {items.length}
+          </button>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+
+        <div className="flex flex-col gap-3">
+          {CATEGORY_GROUPS.map((g) => (
+            <div key={g.key}>
+              <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                {g.label}
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                {CATEGORIES.filter((c) => c.group === g.key).map((c) => {
+                  const st = catStats.get(c.slug);
+                  const active = s.category === c.slug;
+                  return (
+                    <button
+                      key={c.slug}
+                      onClick={() => setCat(active ? "all" : c.slug)}
+                      aria-pressed={active}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition-all",
+                        active
+                          ? "border-primary bg-secondary ring-1 ring-primary"
+                          : "border-line bg-white hover:-translate-y-0.5 hover:border-line-strong hover:shadow-sm",
+                      )}
+                    >
+                      <span className="text-xl leading-none" aria-hidden>
+                        {CATEGORY_EMOJI[c.slug]}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-bold text-ink">
+                          {c.short}
+                        </span>
+                        <span className="tabular block text-[11px] text-muted-foreground">
+                          {st?.count ?? 0} foods
+                          {st?.best != null && (
+                            <>
+                              {" · from "}
+                              <span className="font-semibold text-[color:var(--color-leaf-deep)]">
+                                {formatCostPerGram(st.best)}/g
+                              </span>
+                            </>
+                          )}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Diet filter chips */}
+      <div className="mt-4 flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          Diet
+        </span>
+        {DIETS.map((d) => {
+          const active = s.diet === d;
+          return (
+            <button
+              key={d}
+              onClick={() =>
+                setS((p) => ({ ...p, diet: active ? "all" : d }))
+              }
+              aria-pressed={active}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
+                active
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-line bg-white text-ink hover:bg-secondary",
+              )}
+            >
+              {DIET_TAG_LABELS[d]}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Results header: count, active-category breadcrumb, sort */}
+      <div className="mb-2 mt-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="text-sm text-muted-foreground">
+          <span className="font-semibold text-ink">{filtered.length}</span>{" "}
+          {filtered.length === 1 ? "food" : "foods"}
+          {activeCat && (
+            <>
+              {" in "}
+              <span className="font-semibold text-ink">{activeCat.short}</span>
+              {" · "}
+              <Link
+                href={`/category/${activeCat.slug}`}
+                className="font-semibold text-primary hover:underline"
+              >
+                view page <ArrowRight className="inline size-3" />
+              </Link>
+            </>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor="sort" className="sr-only">
+            Sort by
+          </label>
           <select
-            value={s.category}
-            onChange={(e) => setS({ ...s, category: e.target.value as CategorySlug | "all" })}
-            className={selectClass}
-            aria-label="Category"
-          >
-            <option value="all">All categories</option>
-            {CATEGORIES.map((c) => (
-              <option key={c.slug} value={c.slug}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={s.diet}
-            onChange={(e) => setS({ ...s, diet: e.target.value as DietTag | "all" })}
-            className={selectClass}
-            aria-label="Diet"
-          >
-            <option value="all">Any diet</option>
-            {DIETS.map((d) => (
-              <option key={d} value={d}>
-                {DIET_TAG_LABELS[d]}
-              </option>
-            ))}
-          </select>
-          <select
+            id="sort"
             value={s.sort}
             onChange={(e) => setS({ ...s, sort: e.target.value as Sort })}
-            className={selectClass}
-            aria-label="Sort by"
+            className="h-9 rounded-md border border-line bg-white px-2.5 text-sm font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-ring"
           >
             {SORTS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -172,22 +257,13 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
               </option>
             ))}
           </select>
-          <label className="flex h-10 cursor-pointer items-center gap-2 rounded-md border border-line bg-white px-3 text-sm font-semibold">
-            <input
-              type="checkbox"
-              checked={s.includeWhole}
-              onChange={(e) => setS({ ...s, includeWhole: e.target.checked })}
-              className="size-4 accent-[color:var(--color-leaf)]"
-            />
-            Whole foods
-          </label>
           {dirty && (
             <button
               onClick={() => {
                 setQ("");
                 setS(DEFAULT);
               }}
-              className="flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-muted-foreground hover:text-ink"
+              className="flex h-9 items-center gap-1.5 rounded-md px-2.5 text-sm font-semibold text-muted-foreground hover:text-ink"
             >
               <RotateCcw className="size-3.5" /> Reset
             </button>
@@ -195,17 +271,7 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
         </div>
       </div>
 
-      {/* Result count + legend */}
-      <div className="mb-2 mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-        <span>
-          <span className="font-semibold text-ink">{filtered.length}</span> foods ·{" "}
-          {SORTS.find((o) => o.value === s.sort)?.label.toLowerCase()}
-        </span>
-        <span className="tabular text-xs">
-          green figure = cost per gram of protein
-        </span>
-      </div>
-
+      {/* Results */}
       <div className="flex flex-col gap-3">
         {filtered.map((it, i) => (
           <ProductRow key={it.id} item={it} rank={i + 1} source="leaderboard" />

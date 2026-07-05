@@ -64,8 +64,13 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Search + browse + leaderboard — the main discovery surface */}
+      <section>
+        <Leaderboard items={items} />
+      </section>
+
       {/* Themed collections → AI coach */}
-      <section className="mb-6 rounded-xl border border-line bg-white p-3.5">
+      <section className="mt-8 rounded-xl border border-line bg-white p-3.5">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-ink">
             Ask the coach:
@@ -89,11 +94,6 @@ export default async function HomePage() {
             …or ask your own
           </span>
         </div>
-      </section>
-
-      {/* Leaderboard */}
-      <section>
-        <Leaderboard items={items} />
       </section>
 
       {/* Methodology teaser (GEO intro) */}
