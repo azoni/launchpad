@@ -20,6 +20,7 @@ interface Draft {
 
 interface Overview {
   stats: {
+    readOk: boolean;
     chats: {
       totalCalls: number;
       inputTokens: number;
@@ -278,6 +279,16 @@ export function AdminClient() {
               ))}
           </section>
 
+          {/* Read-quota notice — 0s are "unknown", not "no usage" */}
+          {st && !st.readOk && (
+            <p className="rounded-lg border border-[color:var(--color-gold)]/40 bg-[color:var(--color-gold-soft)] px-4 py-3 text-sm text-[color:var(--color-ink)]">
+              <strong>Usage data can&apos;t be read right now.</strong> The Firestore
+              daily read quota is used up, so the numbers below show 0 even though
+              chats and clicks are still being recorded. They&apos;ll reappear after
+              the nightly reset — or immediately on the Firebase Blaze plan.
+            </p>
+          )}
+
           {/* Summary cards */}
           {st && (
             <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -301,6 +312,35 @@ export function AdminClient() {
               Loading… (if usage shows 0, the Firestore read quota may be resetting —
               writes still work.)
             </p>
+          )}
+
+          {/* Usage by model */}
+          {st && st.chats.byModel.length > 0 && (
+            <section>
+              <h2 className="mb-2 font-heading text-lg font-bold text-ink">Usage by model</h2>
+              <div className="overflow-x-auto rounded-xl border border-line bg-white">
+                <table className="w-full min-w-[28rem] text-sm">
+                  <thead className="border-b border-line text-left text-xs text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">Model</th>
+                      <th className="px-3 py-2 text-right font-semibold">Calls</th>
+                      <th className="px-3 py-2 text-right font-semibold">Tokens</th>
+                      <th className="px-3 py-2 text-right font-semibold">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {st.chats.byModel.map((m) => (
+                      <tr key={m.model}>
+                        <td className="px-3 py-2 font-semibold text-ink">{m.model}</td>
+                        <td className="tabular px-3 py-2 text-right">{num(m.calls)}</td>
+                        <td className="tabular px-3 py-2 text-right">{num(m.tokens)}</td>
+                        <td className="tabular px-3 py-2 text-right">{usd(m.costUSD)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           )}
 
           {/* Flagged for review */}

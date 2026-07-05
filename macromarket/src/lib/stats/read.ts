@@ -15,6 +15,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface StatsData {
   configured: boolean;
+  /** false when a Firestore read failed (e.g. daily read quota) — 0s are unknown, not real. */
+  readOk: boolean;
   generatedAt: string;
   chats: {
     totalCalls: number;
@@ -68,6 +70,7 @@ function round(n: number, dp = 4): number {
 function emptyStats(configured: boolean): StatsData {
   return {
     configured,
+    readOk: true,
     generatedAt: new Date().toISOString(),
     chats: {
       totalCalls: 0,
@@ -146,7 +149,7 @@ export async function getStats(): Promise<StatsData> {
       .map(([model, v]) => ({ model, ...v, costUSD: round(v.costUSD, 6) }))
       .sort((a, b) => b.calls - a.calls);
   } catch {
-    /* leave chats empty on read error */
+    out.readOk = false; // e.g. Firestore daily read quota
   }
 
   // ---- Affiliate clicks ----
@@ -191,7 +194,7 @@ export async function getStats(): Promise<StatsData> {
       .map(([source, clicks]) => ({ source, clicks }))
       .sort((a, b) => b.clicks - a.clicks);
   } catch {
-    /* leave affiliate empty on read error */
+    out.readOk = false; // e.g. Firestore daily read quota
   }
 
   return out;
