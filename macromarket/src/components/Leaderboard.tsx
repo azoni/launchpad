@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, RotateCcw, Search, X } from "lucide-react";
 import { CategoryIcon } from "@/components/CategoryIcon";
@@ -8,18 +8,19 @@ import { ProductCard } from "@/components/ProductCard";
 import {
   CATEGORIES,
   CATEGORY_BY_SLUG,
-  CATEGORY_GROUPS,
   DIET_TAG_LABELS,
+  SOURCES,
+  categorySource,
+  type SourceType,
 } from "@/lib/catalog/categories";
 import { costSortKey } from "@/lib/catalog/metrics";
-import { formatCostPerGram } from "@/lib/format";
 import type { CatalogItem, CategorySlug, DietTag } from "@/lib/catalog/types";
 import { cn } from "@/lib/utils";
 
 type Sort = "cost" | "density" | "protein" | "price";
 
 const SORTS: { value: Sort; label: string }[] = [
-  { value: "cost", label: "Best value ($/g protein)" },
+  { value: "cost", label: "Best value (per 10g protein)" },
   { value: "density", label: "Most protein per calorie" },
   { value: "protein", label: "Most protein per serving" },
   { value: "price", label: "Lowest sticker price" },
@@ -37,35 +38,48 @@ const DIETS: DietTag[] = [
   "whole30",
 ];
 
+const PAGE = 24;
+
 interface State {
+  sources: Record<SourceType, boolean>;
   category: CategorySlug | "all";
   diet: DietTag | "all";
   sort: Sort;
 }
 
-const DEFAULT: State = { category: "all", diet: "all", sort: "cost" };
+const DEFAULT: State = {
+  sources: { amazon: true, whole: false },
+  category: "all",
+  diet: "all",
+  sort: "cost",
+};
 
 export function Leaderboard({ items }: { items: CatalogItem[] }) {
   const [q, setQ] = useState("");
   const [s, setS] = useState<State>(DEFAULT);
+  const [visible, setVisible] = useState(PAGE);
 
-  const dirty = q !== "" || s.category !== "all" || s.diet !== "all";
+  // Reset pagination whenever the query or any filter changes.
+  useEffect(() => setVisible(PAGE), [q, s]);
+
+  const anySource = s.sources.amazon || s.sources.whole;
+  const dirty =
+    q !== "" ||
+    s.category !== "all" ||
+    s.diet !== "all" ||
+    !s.sources.amazon ||
+    s.sources.whole;
 
   const catStats = useMemo(() => {
-    const m = new Map<CategorySlug, { count: number; best: number | null }>();
-    for (const it of items) {
-      const cur = m.get(it.category) ?? { count: 0, best: null };
-      cur.count += 1;
-      const c = it.metrics.costPerGramProteinCents;
-      if (c != null && (cur.best == null || c < cur.best)) cur.best = c;
-      m.set(it.category, cur);
-    }
+    const m = new Map<CategorySlug, number>();
+    for (const it of items) m.set(it.category, (m.get(it.category) ?? 0) + 1);
     return m;
   }, [items]);
 
   const filtered = useMemo(() => {
     const query = q.toLowerCase().trim();
     const list = items.filter((it) => {
+      if (anySource && !s.sources[categorySource(it.category)]) return false;
       if (s.category !== "all" && it.category !== s.category) return false;
       if (s.diet !== "all" && !it.dietTags.includes(s.diet)) return false;
       if (
@@ -95,15 +109,31 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
           );
       }
     });
-  }, [items, q, s]);
+  }, [items, q, s, anySource]);
 
+  const shownCats = CATEGORIES.filter(
+    (c) => !anySource || s.sources[categorySource(c.slug)],
+  );
   const activeCat = s.category !== "all" ? CATEGORY_BY_SLUG[s.category] : null;
+  const shown = filtered.slice(0, visible);
+
   const setCat = (category: CategorySlug | "all") =>
     setS((p) => ({ ...p, category }));
 
+  function toggleSource(key: SourceType) {
+    setS((p) => {
+      const sources = { ...p.sources, [key]: !p.sources[key] };
+      let category = p.category;
+      const on = sources.amazon || sources.whole;
+      if (category !== "all" && on && !sources[categorySource(category)])
+        category = "all";
+      return { ...p, sources, category };
+    });
+  }
+
   return (
     <div>
-      {/* Search — big and obvious */}
+      {/* Search */}
       <div className="relative">
         <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
         <input
@@ -124,84 +154,73 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
         )}
       </div>
 
-      {/* Browse by category — icons + counts, everything visible & tappable */}
-      <section className="mt-4 rounded-xl border border-line bg-white p-3 sm:p-4">
-        <div className="mb-2.5 flex items-center justify-between">
-          <h2 className="font-heading text-base font-bold text-ink">
-            Browse by category
-          </h2>
-          <button
-            onClick={() => setCat("all")}
-            className={cn(
-              "rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors",
-              s.category === "all"
-                ? "bg-primary text-primary-foreground"
-                : "border border-line bg-white text-ink hover:bg-secondary",
-            )}
-          >
-            All {items.length}
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          {CATEGORY_GROUPS.map((g) => (
-            <div key={g.key}>
-              <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-                {g.label}
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                {CATEGORIES.filter((c) => c.group === g.key).map((c) => {
-                  const st = catStats.get(c.slug);
-                  const active = s.category === c.slug;
-                  return (
-                    <button
-                      key={c.slug}
-                      onClick={() => setCat(active ? "all" : c.slug)}
-                      aria-pressed={active}
-                      className={cn(
-                        "flex min-h-14 items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-all",
-                        active
-                          ? "border-primary bg-secondary ring-1 ring-primary"
-                          : "border-line bg-white hover:-translate-y-0.5 hover:border-line-strong hover:shadow-sm",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors",
-                          active
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-[color:var(--color-leaf-deep)]",
-                        )}
-                      >
-                        <CategoryIcon slug={c.slug} className="size-5" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-bold text-ink">
-                          {c.short}
-                        </span>
-                        <span className="tabular block text-[11px] text-muted-foreground">
-                          {st?.count ?? 0}
-                          {st?.best != null && (
-                            <>
-                              {" · "}
-                              <span className="font-semibold text-[color:var(--color-leaf-deep)]">
-                                {formatCostPerGram(st.best)}/g
-                              </span>
-                            </>
-                          )}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Diet filter chips — bigger tap targets */}
+      {/* Source split — Amazon (packaged) vs Whole foods (groceries) */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+          Show
+        </span>
+        {SOURCES.map((src) => {
+          const active = s.sources[src.key];
+          return (
+            <button
+              key={src.key}
+              onClick={() => toggleSource(src.key)}
+              aria-pressed={active}
+              className={cn(
+                "rounded-full px-4 py-2 text-sm font-bold transition-colors",
+                active
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-line bg-white text-ink hover:bg-secondary",
+              )}
+            >
+              {src.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Compact browse-by-category chips */}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        <button
+          onClick={() => setCat("all")}
+          className={cn(
+            "rounded-full px-3 py-2 text-xs font-bold transition-colors",
+            s.category === "all"
+              ? "bg-primary text-primary-foreground"
+              : "border border-line bg-white text-ink hover:bg-secondary",
+          )}
+        >
+          All categories
+        </button>
+        {shownCats.map((c) => {
+          const active = s.category === c.slug;
+          return (
+            <button
+              key={c.slug}
+              onClick={() => setCat(active ? "all" : c.slug)}
+              aria-pressed={active}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold transition-colors",
+                active
+                  ? "border-primary bg-secondary text-ink ring-1 ring-primary"
+                  : "border-line bg-white text-ink hover:bg-secondary",
+              )}
+            >
+              <CategoryIcon
+                slug={c.slug}
+                className="size-4 text-[color:var(--color-leaf-deep)]"
+              />
+              {c.short}
+              <span className="tabular text-[10px] text-muted-foreground">
+                {catStats.get(c.slug) ?? 0}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Diet chips */}
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
         <span className="mr-0.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">
           Diet
         </span>
@@ -213,7 +232,7 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
               onClick={() => setS((p) => ({ ...p, diet: active ? "all" : d }))}
               aria-pressed={active}
               className={cn(
-                "rounded-full px-3.5 py-2 text-sm font-semibold transition-colors",
+                "rounded-full px-3 py-2 text-xs font-semibold transition-colors",
                 active
                   ? "bg-primary text-primary-foreground"
                   : "border border-line bg-white text-ink hover:bg-secondary",
@@ -274,7 +293,7 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
         </div>
       </div>
 
-      {/* Results grid — photo-forward cards */}
+      {/* Results grid */}
       {filtered.length === 0 ? (
         <p className="rounded-md border border-dashed border-line p-8 text-center text-muted-foreground">
           No foods match those filters.{" "}
@@ -289,11 +308,23 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
           </button>
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {filtered.map((it, i) => (
-            <ProductCard key={it.id} item={it} rank={i + 1} source="leaderboard" />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {shown.map((it, i) => (
+              <ProductCard key={it.id} item={it} rank={i + 1} source="leaderboard" />
+            ))}
+          </div>
+          {filtered.length > visible && (
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => setVisible((v) => v + PAGE)}
+                className="btn-soft px-6 py-2.5 text-sm"
+              >
+                Load more ({filtered.length - visible} left)
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

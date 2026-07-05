@@ -1,7 +1,36 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Activity, DollarSign, MessageCircle, MousePointerClick } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  DollarSign,
+  MessageCircle,
+  MousePointerClick,
+} from "lucide-react";
+import { getAllItems } from "@/lib/catalog";
+import type { CatalogItem } from "@/lib/catalog/types";
+import { formatPer10g, formatPrice } from "@/lib/format";
 import { getStats } from "@/lib/stats/read";
+
+/** Catalog items worth a human look: rejected live price, no price, or an outlier value. */
+async function getFlagged(): Promise<{ item: CatalogItem; reasons: string[] }[]> {
+  try {
+    const items = await getAllItems();
+    return items
+      .map((item) => {
+        const cpg = item.metrics.costPerGramProteinCents;
+        const reasons: string[] = [];
+        if (item.priceSuspect) reasons.push("live price rejected (pack mismatch)");
+        if (cpg == null) reasons.push("no price");
+        else if (cpg > 30) reasons.push("very high cost per protein");
+        return { item, reasons };
+      })
+      .filter((x) => x.reasons.length > 0)
+      .slice(0, 100);
+  } catch {
+    return [];
+  }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +87,7 @@ function Stat({
 export default async function StatsPage() {
   const s = await getStats();
   const { chats, affiliate } = s;
+  const flagged = await getFlagged();
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -111,6 +141,63 @@ export default async function StatsPage() {
           sub={`${num(affiliate.last7d)} in last 7d`}
         />
       </div>
+
+      {/* Data quality — items flagged for review */}
+      <section className="mt-8">
+        <h2 className="mb-1 flex items-center gap-2 font-heading text-xl font-bold text-ink">
+          <AlertTriangle className="size-5 text-[color:var(--color-clay)]" />
+          Flagged for review
+          <span className="tabular rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-[color:var(--color-leaf-deep)]">
+            {flagged.length}
+          </span>
+        </h2>
+        <p className="mb-3 text-sm text-muted-foreground">
+          Items whose live price was rejected as a likely pack-size mismatch, that
+          have no price, or whose cost per protein is an outlier — worth a manual
+          check of the catalog serving/pack data.
+        </p>
+        {flagged.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-line p-6 text-sm text-muted-foreground">
+            Nothing flagged — prices and value metrics look sane.
+          </p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-line bg-white">
+            <table className="w-full min-w-[34rem] text-sm">
+              <thead className="border-b border-line text-left text-xs text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2.5 font-semibold">Item</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">/10g</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Price</th>
+                  <th className="px-4 py-2.5 font-semibold">Why</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {flagged.map(({ item, reasons }) => (
+                  <tr key={item.id}>
+                    <td className="px-4 py-2.5">
+                      <Link
+                        href={`/food/${item.id}`}
+                        className="font-semibold text-ink hover:text-primary"
+                      >
+                        {item.name}
+                      </Link>
+                    </td>
+                    <td className="tabular px-4 py-2.5 text-right">
+                      {formatPer10g(item.metrics.costPerGramProteinCents)}
+                    </td>
+                    <td className="tabular px-4 py-2.5 text-right">
+                      {formatPrice(item.effectivePriceCents)}
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {reasons.join(", ")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {/* Usage by model */}
       {chats.byModel.length > 0 && (

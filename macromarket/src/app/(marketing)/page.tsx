@@ -19,9 +19,6 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const items = await getAllItems();
-  const cheapest = items.find(
-    (i) => i.metrics.costPerGramProteinCents != null,
-  );
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -36,20 +33,7 @@ export default async function HomePage() {
         </h1>
         <p className="mx-auto mt-2.5 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
           {items.length} powders, bars, snacks, and whole foods ranked by value —
-          the most protein for your money.
-          {cheapest && (
-            <>
-              {" "}
-              Best deal right now:{" "}
-              <Link
-                href={`/food/${cheapest.id}`}
-                className="font-semibold text-ink underline decoration-clay/50 decoration-2 underline-offset-2 hover:decoration-clay"
-              >
-                {cheapest.name}
-              </Link>
-              .
-            </>
-          )}
+          the most protein for your money, measured by price per 10g of protein.
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2.5">
           <Link href="/deals" className="btn-clay px-4 py-2 text-sm text-white">

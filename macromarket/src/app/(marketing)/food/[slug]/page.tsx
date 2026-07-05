@@ -23,6 +23,7 @@ import {
   formatDensity,
   formatDose,
   formatGrams,
+  formatPer10g,
   formatPrice,
 } from "@/lib/format";
 import { breadcrumbJsonLd, faqJsonLd, productJsonLd } from "@/lib/seo";
@@ -93,9 +94,9 @@ export default async function FoodPage({
   const faqs = [
     {
       q: `How much does protein cost in ${item.name}?`,
-      a: `${item.name} works out to about ${formatCostPerGram(
+      a: `${item.name} works out to about ${formatPer10g(
         m.costPerGramProteinCents,
-      )} per gram of protein — roughly ${formatDose(
+      )} per 10 g of protein — roughly ${formatDose(
         m.proteinDosePriceCents,
       )} for a 20 g serving — based on an ${item.priceIsEstimate ? "estimated" : "live"} price of ${formatPrice(
         item.effectivePriceCents,
@@ -174,8 +175,8 @@ export default async function FoodPage({
       {/* Metric grid */}
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Stat
-          label="Cost per gram protein"
-          value={`${formatCostPerGram(m.costPerGramProteinCents)}/g`}
+          label="Cost per 10g protein"
+          value={formatPer10g(m.costPerGramProteinCents)}
           sub="the MacroMarket metric"
           highlight
         />
@@ -222,6 +223,12 @@ export default async function FoodPage({
               ? "Estimated for comparison — confirm the current price on Amazon."
               : "Live from Amazon."}
           </p>
+          {item.priceSuspect && (
+            <p className="mt-1 text-xs font-medium text-[color:var(--color-berry)]">
+              The live listing looked like a different pack size, so we&apos;re
+              showing our estimate — flagged for review.
+            </p>
+          )}
         </div>
         <BuyButton
           slug={item.id}
@@ -235,7 +242,7 @@ export default async function FoodPage({
       {/* How it's calculated */}
       <section className="mt-6 rounded-xl border border-line bg-white p-5">
         <h2 className="font-heading text-lg font-bold text-ink">
-          How we got {formatCostPerGram(m.costPerGramProteinCents)}/g
+          How we got {formatPer10g(m.costPerGramProteinCents)} per 10g
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           Price ({formatPrice(item.effectivePriceCents)}) ÷ total protein in the
@@ -244,7 +251,11 @@ export default async function FoodPage({
           <span className="tabular font-semibold text-ink">
             {formatCostPerGram(m.costPerGramProteinCents)}
           </span>{" "}
-          per gram of protein.
+          per gram, or{" "}
+          <span className="tabular font-semibold text-ink">
+            {formatPer10g(m.costPerGramProteinCents)}
+          </span>{" "}
+          per 10 g of protein.
         </p>
       </section>
 

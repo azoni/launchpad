@@ -6,7 +6,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { getItemsByCategory } from "@/lib/catalog";
 import { CATEGORIES } from "@/lib/catalog/categories";
 import type { CategorySlug } from "@/lib/catalog/types";
-import { formatCostPerGram } from "@/lib/format";
+import { formatPer10g } from "@/lib/format";
 import { breadcrumbJsonLd, itemListJsonLd } from "@/lib/seo";
 import { APP_URL } from "@/lib/utils";
 
@@ -81,7 +81,7 @@ export default async function CategoryPage({
           </Link>{" "}
           at{" "}
           <span className="tabular font-bold text-primary">
-            {formatCostPerGram(best.metrics.costPerGramProteinCents)}/g
+            {formatPer10g(best.metrics.costPerGramProteinCents)}/10g
           </span>
           .
         </p>

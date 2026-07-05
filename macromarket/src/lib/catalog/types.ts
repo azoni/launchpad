@@ -125,6 +125,12 @@ export interface CatalogItem extends CatalogSeedItem {
   rating: number | null;
   reviewCount: number | null;
   savingsPercent: number | null;
+  /**
+   * True when a live price was fetched but rejected for being implausibly far from
+   * the curated baseline (usually the resolved ASIN is a different pack size), so
+   * the baseline is shown instead. Surfaced in the /stats review view.
+   */
+  priceSuspect: boolean;
   /** affiliate buy URL (tag=oldwaystoda00-20) */
   buyUrl: string;
   metrics: CatalogMetrics;

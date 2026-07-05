@@ -153,6 +153,31 @@ export const CATEGORY_GROUPS: { key: CategoryMeta["group"]; label: string }[] = 
   { key: "whole", label: "Whole foods" },
 ];
 
+/**
+ * Source split. "amazon" = packaged products you buy on Amazon (real photos, direct
+ * buy links). "whole" = real groceries (chicken, eggs, lentils, tofu, fresh seafood)
+ * — no single product/photo, so they show an illustrated tile and a search link.
+ * These are kept separate in the UI so the two don't get mixed unless asked.
+ */
+export type SourceType = "amazon" | "whole";
+
+const WHOLE_CATEGORIES = new Set<CategorySlug>([
+  "poultry-lean-meat",
+  "eggs-dairy",
+  "legumes-beans",
+  "tofu-tempeh-soy",
+  "seafood-whole",
+]);
+
+export function categorySource(slug: CategorySlug): SourceType {
+  return WHOLE_CATEGORIES.has(slug) ? "whole" : "amazon";
+}
+
+export const SOURCES: { key: SourceType; label: string }[] = [
+  { key: "amazon", label: "Amazon" },
+  { key: "whole", label: "Whole foods" },
+];
+
 export const DIET_TAG_LABELS: Record<string, string> = {
   vegan: "Vegan",
   vegetarian: "Vegetarian",

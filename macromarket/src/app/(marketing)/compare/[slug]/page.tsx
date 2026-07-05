@@ -8,9 +8,9 @@ import { getItemBySlug } from "@/lib/catalog";
 import { COMPARE_PAIRS } from "@/lib/catalog/compares";
 import type { CatalogItem } from "@/lib/catalog/types";
 import {
-  formatCostPerGram,
   formatDensity,
   formatDose,
+  formatPer10g,
   formatPrice,
 } from "@/lib/format";
 import { breadcrumbJsonLd } from "@/lib/seo";
@@ -49,7 +49,7 @@ export async function generateMetadata({
 function Column({ item }: { item: CatalogItem }) {
   const m = item.metrics;
   const rows: [string, string][] = [
-    ["$/g protein", `${formatCostPerGram(m.costPerGramProteinCents)}/g`],
+    ["Per 10g protein", formatPer10g(m.costPerGramProteinCents)],
     ["Per 20 g dose", formatDose(m.proteinDosePriceCents)],
     ["Price / serving", formatPrice(m.pricePerServingCents)],
     ["Protein / serving", `${item.proteinPerServing_g} g`],

@@ -17,12 +17,12 @@ export type { CatalogItem, CatalogSeedItem } from "./types";
 const IMAGE_MAP = IMAGES as Record<string, string>;
 const VERIFIED = VERIFIED_JSON as Record<string, { asin: string; image: string }>;
 
-function buildItem(seed: CatalogSeedItem, live: LivePricing | null): CatalogItem {
-  const priceIsLive = live?.priceCents != null;
-  const effectivePriceCents = priceIsLive
-    ? (live as LivePricing).priceCents
-    : seed.priceCents;
+// A live price this far from the curated baseline is treated as a different pack
+// size (which would corrupt $/g) rather than a real price change — reject + flag.
+const PRICE_MIN_RATIO = 0.35;
+const PRICE_MAX_RATIO = 2.6;
 
+function buildItem(seed: CatalogSeedItem, live: LivePricing | null): CatalogItem {
   // Only VERIFIED ASINs are used — for a direct product link and a real Amazon
   // photo. Unverified candidate ASINs fall back to an affiliate search link.
   const verified = VERIFIED[seed.id];
@@ -32,7 +32,23 @@ function buildItem(seed: CatalogSeedItem, live: LivePricing | null): CatalogItem
     ? affiliateUrl(asin)
     : affiliateSearchUrl(`${seed.name} ${seed.brand ?? ""}`.trim());
 
+  // Sanity-check the live price against the baseline; a wildly different value is
+  // almost always a different pack size, so keep the baseline and flag it.
+  let priceSuspect = false;
+  let livePrice = live?.priceCents ?? null;
+  if (livePrice != null && seed.priceCents > 0) {
+    const ratio = livePrice / seed.priceCents;
+    if (ratio < PRICE_MIN_RATIO || ratio > PRICE_MAX_RATIO) {
+      livePrice = null;
+      priceSuspect = true;
+    }
+  }
+
+  const priceIsLive = livePrice != null;
+  const effectivePriceCents = priceIsLive ? livePrice : seed.priceCents;
+
   // Image priority: live Amazon → verified Amazon photo → Open Food Facts → none.
+  // (The live photo is still valid even when the live *price* was rejected.)
   const imageUrl =
     live?.imageUrl || verified?.image || IMAGE_MAP[seed.id] || seed.imageUrl;
 
@@ -44,10 +60,11 @@ function buildItem(seed: CatalogSeedItem, live: LivePricing | null): CatalogItem
     effectivePriceCents,
     priceIsLive,
     priceIsEstimate: !priceIsLive,
-    inStock: live?.inStock ?? true,
+    priceSuspect,
+    inStock: priceIsLive ? (live?.inStock ?? true) : true,
     rating: live?.rating ?? null,
     reviewCount: live?.reviewCount ?? null,
-    savingsPercent: live?.savingsPercent ?? null,
+    savingsPercent: priceIsLive ? (live?.savingsPercent ?? null) : null,
     buyUrl,
     metrics: computeMetrics(seed, effectivePriceCents),
   };
