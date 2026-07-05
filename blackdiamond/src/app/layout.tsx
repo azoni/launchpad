@@ -44,6 +44,8 @@ export default function RootLayout({
       className={`${sourceSans.variable} ${oswald.variable} h-full`}
     >
       <body className="min-h-full flex flex-col">
+        {/* Portfolio traffic beacon — one visit/session to the shared leaderboard sink */}
+        <script dangerouslySetInnerHTML={{ __html: `try{if(!sessionStorage.getItem('_av_lb')){sessionStorage.setItem('_av_lb','1');fetch('https://azoni.ai/.netlify/functions/log-visit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:'blackdiamond'})}).catch(function(){})}}catch(e){}` }} />
         <PostHogProvider>{children}</PostHogProvider>
 
         {process.env.NEXT_PUBLIC_GA_ID && (

@@ -72,6 +72,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="format-detection" content="telephone=no" />
       </head>
       <body>
+        {/* Portfolio traffic beacon — one visit/session to the shared leaderboard sink */}
+        <script dangerouslySetInnerHTML={{ __html: `try{if(!sessionStorage.getItem('_av_lb')){sessionStorage.setItem('_av_lb','1');fetch('https://azoni.ai/.netlify/functions/log-visit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:'pyroguard'})}).catch(function(){})}}catch(e){}` }} />
         <Providers>{children}</Providers>
         {process.env.NEXT_PUBLIC_GA_ID && (
           <>

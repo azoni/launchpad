@@ -21,6 +21,16 @@ if (!sessionStorage.getItem('repmatch_viewed')) {
   }
 }
 
+// Portfolio traffic beacon — one visit/session to the shared leaderboard sink.
+if (!sessionStorage.getItem('_av_lb')) {
+  sessionStorage.setItem('_av_lb', '1');
+  fetch('https://azoni.ai/.netlify/functions/log-visit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source: 'repmatch' }),
+  }).catch(() => {});
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
