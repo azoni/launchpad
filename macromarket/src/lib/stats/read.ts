@@ -7,8 +7,10 @@ import type { Timestamp } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 
-const CHAT_LIMIT = 750;
-const CLICK_LIMIT = 1500;
+// Bounded so a single dashboard load reads a modest number of docs (Firestore
+// bills per doc read; keep the free-tier daily quota comfortable).
+const CHAT_LIMIT = 300;
+const CLICK_LIMIT = 500;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export interface StatsData {

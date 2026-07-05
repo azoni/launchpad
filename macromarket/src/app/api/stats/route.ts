@@ -6,6 +6,7 @@ export const dynamic = "force-dynamic";
 /**
  * Public activity endpoint — AI-coach usage/cost + affiliate clicks.
  * GET /api/stats  →  JSON (no auth; no secrets, only truncated prompts).
+ * Cached 60s to keep Firestore read volume (and quota use) low under traffic.
  */
 export async function GET() {
   try {
@@ -13,7 +14,7 @@ export async function GET() {
     return new Response(JSON.stringify(data, null, 2), {
       headers: {
         "Content-Type": "application/json; charset=utf-8",
-        "Cache-Control": "no-store",
+        "Cache-Control": "public, max-age=60, s-maxage=60",
         "Access-Control-Allow-Origin": "*",
       },
     });
