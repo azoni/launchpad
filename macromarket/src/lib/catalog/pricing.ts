@@ -21,6 +21,17 @@ export function livePricingEnabled(): boolean {
   return process.env.AMAZON_LIVE_PRICING === "1";
 }
 
+/**
+ * Persisting the price cache in Firestore is opt-in (default OFF). It reads/writes
+ * one doc per ASIN, and a static build resolves the whole catalog on many pages —
+ * which burns the Firestore free-tier daily read quota. With it off, live pricing
+ * still works via the in-memory cache + Amazon; turn it on (PRICE_CACHE_FIRESTORE=1)
+ * once the project is on the Blaze plan.
+ */
+function firestoreCacheEnabled(): boolean {
+  return process.env.PRICE_CACHE_FIRESTORE === "1";
+}
+
 function fresh(lp: LivePricing | undefined, now: number): lp is LivePricing {
   return !!lp && now - lp.fetchedAt < TTL_MS;
 }
@@ -78,8 +89,8 @@ export async function getLivePricing(
     else need.push(asin);
   }
 
-  // 2) firestore
-  if (need.length) {
+  // 2) firestore (opt-in — off by default to protect the free-tier read quota)
+  if (need.length && firestoreCacheEnabled()) {
     const fromDb = await readFirestore(need, now);
     for (const [asin, lp] of fromDb) {
       out.set(asin, lp);
@@ -107,7 +118,7 @@ export async function getLivePricing(
       out.set(asin, lp);
       freshEntries.set(asin, lp);
     }
-    void writeFirestore(freshEntries);
+    if (firestoreCacheEnabled()) void writeFirestore(freshEntries);
   }
 
   return out;

@@ -7,42 +7,34 @@ export const dynamic = "force-dynamic";
 
 const CLICK_LIMIT = 4000;
 
-export async function GET(req: Request) {
-  const debug = new URL(req.url).searchParams.get("debug") === "1";
+/**
+ * Public running total of protein grams from affiliate clicks — summed from the
+ * logged clicks. Cached 5 min to keep Firestore reads low. Powers the navbar counter.
+ */
+export async function GET() {
   let grams = 0;
   let clicks = 0;
-  const dbg: Record<string, unknown> = {};
   try {
     const db = getAdminDb();
-    dbg.db = !!db;
     if (db) {
       const snap = await db
         .collection(COLLECTIONS.affiliateClicks)
         .orderBy("ts", "desc")
         .limit(CLICK_LIMIT)
         .get();
-      dbg.size = snap.size;
       clicks = snap.size;
-      let sampleSlug = "";
       for (const doc of snap.docs) {
-        const slug = String(doc.data().slug ?? "");
-        if (!sampleSlug) sampleSlug = slug;
-        grams += totalProteinGForSlug(slug);
+        grams += totalProteinGForSlug(String(doc.data().slug ?? ""));
       }
-      dbg.sampleSlug = sampleSlug;
-      dbg.sampleGrams = totalProteinGForSlug(sampleSlug);
     }
-  } catch (e) {
-    dbg.error = (e as Error)?.message ?? String(e);
+  } catch {
+    /* e.g. Firestore quota — return zeros; the counter simply hides */
   }
-  return new Response(
-    JSON.stringify(debug ? { grams, clicks, ...dbg } : { grams, clicks }),
-    {
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Cache-Control": debug ? "no-store" : "public, max-age=60, s-maxage=60",
-        "Access-Control-Allow-Origin": "*",
-      },
+  return new Response(JSON.stringify({ grams, clicks }), {
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "public, max-age=300, s-maxage=300",
+      "Access-Control-Allow-Origin": "*",
     },
-  );
+  });
 }
