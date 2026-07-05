@@ -82,7 +82,18 @@ export function CoachChat() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: convo }),
       });
-      if (!res.ok || !res.body) throw new Error("request failed");
+      if (!res.ok) {
+        let msg = "The coach is unavailable right now. Please try again.";
+        try {
+          const j = await res.json();
+          if (j?.error) msg = j.error as string;
+        } catch {
+          /* keep default */
+        }
+        setAssistant((c) => c || msg);
+        return;
+      }
+      if (!res.body) throw new Error("no body");
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
