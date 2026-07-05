@@ -1,5 +1,6 @@
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
+import { totalProteinGForSlug } from "@/lib/catalog/protein";
 import { FieldValue } from "firebase-admin/firestore";
 
 export const runtime = "nodejs";
@@ -21,6 +22,18 @@ export async function POST(req: Request) {
         source: source ?? "unknown",
         ts: FieldValue.serverTimestamp(),
       });
+      // Running total for the navbar counter — one cheap doc increment per click.
+      await db
+        .collection(COLLECTIONS.aggregates)
+        .doc("proteinShopped")
+        .set(
+          {
+            grams: FieldValue.increment(totalProteinGForSlug(slug)),
+            clicks: FieldValue.increment(1),
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
     }
   } catch {
     /* never fail a click */

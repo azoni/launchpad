@@ -5,6 +5,7 @@ const LINKS = [
   { href: "/deals", label: "Deals" },
   { href: "/calculator", label: "Protein Calculator" },
   { href: "/coach", label: "AI Coach" },
+  { href: "/blog", label: "Blog" },
   { href: "/about", label: "How it works" },
   { href: "/faq", label: "FAQ" },
   { href: "/disclosure", label: "Affiliate Disclosure" },

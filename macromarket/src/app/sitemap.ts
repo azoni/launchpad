@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
+import { getPublishedPosts } from "@/lib/blog";
 import { allSlugs } from "@/lib/catalog";
 import { CATEGORIES } from "@/lib/catalog/categories";
 import { COMPARE_PAIRS, compareSlug } from "@/lib/catalog/compares";
 import { APP_URL } from "@/lib/utils";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const url = (path: string) => `${APP_URL}${path}`;
 
@@ -12,6 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: url("/"), lastModified: now, changeFrequency: "daily", priority: 1 },
     { url: url("/deals"), lastModified: now, changeFrequency: "daily", priority: 0.9 },
     { url: url("/calculator"), lastModified: now, changeFrequency: "weekly", priority: 0.9 },
+    { url: url("/blog"), lastModified: now, changeFrequency: "weekly", priority: 0.7 },
     { url: url("/coach"), lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: url("/about"), lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: url("/faq"), lastModified: now, changeFrequency: "monthly", priority: 0.5 },
@@ -19,6 +21,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: url("/privacy"), lastModified: now, changeFrequency: "yearly", priority: 0.2 },
     { url: url("/terms"), lastModified: now, changeFrequency: "yearly", priority: 0.2 },
   ];
+
+  const posts: MetadataRoute.Sitemap = (await getPublishedPosts()).map((p) => ({
+    url: url(`/blog/${p.slug}`),
+    lastModified: p.updatedAt ? new Date(p.updatedAt) : now,
+    changeFrequency: "monthly",
+    priority: 0.6,
+  }));
 
   const categories: MetadataRoute.Sitemap = CATEGORIES.map((c) => ({
     url: url(`/category/${c.slug}`),
@@ -41,5 +50,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  return [...staticPages, ...categories, ...foods, ...compares];
+  return [...staticPages, ...posts, ...categories, ...foods, ...compares];
 }
