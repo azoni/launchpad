@@ -40,6 +40,16 @@ export interface StatsData {
   };
 }
 
+/** Never let a slow/hanging Firestore call time out the whole function. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("firestore-timeout")), ms),
+    ),
+  ]);
+}
+
 function toIso(ts: unknown): string | null {
   const t = ts as Timestamp | undefined;
   try {
@@ -81,11 +91,10 @@ export async function getStats(): Promise<StatsData> {
 
   // ---- AI coach usage ----
   try {
-    const snap = await db
-      .collection(COLLECTIONS.chatLogs)
-      .orderBy("ts", "desc")
-      .limit(CHAT_LIMIT)
-      .get();
+    const snap = await withTimeout(
+      db.collection(COLLECTIONS.chatLogs).orderBy("ts", "desc").limit(CHAT_LIMIT).get(),
+      8000,
+    );
 
     const byModel = new Map<string, { calls: number; tokens: number; costUSD: number }>();
     for (const doc of snap.docs) {
@@ -140,11 +149,14 @@ export async function getStats(): Promise<StatsData> {
 
   // ---- Affiliate clicks ----
   try {
-    const snap = await db
-      .collection(COLLECTIONS.affiliateClicks)
-      .orderBy("ts", "desc")
-      .limit(CLICK_LIMIT)
-      .get();
+    const snap = await withTimeout(
+      db
+        .collection(COLLECTIONS.affiliateClicks)
+        .orderBy("ts", "desc")
+        .limit(CLICK_LIMIT)
+        .get(),
+      8000,
+    );
 
     const byProduct = new Map<string, number>();
     const bySource = new Map<string, number>();

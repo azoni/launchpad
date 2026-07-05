@@ -47,7 +47,17 @@ export function getAdminDb(): Firestore | null {
     const app: App = getApps().length
       ? getApps()[0]
       : initializeApp({ credential: cert(sa) });
-    cached = getFirestore(app);
+    const db = getFirestore(app);
+    // firebase-admin's default gRPC transport can hang (and time the function out)
+    // in serverless runtimes like Netlify/Lambda. The REST transport avoids it.
+    // Must be set before the instance's first read/write — this is the only place
+    // getFirestore is called, and we set it immediately, so that holds.
+    try {
+      db.settings({ preferRest: true });
+    } catch {
+      /* settings already applied on a reused instance — safe to ignore */
+    }
+    cached = db;
     return cached;
   } catch (e) {
     console.error("Firebase admin init failed:", e);
