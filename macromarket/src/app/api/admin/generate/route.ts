@@ -10,7 +10,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const MODEL = "claude-sonnet-4-6";
+// Haiku, not Sonnet: Netlify caps this non-streaming function around ~26s, and
+// Sonnet at full length runs right up against it (intermittent 504s). Haiku
+// finishes comfortably and drafts are reviewed/edited before publishing anyway.
+const MODEL = "claude-haiku-4-5";
 
 function authed(req: Request): boolean {
   const key = process.env.ADMIN_KEY ?? process.env.MCP_ADMIN_KEY;
@@ -71,7 +74,7 @@ Return STRICT JSON only (no prose, no code fences) in exactly this shape:
   try {
     const msg = await client.messages.create({
       model: MODEL,
-      max_tokens: 2500,
+      max_tokens: 1800,
       system: SYSTEM,
       messages: [{ role: "user", content: user }],
     });
