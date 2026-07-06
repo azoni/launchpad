@@ -7,7 +7,7 @@ export function extractAsin(url: string): string | null {
 }
 
 function tag(partnerTag?: string): string {
-  return partnerTag ?? process.env.AMAZON_PARTNER_TAG ?? "oldwaystoda00-20";
+  return partnerTag ?? process.env.AMAZON_PARTNER_TAG ?? "macromarket-20";
 }
 
 /** Affiliate product URL for a known ASIN. */

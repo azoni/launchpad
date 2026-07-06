@@ -14,4 +14,4 @@ export const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? "https://macromarket-app.netlify.app";
 
 /** Amazon Associates partner tag — shared across the launchpad. */
-export const PARTNER_TAG = process.env.AMAZON_PARTNER_TAG ?? "oldwaystoda00-20";
+export const PARTNER_TAG = process.env.AMAZON_PARTNER_TAG ?? "macromarket-20";

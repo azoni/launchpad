@@ -42,7 +42,7 @@ function isConfigured(): boolean {
 }
 
 function getPartnerTag(): string {
-  return process.env.AMAZON_PARTNER_TAG ?? "oldwaystoda00-20";
+  return process.env.AMAZON_PARTNER_TAG ?? "macromarket-20";
 }
 
 async function getAccessToken(): Promise<string | null> {

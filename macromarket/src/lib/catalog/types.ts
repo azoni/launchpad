@@ -131,7 +131,7 @@ export interface CatalogItem extends CatalogSeedItem {
    * the baseline is shown instead. Surfaced in the /stats review view.
    */
   priceSuspect: boolean;
-  /** affiliate buy URL (tag=oldwaystoda00-20) */
+  /** affiliate buy URL (tag=macromarket-20) */
   buyUrl: string;
   metrics: CatalogMetrics;
 }
