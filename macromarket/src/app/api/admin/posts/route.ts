@@ -34,8 +34,19 @@ export async function POST(req: Request) {
   if (!title || !slug) return json({ error: "title is required" }, 400);
 
   const ref = db.collection(COLLECTIONS.posts).doc(slug);
-  const existing = await ref.get();
   const status = b.status === "published" ? "published" : "draft";
+
+  // Best-effort existence check — if reads are quota-limited, assume new so the
+  // write still lands (writes have a separate quota from reads).
+  let exists = false;
+  let wasPublished = false;
+  try {
+    const existing = await ref.get();
+    exists = existing.exists;
+    wasPublished = exists && existing.data()?.status === "published";
+  } catch {
+    /* treat as new */
+  }
 
   const data: Record<string, unknown> = {
     title,
@@ -45,13 +56,16 @@ export async function POST(req: Request) {
     status,
     updatedAt: FieldValue.serverTimestamp(),
   };
-  if (!existing.exists) data.createdAt = FieldValue.serverTimestamp();
-  const wasPublished = existing.exists && existing.data()?.status === "published";
+  if (!exists) data.createdAt = FieldValue.serverTimestamp();
   if (status === "published" && !wasPublished) {
     data.publishedAt = FieldValue.serverTimestamp();
   }
 
-  await ref.set(data, { merge: true });
+  try {
+    await ref.set(data, { merge: true });
+  } catch (e) {
+    return json({ error: `save failed: ${(e as Error).message}` }, 500);
+  }
   return json({ ok: true, slug });
 }
 
