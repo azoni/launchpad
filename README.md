@@ -12,7 +12,7 @@ A monorepo of independent web apps, each built and deployed from a single prompt
 | [benchmark](./benchmark/) | Turn any achievement into a bench press max | [benchmark-app-azoni.netlify.app](https://benchmark-app-azoni.netlify.app) |
 | [repmatch](./repmatch/) | Workout rep equivalence calculator for competing with friends | [repmatch-app.netlify.app](https://repmatch-app.netlify.app) |
 | [crypto-tax-2025](./crypto-tax-2025/) | Personal 2025 crypto tax reconstruction with FIFO + review queue | [crypto-tax-2025.netlify.app](https://crypto-tax-2025.netlify.app) |
-| [pyroguard](./pyroguard/) | Mobile-first fire/life-safety inspection platform for commercial inspection contractors | [pyroguard-demo.netlify.app](https://pyroguard-demo.netlify.app) |
+| [pyroguard](./pyroguard/) | All-in-one ops platform for fire/life-safety inspection contractors (SedonaOffice replacement, ground-up rebuild) — playable "A Day in the Field" demo | [pyroguard-demo.netlify.app](https://pyroguard-demo.netlify.app) |
 | [daily](./dayrun/) | An opt-in calendar — sign in with Google, sync your calendar, track interviews & opportunities, toggle what the world sees | [dayrun-app.netlify.app](https://dayrun-app.netlify.app) |
 | [macromarket](./macromarket/) | Ranks foods, snacks & supplements by dollars per gram of protein — with a protein calculator, deals, and an AI coach | [macromarket-app.netlify.app](https://macromarket-app.netlify.app) |
 

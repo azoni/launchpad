@@ -54,6 +54,16 @@
   }
 }
 
+/* demo: barcode scan laser sweep */
+@keyframes scanline {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(320px);
+  }
+}
+
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -64,22 +74,4 @@
 ::-webkit-scrollbar-thumb {
   background: #ff4500;
   border-radius: 2px;
-}
-
-/* Mapbox */
-.mapboxgl-ctrl-attrib {
-  font-size: 10px;
-  opacity: 0.6;
-  background: rgba(8, 12, 16, 0.6) !important;
-  color: #556 !important;
-}
-.mapboxgl-popup-content {
-  background: #0d1420 !important;
-  border: 1px solid #1a2535 !important;
-  color: #e0e8f0 !important;
-  font-family: "IBM Plex Mono", monospace !important;
-  font-size: 11px !important;
-}
-.mapboxgl-popup-tip {
-  border-top-color: #0d1420 !important;
 }

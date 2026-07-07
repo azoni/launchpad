@@ -59,14 +59,12 @@
   {
     "name": "PyroGuard",
     "slug": "pyroguard",
-    "description": "AI-augmented fire/life-safety inspection platform for commercial contractors. 6 Seattle demo jobs, NFPA 72 system checklists, stylized route map, Claude-powered AI assistant, AHJ-ready PDF reports.",
+    "description": "All-in-one operations platform for fire/life-safety inspection contractors — a SedonaOffice replacement in ground-up rebuild. Play 'A Day in the Field': one real NFPA 25 inspection riser-to-invoice, with offline photo capture in a dead zone.",
     "url": "https://pyroguard-demo.netlify.app",
     "tags": [
       "Next.js",
-      "Firebase",
-      "Claude API",
-      "Mapbox",
-      "Inspection"
+      "Inspection",
+      "Playable Demo"
     ]
   },
   {

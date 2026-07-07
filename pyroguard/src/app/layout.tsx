@@ -1,14 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter",
-});
 const mono = JetBrains_Mono({
   subsets: ["latin"],
   display: "swap",
@@ -18,37 +13,37 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://pyroguard-demo.netlify.app"),
   title: {
-    default: "PyroGuard — Fire/Life-Safety Inspection, Done Right",
+    default: "PyroGuard — The Fire/Life-Safety Operations Platform",
     template: "%s — PyroGuard",
   },
   description:
-    "Mobile-first fire alarm and life-safety inspection platform for commercial contractors. Device-level inventory, NFPA-ready PDF reports, AI assistant, route optimization.",
+    "All-in-one operations platform for fire & life-safety inspection contractors — scheduling, field inspections, AHJ filing, deficiency quoting, and invoicing in one system.",
   keywords: [
-    "fire alarm inspection software",
+    "fire inspection software",
+    "NFPA 25 inspection software",
     "NFPA 72 inspection",
-    "fire protection software",
-    "life-safety inspection app",
-    "field service fire protection",
+    "fire protection contractor software",
+    "SedonaOffice alternative",
+    "ITM software",
   ],
   authors: [{ name: "PyroGuard" }],
   openGraph: {
     type: "website",
     url: "https://pyroguard-demo.netlify.app",
-    title: "PyroGuard — Fire/Life-Safety Inspection, Done Right",
+    title: "PyroGuard — The Fire/Life-Safety Operations Platform",
     description:
-      "Device-level fire alarm inspection. Swipe Pass/Fail. AI-drafted deficiencies. AHJ-ready PDFs.",
+      "Schedule, inspect, file, quote, and invoice — one platform for fire/life-safety inspection contractors.",
     siteName: "PyroGuard",
   },
   twitter: {
     card: "summary_large_image",
-    title: "PyroGuard — Fire/Life-Safety Inspection, Done Right",
+    title: "PyroGuard — The Fire/Life-Safety Operations Platform",
     description:
-      "Device-level fire alarm inspection. Swipe Pass/Fail. AI-drafted deficiencies. AHJ-ready PDFs.",
+      "Schedule, inspect, file, quote, and invoice — one platform for fire/life-safety inspection contractors.",
   },
   alternates: { canonical: "https://pyroguard-demo.netlify.app/" },
   icons: {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/apple-icon.png" }],
   },
 };
 
@@ -57,15 +52,12 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FAFAF9" },
-    { media: "(prefers-color-scheme: dark)", color: "#0A0A0A" },
-  ],
+  themeColor: "#080c10",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${mono.variable}`}>
+    <html lang="en" suppressHydrationWarning className={mono.variable}>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

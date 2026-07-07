@@ -1,0 +1,72 @@
+"use client";
+import Link from "next/link";
+import type { Tally } from "@/lib/demo/types";
+
+export function DebriefScreen({
+  tallies,
+  closing,
+  outcomes,
+  onReplay,
+}: {
+  tallies: Tally[];
+  closing: string;
+  outcomes: { ontestFirstTry: boolean; severityFirstTry: boolean };
+  onReplay: () => void;
+}) {
+  const decorate = (t: Tally): Tally => {
+    if (t.label === "False-dispatch fine") {
+      return { ...t, value: `${t.value} ${outcomes.ontestFirstTry ? "(first try)" : "(avoided on the recall)"}` };
+    }
+    if (t.label === "Severity call") {
+      return { ...t, value: `${t.value} ${outcomes.severityFirstTry ? "(first try)" : "(with coaching)"}` };
+    }
+    return t;
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2">
+        {tallies.map(decorate).map((t, i) => (
+          <div
+            key={t.label}
+            className="border border-border rounded bg-surface p-3 animate-fade-up opacity-0 [animation-fill-mode:forwards]"
+            style={{ animationDelay: `${i * 180}ms` }}
+          >
+            <div className="tactical-label">// {t.label}</div>
+            <div className="mt-1 text-fire text-[12px] uppercase tracking-wide leading-snug">{t.value}</div>
+            <p className="mt-1.5 text-faint text-[10px] leading-relaxed">{t.contrast}</p>
+          </div>
+        ))}
+      </div>
+
+      <div
+        className="border border-fire rounded bg-fire/5 p-4 animate-fade-up opacity-0 [animation-fill-mode:forwards]"
+        style={{ animationDelay: `${tallies.length * 180 + 200}ms` }}
+      >
+        <p className="text-ink text-[12px] leading-relaxed uppercase tracking-wide">{closing}</p>
+        <div className="mt-4 space-y-2">
+          <a
+            href="mailto:hello@pyroguard.app?subject=PyroGuard%20demo"
+            className="block text-center bg-fire hover:bg-fire3 active:scale-[0.98] text-white py-3.5 rounded text-[12px] tracking-widest2 uppercase transition-all"
+          >
+            Run your whole shop like this →
+          </a>
+          <div className="flex gap-2">
+            <button
+              onClick={onReplay}
+              className="flex-1 border border-border hover:border-fire text-faint hover:text-ink py-2.5 rounded text-[10px] tracking-widest2 uppercase transition-colors"
+            >
+              ↻ Replay
+            </button>
+            <Link
+              href="/"
+              className="flex-1 text-center border border-border hover:border-fire text-faint hover:text-ink py-2.5 rounded text-[10px] tracking-widest2 uppercase transition-colors"
+            >
+              ← Back to base
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

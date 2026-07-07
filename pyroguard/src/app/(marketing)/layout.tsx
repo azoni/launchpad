@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { SiteLogo } from "@/components/SiteLogo";
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
@@ -7,26 +6,9 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       <header className="sticky top-0 z-40 w-full border-b border-border bg-bg/95 backdrop-blur-md safe-top">
         <div className="container flex h-14 items-center justify-between">
           <SiteLogo />
-          <nav className="flex items-center gap-2 sm:gap-4">
-            <Link
-              href="/standards"
-              className="hidden sm:inline text-[11px] tracking-widest2 uppercase text-faint hover:text-ink transition-colors px-2 py-2"
-            >
-              Standards
-            </Link>
-            <Link
-              href="/pricing"
-              className="hidden sm:inline text-[11px] tracking-widest2 uppercase text-faint hover:text-ink transition-colors px-2 py-2"
-            >
-              Pricing
-            </Link>
-            <Link
-              href="/app"
-              className="bg-fire hover:bg-fire3 text-white px-4 py-2 rounded text-[11px] tracking-widest2 uppercase transition-colors"
-            >
-              Launch Demo →
-            </Link>
-          </nav>
+          <span className="animate-soft-pulse text-warn text-[10px] tracking-widest2 uppercase">
+            ● V2 In Development
+          </span>
         </div>
       </header>
 
@@ -34,34 +16,19 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
 
       <footer className="border-t border-border bg-bg mt-16">
         <div className="container py-10 text-[11px] text-muted tracking-wide">
-          <div className="grid gap-8 md:grid-cols-4">
+          <div className="grid gap-8 md:grid-cols-3">
             <div className="space-y-3">
               <SiteLogo />
               <p className="text-[10px] max-w-xs leading-relaxed text-faint">
-                AI-augmented fire/life-safety inspection platform for contractors who prefer to fix
-                things instead of fight paperwork.
+                The all-in-one operations platform for fire/life-safety inspection contractors —
+                schedule, inspect, file, quote, and invoice in one system.
               </p>
-            </div>
-            <div className="space-y-2">
-              <div className="tactical-label">Product</div>
-              <Link className="block hover:text-ink" href="/pricing">
-                Pricing
-              </Link>
-              <Link className="block hover:text-ink" href="/standards">
-                NFPA Coverage
-              </Link>
-              <Link className="block hover:text-ink" href="/app">
-                Launch Demo
-              </Link>
             </div>
             <div className="space-y-2">
               <div className="tactical-label">Company</div>
               <a className="block hover:text-ink" href="mailto:hello@pyroguard.app">
                 Contact
               </a>
-              <Link className="block hover:text-ink" href="/standards">
-                Disclaimers
-              </Link>
             </div>
             <div className="space-y-2">
               <div className="tactical-label">Legal</div>
