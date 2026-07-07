@@ -3,33 +3,36 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useWorkspaceId } from "@/lib/auth";
 import { SiteLogo } from "@/components/SiteLogo";
+import { LayoutDashboard, AlertTriangle, Mail, ClipboardCheck, FileText } from "lucide-react";
 
 const TABS = [
-  { key: "dashboard", href: "/app", label: "⬛ Dashboard", match: (p: string) => p === "/app" },
-  { key: "routes", href: "/app/routes", label: "◈ Routes", match: (p: string) => p.startsWith("/app/routes") },
-  { key: "inspect", href: "/app/inspect", label: "✓ Inspect", match: (p: string) => p.startsWith("/app/inspect") },
-  { key: "assistant", href: "/app/assistant", label: "◉ AI Assistant", match: (p: string) => p.startsWith("/app/assistant") },
-  { key: "reports", href: "/app/reports", label: "⎘ Reports", match: (p: string) => p.startsWith("/app/reports") },
+  { key: "dashboard", href: "/app", label: "Dashboard", icon: LayoutDashboard, match: (p: string) => p === "/app" },
+  { key: "deficiencies", href: "/app/deficiencies", label: "Deficiencies", icon: AlertTriangle, match: (p: string) => p.startsWith("/app/deficiencies") },
+  { key: "follow-ups", href: "/app/follow-ups", label: "Follow-Ups", icon: Mail, match: (p: string) => p.startsWith("/app/follow-ups") },
+  { key: "inspect", href: "/app/inspect", label: "Inspect", icon: ClipboardCheck, match: (p: string) => p.startsWith("/app/inspect") },
+  { key: "reports", href: "/app/reports", label: "Reports", icon: FileText, match: (p: string) => p.startsWith("/app/reports") },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const wsId = useWorkspaceId();
-  const initial = wsId ? wsId.slice(0, 1).toUpperCase() : "J";
+  const initial = wsId ? wsId.slice(0, 1).toUpperCase() : "D";
 
   return (
     <div className="min-h-dvh bg-bg text-ink flex flex-col">
-      {/* Header */}
-      <header className="bg-bg border-b border-border h-14 flex items-center justify-between px-4 sm:px-6 shrink-0 safe-top">
-        <div className="flex items-center gap-4 min-w-0">
+      <header className="bg-bg/80 backdrop-blur-md border-b border-border h-14 flex items-center justify-between px-4 sm:px-6 shrink-0 safe-top sticky top-0 z-30">
+        <div className="flex items-center gap-5 min-w-0">
           <SiteLogo href="/app" />
-          <span className="hidden md:inline text-fainter text-[10px] tracking-widest2">
-            // SEATTLE FIRE INSPECTION PLATFORM
+          <span className="hidden md:inline text-[11px] text-faint tracking-wide pl-5 border-l border-border">
+            Demo workspace &middot; Seattle
           </span>
         </div>
-        <div className="flex items-center gap-3 sm:gap-4">
-          <span className="animate-soft-pulse text-pass text-[10px] tracking-widest2 hidden sm:inline">● LIVE</span>
+        <div className="flex items-center gap-3">
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] text-pass">
+            <span className="w-1.5 h-1.5 rounded-full bg-pass animate-soft-pulse" />
+            Live
+          </span>
           <button
             onClick={() => {
               if (confirm("Reset your sandbox? Clears this browser's workspace data.")) {
@@ -39,7 +42,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 setTimeout(() => window.location.reload(), 50);
               }
             }}
-            className="w-8 h-8 rounded-full bg-fire flex items-center justify-center text-[12px] font-bold text-white"
+            className="w-8 h-8 rounded-full bg-fire/90 hover:bg-fire flex items-center justify-center text-[12px] font-semibold text-white transition-colors"
             aria-label="Reset workspace"
           >
             {initial}
@@ -47,20 +50,21 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* Tab nav */}
-      <nav className="bg-[#0a0e14] border-b border-border px-2 sm:px-6 flex gap-1 overflow-x-auto no-scrollbar shrink-0">
+      <nav className="bg-surface/40 backdrop-blur-sm border-b border-border px-2 sm:px-6 flex gap-px overflow-x-auto no-scrollbar shrink-0 sticky top-14 z-20">
         {TABS.map((t) => {
           const active = t.match(pathname);
+          const Icon = t.icon;
           return (
             <Link
               key={t.key}
               href={t.href}
-              className={`px-3 sm:px-[18px] py-2.5 text-[11px] tracking-widest2 uppercase shrink-0 transition-colors ${
+              className={`px-3 sm:px-4 py-3 text-[12.5px] shrink-0 transition-colors inline-flex items-center gap-2 border-b-2 ${
                 active
-                  ? "text-fire border-b-2 border-fire"
-                  : "text-faint hover:text-ink border-b-2 border-transparent"
+                  ? "text-ink border-fire font-medium"
+                  : "text-muted hover:text-ink border-transparent"
               }`}
             >
+              <Icon className="h-3.5 w-3.5" />
               {t.label}
             </Link>
           );

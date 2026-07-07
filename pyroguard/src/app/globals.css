@@ -12,12 +12,14 @@
   html {
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
-    background: #080c10;
+    background: #0a0e1a;
   }
   body {
-    @apply bg-bg text-ink antialiased font-mono;
-    font-feature-settings: "liga" 1, "calt" 1;
+    @apply bg-bg text-ink antialiased font-sans;
+    font-feature-settings: "ss01" 1, "cv11" 1, "calt" 1;
     overscroll-behavior-y: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   input,
   textarea,
@@ -26,6 +28,9 @@
   }
   button {
     touch-action: manipulation;
+  }
+  h1, h2, h3 {
+    @apply font-display tracking-tight;
   }
 }
 
@@ -36,14 +41,19 @@
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
+  .eyebrow {
+    @apply uppercase text-[10.5px] tracking-widest2 text-faint font-medium;
+  }
   .tactical-label {
-    @apply uppercase text-[10px] tracking-widest2 text-faint;
+    @apply uppercase text-[10.5px] tracking-widest2 text-faint font-medium;
   }
   .grid-bg {
     background-image:
-      linear-gradient(to right, rgba(58, 90, 122, 0.15) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(58, 90, 122, 0.15) 1px, transparent 1px);
-    background-size: 32px 32px;
+      radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.07) 1px, transparent 0);
+    background-size: 28px 28px;
+  }
+  .hairline {
+    box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.03) inset, 0 -1px 0 0 rgba(0, 0, 0, 0.25) inset;
   }
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -52,34 +62,44 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  .gradient-text {
+    background: linear-gradient(135deg, #f3f4f6 0%, #d1d5db 60%, #9ca3af 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 }
 
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0d1117;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #ff4500;
-  border-radius: 2px;
+  background: #2a3447;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3b4760;
 }
 
 /* Mapbox */
 .mapboxgl-ctrl-attrib {
   font-size: 10px;
   opacity: 0.6;
-  background: rgba(8, 12, 16, 0.6) !important;
-  color: #556 !important;
+  background: rgba(10, 14, 26, 0.6) !important;
+  color: #6b7280 !important;
 }
 .mapboxgl-popup-content {
-  background: #0d1420 !important;
-  border: 1px solid #1a2535 !important;
-  color: #e0e8f0 !important;
-  font-family: "IBM Plex Mono", monospace !important;
-  font-size: 11px !important;
+  background: #111827 !important;
+  border: 1px solid #1f2937 !important;
+  color: #f3f4f6 !important;
+  font-family: var(--font-inter), system-ui, sans-serif !important;
+  font-size: 12px !important;
+  border-radius: 8px !important;
 }
 .mapboxgl-popup-tip {
-  border-top-color: #0d1420 !important;
+  border-top-color: #111827 !important;
 }
