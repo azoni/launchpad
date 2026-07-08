@@ -1,16 +1,22 @@
 "use client";
 import Link from "next/link";
 import type { Tally } from "@/lib/demo/types";
+import type { FieldNote } from "@/lib/demo/useFieldNotes";
+import type { DemoDeficiency } from "@/lib/demo/useDeficiencies";
 
 export function DebriefScreen({
   tallies,
   closing,
   outcomes,
+  notes = [],
+  deficiencies = [],
   onReplay,
 }: {
   tallies: Tally[];
   closing: string;
   outcomes: { ontestFirstTry: boolean; severityFirstTry: boolean };
+  notes?: FieldNote[];
+  deficiencies?: DemoDeficiency[];
   onReplay: () => void;
 }) {
   const decorate = (t: Tally): Tally => {
@@ -25,6 +31,35 @@ export function DebriefScreen({
 
   return (
     <div className="space-y-3">
+      {deficiencies.length > 0 && (
+        <div className="border border-fire/40 rounded bg-fire/5 p-3">
+          <div className="tactical-label">// Deficiencies logged ({deficiencies.length})</div>
+          {deficiencies.map((d) => (
+            <div key={d.id} className="mt-2 text-[12.5px] leading-snug">
+              <span className="text-fire tracking-widest2">{d.deviceId}</span>
+              <span className="text-ink2">
+                {" "}
+                — {d.severity ? d.severity.toUpperCase() : "unclassified"} · {d.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {notes.length > 0 && (
+        <div className="border border-border rounded bg-surface p-3">
+          <div className="tactical-label">// Field notes ({notes.length}) — still here, nothing lost</div>
+          <div className="mt-2 space-y-1.5">
+            {notes.map((n) => (
+              <div key={n.id} className="text-ink2 text-[12.5px] leading-relaxed">
+                <span className="text-fainter">▪</span> {n.text}
+                {n.tag ? <span className="text-fire"> · {n.tag}</span> : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
         {tallies.map(decorate).map((t, i) => (
           <div

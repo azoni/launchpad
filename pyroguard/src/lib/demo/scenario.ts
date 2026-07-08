@@ -49,7 +49,7 @@ export const scenario: Scenario = {
       label: "Wet-Pipe System Riser",
       type: "sprinkler-riser",
       floor: "L1",
-      location: "Riser room, off lobby service corridor",
+      location: "Riser room off the lobby service corridor — the door with the mop bucket and the WET FLOOR sign that's been dry since 2019",
       checklistItems: [
         "Control valve OPEN — locked & supervised",
         "Static pressure gauge: 65 PSI (last year: 64)",
@@ -58,6 +58,12 @@ export const scenario: Scenario = {
         "Spare head cabinet: heads + wrench present",
         "Hydraulic design placard legible",
       ],
+      history: {
+        lastInspected: "2024-03-11 · T. Reyes",
+        lastReading: "static 64 PSI · residual 50 · recovery 38 s",
+        priorNotes: "No open deficiencies. Gauge flagged for age — still ignored.",
+        trendFlag: "ok",
+      },
     },
     {
       id: "FLOW-SW-1",
@@ -70,6 +76,12 @@ export const scenario: Scenario = {
         "Signal received at central station within 90 s (NFPA 72)",
         "Retard setting intact",
       ],
+      history: {
+        lastInspected: "2024-03-11 · T. Reyes",
+        lastReading: "signal at 0:29 · retard intact",
+        priorNotes: "Passed inside the NFPA 72 window.",
+        trendFlag: "ok",
+      },
     },
     {
       id: "BFP-1",
@@ -113,6 +125,12 @@ export const scenario: Scenario = {
         "Install NEW tamper seal",
         "Punch NEW annual maintenance tag — date + tech ID",
       ],
+      history: {
+        lastInspected: "2024-03-11 · T. Reyes",
+        lastReading: "gross wt matched · new tag punched",
+        priorNotes: "Mounted a proud 62 in. to the top. Left it.",
+        trendFlag: "ok",
+      },
     },
     {
       id: "HEADS-L3",
@@ -132,13 +150,19 @@ export const scenario: Scenario = {
       label: "Extinguisher 5-lb ABC",
       type: "extinguisher",
       floor: "L3",
-      location: "East corridor, at exit door",
+      location: "East corridor at the exit door — coffee ring on top like someone's been using it as a coaster",
       checklistItems: [
         "Pull pin — examine shell, handle, lever, hose, nozzle",
         "Weigh unit — matches stamped gross weight",
         "Install NEW tamper seal",
         "Punch NEW annual maintenance tag — date + tech ID",
       ],
+      history: {
+        lastInspected: "2024-03-11 · T. Reyes",
+        lastReading: "gross wt matched · new tag punched",
+        priorNotes: "Wiped the coffee ring. Not a finding, just a sigh.",
+        trendFlag: "ok",
+      },
     },
     {
       id: "VLV-B1-SECT",
@@ -155,7 +179,13 @@ export const scenario: Scenario = {
       floor: "B1",
       location: "B1 parking, Row C above stall 7, near exhaust fan",
       scripted: "THE DEFICIENCY — corroded, loaded head found in the no-signal zone",
-      checklistItems: ["Frame/deflector corrosion check", "Loading — dust / exhaust residue", "Escutcheon + deflector clearance"],
+      checklistItems: ["Frame/deflector corrosion check", "Loading — exhaust residue you could write your initials in", "Escutcheon + deflector clearance"],
+      history: {
+        lastInspected: "2024-03-11 · T. Reyes",
+        lastReading: "minor surface corrosion noted — monitor",
+        priorNotes: "Downwind of the garage exhaust fan. Worst seat in the building.",
+        trendFlag: "worse",
+      },
     },
     {
       id: "FE-B1-02",
@@ -170,6 +200,12 @@ export const scenario: Scenario = {
         "Punch NEW annual maintenance tag — date + tech ID",
         "6-yr internal exam date verified on collar",
       ],
+      history: {
+        lastInspected: "2024-03-11 · T. Reyes",
+        lastReading: "gross wt matched · 6-yr internal current",
+        priorNotes: "Owner's monthly quick-check initials: 3 months, a shrug, nothing since March.",
+        trendFlag: "watch",
+      },
     },
   ],
 
@@ -180,7 +216,7 @@ export const scenario: Scenario = {
       screen: "briefing",
       title: "0645 — Work order + site intel",
       narrative:
-        "SHOP, BALLARD. Coffee's hot. Phone buzzes. WO-2841: Meridian Exchange, 1201 Western Ave. Annual NFPA 25 wet system + NFPA 10 extinguisher round. Year 2 of a 3-year ITM agreement. One card stack, everything on it: last year's main drain numbers, 11 tagged devices, garage gate code 4471#, riser room behind the lobby service corridor, FM Dana Whitfield on site 0800–1600, central station account 4471-ME. Roll out.",
+        "SHOP, BALLARD. Coffee's hot. Phone buzzes. WO-2841: Meridian Exchange, 1201 Western Ave. Annual NFPA 25 wet system + NFPA 10 extinguisher round. Year 2 of a 3-year ITM agreement. One card stack, everything on it: last year's main drain numbers, 11 tagged devices, garage gate code 4471# (taped to a coffee stain in truck 6 last year — not this year), riser room behind the lobby service corridor, FM Dana Whitfield on site 0800–1600, central station account 4471-ME. Roll out.",
       interaction: "Accept the work order, thumb through the intel stack, roll out.",
       painPoint: {
         title: "The morning shuffle",
@@ -225,7 +261,7 @@ export const scenario: Scenario = {
           label: "Skip it — it's just a main drain",
           correct: false,
           feedback:
-            "Negative. The waterflow test WILL send a signal — and even a hard main drain flow can trip the pressure switch. Central station dispatches. An engine company rolls on a working inspection. Cities typically bill $100–500 per false-alarm response, escalating for repeats. The FM remembers exactly who caused it. Make the call.",
+            "Negative. The waterflow test WILL send a signal — and even a hard main drain flow can trip the pressure switch. Central station dispatches. An engine company rolls on a working inspection. Cities typically bill $100–500 per false-alarm response, escalating for repeats. The FM remembers exactly who caused it — for years, at every renewal meeting. Make the call.",
         },
       ],
       painPoint: {
@@ -373,7 +409,7 @@ export const scenario: Scenario = {
       screen: "signature",
       title: "1140 — FM sign-off",
       narrative:
-        "Lobby. Walk Dana Whitfield through it on the phone: eleven devices, ten passed clean, one critical deficiency with the photo right there on screen — corroded heads, Row C, replacement recommended. No surprises later, no disputed findings. She signs the glass with her thumb.",
+        "Lobby. Walk Dana Whitfield through it on the phone: eleven devices, ten passed clean, one critical deficiency with the photo right there on screen — corroded heads, Row C, replacement recommended. Dana squints at the photo: 'That's the one by the fan, isn't it. It's always the one by the fan.' No surprises later, no disputed findings. She signs the glass with her thumb.",
       interaction: "Hand-the-phone moment: draw Dana's signature, then confirm.",
       painPoint: {
         title: "The carbon-copy handshake",
@@ -452,7 +488,7 @@ export const scenario: Scenario = {
       },
     ],
     closing:
-      "One inspector. One phone. One system from work order to paid — no paper, no re-keying, no lost photos, no open on-test window.",
+      "One inspector. One phone. One system from work order to paid — no paper, no re-keying, no lost photos, no open on-test window. Home for lunch. Ask any inspector how often that sentence is true.",
   },
 };
 

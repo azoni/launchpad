@@ -10,6 +10,7 @@ import { haptic } from "@/lib/haptics";
 export function StepFrame({
   title,
   narrative,
+  interaction,
   done,
   painPoint,
   onContinue,
@@ -18,6 +19,7 @@ export function StepFrame({
 }: {
   title: string;
   narrative: string;
+  interaction?: string;
   done: boolean;
   painPoint?: PainPoint;
   onContinue: () => void;
@@ -29,6 +31,12 @@ export function StepFrame({
       <div>
         <h2 className="text-ink text-[16px] uppercase tracking-widest2 leading-snug">{title}</h2>
         <p className="mt-2 text-ink2 text-[13.5px] leading-relaxed">{narrative}</p>
+        {!done && interaction && (
+          <div className="mt-3 flex items-start gap-2 border border-fire/25 bg-fire/5 rounded px-2.5 py-2">
+            <span className="text-fire text-[11px] tracking-widest2 uppercase shrink-0 mt-[1px]">▸ Do</span>
+            <span className="text-ink2 text-[12.5px] leading-snug">{interaction}</span>
+          </div>
+        )}
       </div>
 
       <div>{children}</div>

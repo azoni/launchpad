@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Device } from "@/lib/demo/types";
 import { haptic } from "@/lib/haptics";
+import { DeviceHistoryPeek } from "@/components/demo/DeviceHistoryPeek";
 
 function SwipeRow({ label, onPass }: { label: string; onPass: () => void }) {
   const [dx, setDx] = useState(0);
@@ -146,13 +147,16 @@ export function ExtinguishersScreen({
 
       {surveyComplete && (
         <div className={`animate-fade-up border rounded bg-surface ${inspectionComplete ? "border-pass/40" : "border-border"}`}>
-          <div className="px-3 py-2 border-b border-border2 flex items-center justify-between gap-2">
+          <div className="px-3 py-2 border-b border-border2 flex items-start justify-between gap-2">
             <div className="min-w-0">
               <span className="text-fire text-[12px] tracking-widest2">{extinguisher.id}</span>
               <div className="text-ink text-[11px] uppercase tracking-wide truncate">{extinguisher.label} — annual inspection</div>
-              <div className="text-fainter text-[11px] truncate">{extinguisher.location}</div>
+              <div className="text-fainter text-[11px] leading-snug">{extinguisher.location}</div>
             </div>
-            {inspectionComplete && <span className="text-pass text-[12px] tracking-widest2 shrink-0">✓ PASS</span>}
+            <div className="flex items-center gap-2 shrink-0">
+              {extinguisher.history && <DeviceHistoryPeek history={extinguisher.history} />}
+              {inspectionComplete && <span className="text-pass text-[12px] tracking-widest2">✓ PASS</span>}
+            </div>
           </div>
           <div className="p-2 space-y-1.5">
             <BarcodeScan deviceId={extinguisher.id} onScanned={() => setScanned(true)} />

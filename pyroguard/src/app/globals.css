@@ -75,3 +75,14 @@
   background: #ff4500;
   border-radius: 2px;
 }
+
+/* Respect reduced-motion — calm the pulsing/sliding for projectors & sensitive viewers */
+@media (prefers-reduced-motion: reduce) {
+  .animate-soft-pulse,
+  .animate-slide-in,
+  .animate-fade-up {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

@@ -38,6 +38,14 @@ export type Step = {
   signal?: "ok" | "none";
 };
 
+export type DeviceHistory = {
+  lastInspected: string;
+  lastReading: string;
+  priorNotes: string;
+  /** ok = holding, watch = trending, worse = degrading year-over-year */
+  trendFlag?: "ok" | "watch" | "worse";
+};
+
 export type Device = {
   id: string;
   label: string;
@@ -45,6 +53,8 @@ export type Device = {
   floor: string;
   location: string;
   checklistItems?: string[];
+  /** prior-year record surfaced in the device-history peek */
+  history?: DeviceHistory;
   /** set when this device has a scripted outcome (the deficiency) */
   scripted?: string;
 };

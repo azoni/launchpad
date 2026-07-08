@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Device } from "@/lib/demo/types";
 import { haptic } from "@/lib/haptics";
+import { DeviceHistoryPeek } from "@/components/demo/DeviceHistoryPeek";
 
 function GaugeWidget({ onLog }: { onLog: () => void }) {
   const [psi, setPsi] = useState(65);
@@ -225,13 +226,16 @@ export function ChecklistScreen({
         const isDone = isDeviceDone(d);
         return (
           <div key={d.id} className={`border rounded bg-surface transition-colors ${isDone ? "border-pass/40" : "border-border"}`}>
-            <div className="px-3 py-2 border-b border-border2 flex items-center justify-between gap-2">
+            <div className="px-3 py-2 border-b border-border2 flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <span className="text-fire text-[12px] tracking-widest2">{d.id}</span>
                 <div className="text-ink text-[11px] uppercase tracking-wide truncate">{d.label}</div>
-                <div className="text-fainter text-[11px] truncate">{d.location}</div>
+                <div className="text-fainter text-[11px] leading-snug">{d.location}</div>
               </div>
-              {isDone && <span className="text-pass text-[12px] tracking-widest2 shrink-0">✓ PASS</span>}
+              <div className="flex items-center gap-2 shrink-0">
+                {d.history && <DeviceHistoryPeek history={d.history} />}
+                {isDone && <span className="text-pass text-[12px] tracking-widest2">✓ PASS</span>}
+              </div>
             </div>
             <div className="p-2 space-y-1">
               {d.checklistItems?.map((row, i) => {
@@ -249,7 +253,7 @@ export function ChecklistScreen({
                       haptic(8);
                       passRow(d, i);
                     }}
-                    className={`w-full text-left px-2 py-1.5 rounded-sm text-[12px] leading-snug transition-colors ${
+                    className={`w-full text-left px-2 py-2.5 rounded-sm text-[12px] leading-snug transition-colors ${
                       ok ? "text-pass" : "text-muted hover:bg-[#0a0e14] active:bg-[#0a0e14]"
                     }`}
                   >

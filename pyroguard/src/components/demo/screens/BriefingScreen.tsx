@@ -9,7 +9,8 @@ export function BriefingScreen({ data, onDone }: { data: DummyData; onDone: () =
   const intel = [
     { label: "History", body: "Last year: static 64 PSI · residual 50 · recovery 38 s. Zero open deficiencies." },
     { label: "Devices", body: "11 tagged devices on route — riser, flow switch, backflow, PIV, FDC, head surveys, 4 extinguishers." },
-    { label: "Access", body: "Garage gate 4471# · riser room behind lobby service corridor · freight elevator key at desk." },
+    { label: "Tenants", body: "Law firm on 3, spin studio on 2, coffee roaster off the lobby — source of the recurring 'burning smell' calls. It's the beans." },
+    { label: "Access", body: "Garage gate 4471# · riser room behind lobby service corridor · freight elevator key at the desk (second drawer, under the phone charger)." },
     { label: "Contact", body: `${data.customer.name} — ${data.customer.role}. On site 0800–1600.` },
     { label: "Monitoring", body: "Central station account 4471-ME — live and dispatching." },
   ];
