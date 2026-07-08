@@ -1,126 +1,239 @@
 import Link from "next/link";
+import { ArrowRight, AlertTriangle, ClipboardCheck, Mail, BarChart3, FileText, Workflow } from "lucide-react";
 
-const PILLARS = [
-  {
-    glyph: "◈",
-    title: "Schedule",
-    copy: "Bulk-generate the month from NFPA frequency records. Level lumpy due-windows, assign by cert, route the day.",
-  },
-  {
-    glyph: "✓",
-    title: "Inspect",
-    copy: "Offline field walk-throughs with standard-specific question sets, photo-backed findings, signatures on device.",
-  },
-  {
-    glyph: "⎘",
-    title: "File",
-    copy: "Deadline-aware AHJ submission — red tags routed before the legal clock runs out, routine reports without re-keying.",
-  },
-  {
-    glyph: "⚡",
-    title: "Quote",
-    copy: "Failed device to approved, priced repair the same day. Photo-backed quotes on a hosted approval link.",
-  },
-  {
-    glyph: "◉",
-    title: "Invoice",
-    copy: "Cycle billing, per-inspection, and T&M from captured parts and hours — posted, sent, and paid without double entry.",
-  },
-];
-
-export default function LandingPage() {
+export default function Home() {
   return (
-    <div className="grid-bg">
-      <section className="container py-24 sm:py-32">
-        <div className="tactical-label mb-6">// Fire/Life-Safety Operations Platform</div>
-        <h1 className="font-display text-4xl sm:text-6xl uppercase tracking-widest2 text-ink leading-tight max-w-4xl animate-slide-in">
-          Everything your inspection business runs on.
-          <span className="text-fire"> One platform.</span>
-        </h1>
-        <p className="mt-8 max-w-2xl text-muted text-sm leading-relaxed animate-fade-up">
-          PyroGuard is being rebuilt from the ground up as the all-in-one system for fire and
-          life-safety inspection contractors — scheduling, field inspections, AHJ filing,
-          deficiency quoting, and invoicing, connected to the tools you already use.
-        </p>
-        <div className="mt-12 flex flex-wrap items-center gap-4 text-[11px] tracking-widest2 uppercase">
-          <Link
-            href="/demo"
-            className="bg-fire hover:bg-fire3 text-white px-5 py-3 rounded transition-all active:scale-95"
-          >
-            ▶ Play: A Day in the Field
-          </Link>
-          <a
-            href="mailto:hello@pyroguard.app"
-            className="border border-border hover:border-fire text-faint hover:text-ink px-4 py-3 rounded transition-colors"
-          >
-            Get in touch →
-          </a>
-          <span className="animate-soft-pulse text-warn basis-full sm:basis-auto">● Rebuild in progress</span>
+    <>
+      <section className="relative">
+        <div className="absolute inset-0 grid-bg opacity-60 pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-fire/30 to-transparent pointer-events-none" />
+        <div className="container relative pt-20 pb-24 md:pt-28 md:pb-32">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-surface/60 backdrop-blur-sm mb-7">
+              <span className="w-1.5 h-1.5 rounded-full bg-fire animate-soft-pulse" />
+              <span className="text-[11px] tracking-widest2 uppercase text-muted">For Fire Protection Contractors</span>
+            </div>
+            <h1 className="font-display text-5xl md:text-7xl text-ink leading-[1.02] tracking-tight font-semibold">
+              The follow-up layer<br />
+              <span className="italic font-normal text-muted">for </span>
+              <span className="text-fire">fire protection.</span>
+            </h1>
+            <p className="mt-7 text-base md:text-lg text-ink2 leading-relaxed max-w-2xl">
+              Deficiencies, quotes, repairs, and customer follow-ups stop falling through the cracks.
+              A workflow layer that sits on top of your existing systems &mdash; no rip-and-replace.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 pt-8">
+              <Link
+                href="/app"
+                className="bg-fire hover:bg-fire2 text-white px-7 py-3.5 rounded-md text-sm font-medium tracking-wide inline-flex items-center justify-center gap-2 transition-all shadow-glow"
+              >
+                Open Demo Dashboard
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/discovery"
+                className="border border-border hover:border-muted bg-surface/60 hover:bg-surface text-ink px-7 py-3.5 rounded-md text-sm font-medium inline-flex items-center justify-center gap-2 transition-all"
+              >
+                Discovery Checklist
+              </Link>
+            </div>
+            <p className="text-[11px] text-faint tracking-wide pt-6 flex items-center gap-2">
+              <span className="w-1 h-1 rounded-full bg-faint" />
+              Demo data only &middot; no signup &middot; runs in your browser
+            </p>
+          </div>
         </div>
-        <p className="mt-3 text-faint text-[10px] tracking-widest2 uppercase">
-          ▸ Playable demo — one real NFPA 25 inspection, riser to invoice. ~4 min, best on your phone.
-        </p>
       </section>
 
-      <section className="container pb-24">
-        <div className="tactical-label mb-6">// The Loop We Close</div>
-        <div className="grid gap-px sm:grid-cols-2 lg:grid-cols-5 bg-border border border-border rounded">
-          {PILLARS.map((p) => (
+      {/* Integrations strip */}
+      <section className="border-t border-border bg-bg">
+        <div className="container py-10">
+          <div className="flex flex-wrap items-center justify-between gap-6">
+            <div className="text-[12px] text-muted max-w-md leading-relaxed">
+              Reads from the systems your team already uses &mdash; <span className="text-ink">no migration, no double entry.</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+              {INTEGRATIONS.map((i) => (
+                <div key={i.name} className="flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-md bg-surface border border-border flex items-center justify-center text-[11px] font-display font-semibold text-fire">
+                    {i.glyph}
+                  </span>
+                  <div>
+                    <div className="text-[12.5px] text-ink font-medium leading-tight">{i.name}</div>
+                    <div className="text-[10.5px] text-faint leading-tight">{i.role}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* KPI strip */}
+      <section className="border-y border-border bg-surface/30">
+        <div className="container py-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border rounded-lg overflow-hidden">
+            {[
+              { v: "14", l: "Open deficiencies" },
+              { v: "8", l: "Overdue inspections" },
+              { v: "$18,450", l: "Est. follow-up revenue" },
+              { v: "11", l: "Customer follow-ups today" },
+            ].map((k) => (
+              <div key={k.l} className="bg-surface px-5 py-6">
+                <div className="font-display text-3xl md:text-4xl text-ink font-semibold tracking-tight">
+                  {k.v}
+                </div>
+                <div className="text-[11px] text-muted tracking-wide mt-1">{k.l}</div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-faint mt-3 text-center">
+            Sample of the operations dashboard &mdash; demo data
+          </p>
+        </div>
+      </section>
+
+      {/* Capabilities */}
+      <section className="container py-20 md:py-28">
+        <div className="max-w-2xl mb-14">
+          <div className="eyebrow mb-3">What it covers</div>
+          <h2 className="font-display text-3xl md:text-5xl text-ink leading-tight tracking-tight font-semibold">
+            Five pieces that keep the back office moving.
+          </h2>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map((f) => (
             <div
-              key={p.title}
-              className="bg-surface p-5 hover:border-fire border border-transparent transition-colors"
+              key={f.t}
+              className="group bg-surface border border-border rounded-lg p-6 hover:border-fire/40 hover:bg-elevated transition-all"
             >
-              <div className="text-fire text-lg">{p.glyph}</div>
-              <div className="mt-3 text-ink text-[12px] uppercase tracking-widest2">{p.title}</div>
-              <p className="mt-2 text-faint text-[11px] leading-relaxed">{p.copy}</p>
+              <div className="w-10 h-10 rounded-md bg-fire/10 border border-fire/20 flex items-center justify-center mb-5 group-hover:bg-fire/15 transition-colors">
+                <f.icon className="h-4.5 w-4.5 text-fire" />
+              </div>
+              <div className="text-[15px] font-medium text-ink mb-2">{f.t}</div>
+              <div className="text-[13px] text-muted leading-relaxed">{f.b}</div>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="container pb-24">
-        <div className="tactical-label mb-2">// The Landscape</div>
-        <p className="text-faint text-[11px] leading-relaxed max-w-2xl mb-6">
-          Today a contractor stitches together three to five of these — plus SedonaOffice or QuickBooks for the money —
-          and re-keys the same finding between all of them. Know the field:
-        </p>
-        <div className="grid gap-px sm:grid-cols-3 bg-border border border-border rounded max-w-3xl">
-          {[
-            {
-              name: "Inspect Point",
-              url: "https://www.inspectpoint.com",
-              note: "Fire-specific inspections + proposals. iOS-only field app. Acquired FormLink (AHJ filing) and FireCAD.",
-            },
-            {
-              name: "ServiceTrade",
-              url: "https://servicetrade.com",
-              note: "Commercial field service with the signature deficiency-to-quote pipeline. Accounting punts to QuickBooks/Intacct.",
-            },
-            {
-              name: "Uptick",
-              url: "https://www.uptickhq.com",
-              note: "Fire/life-safety maintenance platform. Free subcontractor seats, transparent pricing attack on quote-only incumbents.",
-            },
-          ].map((c) => (
-            <a
-              key={c.name}
-              href={c.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-surface p-5 border border-transparent hover:border-fire transition-colors group"
-            >
-              <div className="text-ink text-[12px] uppercase tracking-widest2 group-hover:text-fire transition-colors">
-                {c.name} ↗
-              </div>
-              <p className="mt-2 text-faint text-[10px] leading-relaxed">{c.note}</p>
-            </a>
-          ))}
+      {/* Approach */}
+      <section className="border-t border-border bg-surface/30">
+        <div className="container py-20 md:py-28">
+          <div className="grid gap-12 lg:grid-cols-2 items-start">
+            <div>
+              <div className="eyebrow mb-3">Pilot approach</div>
+              <h2 className="font-display text-3xl md:text-5xl text-ink leading-tight tracking-tight font-semibold">
+                A safe first step,<br />
+                <span className="italic text-muted">not a system replacement.</span>
+              </h2>
+              <p className="mt-6 text-ink2 leading-relaxed max-w-lg">
+                Most software pitches ask you to migrate everything. This is the opposite:
+                a thin workflow layer that reads what you already have and surfaces what is
+                falling through the cracks. The pilot is two weeks, fixed scope, no commitment.
+              </p>
+            </div>
+            <ol className="space-y-1">
+              {STEPS.map((s, i) => (
+                <li key={s.t} className="bg-surface border border-border rounded-lg p-5 flex gap-4">
+                  <div className="font-display text-2xl text-fire/70 font-semibold tabular-nums w-8 shrink-0">
+                    {String(i + 1).padStart(2, "0")}
+                  </div>
+                  <div>
+                    <div className="text-[14px] font-medium text-ink mb-1">{s.t}</div>
+                    <div className="text-[13px] text-muted leading-relaxed">{s.b}</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
         </div>
-        <p className="mt-4 text-fainter text-[10px] leading-relaxed max-w-2xl">
-          None of them combine fire-native inspections, RMR/agreement billing, accounting, and AHJ filing in one
-          system. That gap is PyroGuard.
-        </p>
       </section>
-    </div>
+
+      {/* CTA */}
+      <section className="container py-20 md:py-28">
+        <div className="bg-surface border border-border rounded-lg p-10 md:p-14 relative overflow-hidden">
+          <div className="absolute inset-0 grid-bg opacity-40 pointer-events-none" />
+          <div className="relative max-w-2xl">
+            <div className="eyebrow mb-3">Next step</div>
+            <h2 className="font-display text-3xl md:text-5xl text-ink leading-tight tracking-tight font-semibold">
+              See the workflow in two minutes.
+            </h2>
+            <p className="mt-5 text-ink2 max-w-xl leading-relaxed">
+              The demo opens in your browser with seeded customers, deficiencies, and follow-up
+              drafts. Walk through it together and we will tailor the pilot to your actual flow.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 mt-8">
+              <Link
+                href="/app"
+                className="bg-fire hover:bg-fire2 text-white px-7 py-3.5 rounded-md text-sm font-medium tracking-wide inline-flex items-center justify-center gap-2 transition-all shadow-glow"
+              >
+                Open Demo Dashboard <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/discovery"
+                className="border border-border hover:border-muted text-ink px-7 py-3.5 rounded-md text-sm font-medium inline-flex items-center justify-center transition-all"
+              >
+                Run Discovery Checklist
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
   );
 }
+
+const FEATURES = [
+  {
+    icon: AlertTriangle,
+    t: "Deficiency tracking",
+    b: "Every open finding from inspection to repair, with status, severity, and assigned owner. Nothing waits in someone's inbox.",
+  },
+  {
+    icon: Mail,
+    t: "Customer follow-ups",
+    b: "AI-drafted emails for quote requests and reminders. Human approves before send &mdash; the system never speaks for you.",
+  },
+  {
+    icon: ClipboardCheck,
+    t: "Inspection workflow",
+    b: "Mobile pass/fail with photo evidence on fail. NFPA 72 Chapter 14 record-of-completion PDF generated on signature.",
+  },
+  {
+    icon: BarChart3,
+    t: "Operations dashboard",
+    b: "Open quotes, overdue inspections, follow-ups due today, estimated follow-up revenue. The week at a glance.",
+  },
+  {
+    icon: FileText,
+    t: "Quote &amp; report drafts",
+    b: "Convert a deficiency into a quote summary in one click. AHJ-ready PDF reports for compliance.",
+  },
+  {
+    icon: Workflow,
+    t: "Sits on top, not under",
+    b: "No rip-and-replace. The layer reads what you already have and surfaces what needs attention this week.",
+  },
+];
+
+const INTEGRATIONS = [
+  { name: "ServiceTrade", role: "System of record", glyph: "ST" },
+  { name: "BuildingReports", role: "Inspection reports", glyph: "BR" },
+  { name: "Field forms", role: "Tech intake", glyph: "FF" },
+];
+
+const STEPS = [
+  {
+    t: "Discovery call",
+    b: "30 minutes. Walk the demo together, identify which workflow is the most painful, agree on a single pilot scope.",
+  },
+  {
+    t: "Two-week pilot",
+    b: "We seed the workflow with one customer set or job pipeline. You use it on real follow-ups, no production risk.",
+  },
+  {
+    t: "Decide together",
+    b: "If it earns its keep we scope a fuller engagement. If not, the pilot ends &mdash; no obligation, no leftover system to uninstall.",
+  },
+];

@@ -1,50 +1,84 @@
-# PyroGuard v2 — rebuild in progress
+# PyroGuard
 
-The v1 demo has been retired and deleted (recoverable in git history — `a01c52a` added it).
-PyroGuard is being rebuilt from the ground up as a real all-in-one operations platform for
-fire/life-safety inspection contractors — a SedonaOffice replacement.
+Mobile-first fire/life-safety inspection platform demo — aimed at commercial inspection contractors
+(AAA Fire Protection, Guardian Fire, Johnson Controls, Cintas). Built to open instantly on a
+prospect's phone, run a full 20-device inspection in under two minutes, and deliver an AHJ-ready PDF.
 
-**Start here: [REBUILD.md](./REBUILD.md)** — mission, market research digest, personas, the
-full use-case map (core-v1 / v1.x / later), integration rankings, decisions made, and open
-questions.
+**Live:** https://pyroguard-demo.netlify.app
+**Repo:** [azoni/launchpad/pyroguard](https://github.com/azoni/launchpad/tree/main/pyroguard)
 
-**Live:** https://pyroguard-demo.netlify.app (currently the holding page + design shell)
+## What the demo does
 
-## What's in this directory right now
+- **Try Demo** → anonymous Firebase sign-in → clones a Seattle-themed sandbox (3 customers, ~300 devices, 2 years of test history)
+- **Dashboard** — real-time KPI cards, critical deficiencies, today's jobs
+- **Jobs & routes** — Mapbox GL map of 3 Seattle properties, "Optimize Route" toggle with drive-time delta (nearest-neighbor over Mapbox Directions)
+- **Inspect** — swipe Pass/Fail on devices, haptic feedback, native camera on Fail, inline deficiency drawer with "Draft with AI" (Claude Sonnet 4.5)
+- **Complete** — signature pad with geo-tag, generates NFPA 72 Ch 14 record-of-completion PDF, uploads to Firebase Storage
+- **AI Assistant** — code lookup, deficiency drafting with conservative citation rules ("defer if not 100% certain")
+- **Reports** — per-inspection PDF list with share/download
 
-The **design shell** — the "tactical mission console" visual identity that survives the
-rewrite — plus the landing page and **"A Day in the Field"**, a playable ~4-minute demo at
-`/demo`: you play an inspector through one real NFPA 25 annual + NFPA 10 round (scenario data
-in `src/lib/demo/scenario.ts`, engine in `src/components/demo/`). Every step contrasts the
-old Sedona/paper way with the PyroGuard fix; the centerpiece is offline photo capture in a
-no-signal parking level. Mobile-first; desktop gets a phone frame.
+## Stack
 
-Shell files:
+- Next.js 14 App Router + TypeScript + Tailwind
+- Firebase: Auth (anonymous), Firestore (offline persistence), Storage
+- Anthropic Claude Sonnet 4.5 via Next.js Route Handler (deploys as Netlify Function)
+- Mapbox GL JS + Directions API (SVG fallback if `NEXT_PUBLIC_MAPBOX_TOKEN` missing)
+- `@react-pdf/renderer` for NFPA-ready PDFs, `signature_pad` for touchscreen signatures
+- `framer-motion` for swipe gestures, `zustand` for client state, `next-themes` for dark mode
+- PWA installable via `manifest.ts`
 
-- `tailwind.config.ts` + `src/app/globals.css` — the design tokens (palette, radii, tracking,
-  keyframes, `.tactical-label`, `.grid-bg`)
-- `src/components/SiteLogo.tsx` — the triangle mark + wordmark
-- `src/components/Shell.tsx` — app chrome pattern (header + tab nav), now app-logic-free
-- `src/app/(marketing)/` — marketing chrome + holding page
-- `src/app/icon.svg`, `opengraph-image.tsx`, `manifest.ts` — brand asset *slots*; the art is
-  pre-rebrand and needs redrawing (see REBUILD.md §5 "Known shell defects")
-- `src/lib/haptics.ts`, `src/lib/utils.ts` (`cn()` only)
-
-## Decisions locked (2026-07-07)
-
-1. Multi-tenant SaaS from day one
-2. QuickBooks Online as interim GL (native GL is the last milestone)
-3. First wedge: sprinkler/extinguisher ITM-pure shops
-4. Field-ops slice ships first (backbone + scheduling + inspections + quotes + AHJ filing),
-   billing layer immediately after
-
-## Local dev
+## Local setup
 
 ```bash
 npm install
-npm run dev   # → http://localhost:3000
+cp .env.example .env.local
+# fill in Firebase + ANTHROPIC_API_KEY + NEXT_PUBLIC_MAPBOX_TOKEN (optional)
+npm run seed   # writes the _template workspace
+npm run dev    # → http://localhost:3000
 ```
 
-No env vars required for the holding page (`NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_MCP_READ_KEY`
-optional). The v2 stack beyond the shell (database, auth, mobile approach) is decided in the
-architecture plan — see REBUILD.md open questions.
+### Env vars
+
+| Var | Required | Notes |
+|---|---|---|
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | yes | public |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | yes | public |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | yes | public |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | yes | public |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | yes | public |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | yes | public |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | yes | single-line JSON of the admin service account |
+| `ANTHROPIC_API_KEY` | yes | server-side only, Sonnet 4.5 |
+| `MCP_ADMIN_KEY` | no | launchpad activity feed logging |
+| `NEXT_PUBLIC_MCP_READ_KEY` | no | launchpad view beacon |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | no | real map; SVG fallback when absent |
+| `NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST`, `NEXT_PUBLIC_GA_ID` | no | analytics |
+
+## Deployment
+
+Deploy lives on Netlify at `https://pyroguard-demo.netlify.app`. The monorepo root README tracks the live
+URL in the Apps table, and the console gallery reads `apps.json`.
+
+```bash
+# From repo root (azoni/launchpad)
+cd pyroguard
+netlify link --id <site-id>
+# Set env vars (secrets piped to /dev/null)
+netlify env:set NEXT_PUBLIC_FIREBASE_API_KEY "..."
+# (etc.)
+npm run seed           # seed the template workspace
+netlify deploy --build --prod
+```
+
+Base directory on Netlify MUST be `pyroguard` — otherwise git-triggered builds will ship the wrong app. See the root `CLAUDE.md` for the `netlify api updateSite` call.
+
+## Disclaimer
+
+PyroGuard supports but does not replace the judgment of a NICET-certified inspector. Every NFPA / IFC
+citation must be verified against the current edition of the applicable standard before being relied
+upon in a formal report. The inspector of record is responsible for all findings and citations.
+
+## See also
+
+- [DEMO_SCRIPT.md](./DEMO_SCRIPT.md) — 5-minute and 15-minute sales walkthroughs
+- [TODO.md](./TODO.md) — v1 gaps and the v2 roadmap

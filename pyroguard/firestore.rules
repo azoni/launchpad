@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Template is read-only in production.
+    match /workspaces/_template/{path=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    // Each sandbox workspace is readable+writable (anonymous demo).
+    match /workspaces/{workspaceId}/{path=**} {
+      allow read, write: if true;
+    }
+  }
+}
