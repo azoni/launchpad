@@ -58,26 +58,26 @@ export function Hud({
           {deficiencyCount > 0 && (
             <button
               onClick={onOpenDeficiencies}
-              className="text-fire text-[11px] tracking-widest2 uppercase border border-fire/40 rounded-sm px-1.5 py-0.5 animate-soft-pulse"
+              className="text-fire text-[11px] tracking-widest2 uppercase border border-fire/40 rounded-sm px-2 py-1.5 animate-soft-pulse"
               aria-label={`${deficiencyCount} deficiencies logged`}
             >
               ⚠ {deficiencyCount}
             </button>
           )}
           {unsynced > 0 && (
-            <span className="text-warn text-[11px] tracking-widest2 uppercase border border-warn/40 rounded-sm px-1.5 py-0.5">
+            <span className="text-warn text-[11px] tracking-widest2 uppercase border border-warn/40 rounded-sm px-2 py-1.5">
               ⬆ {unsynced}
             </span>
           )}
           <button
             onClick={onOpenNotes}
-            className="text-muted hover:text-ink text-[11px] tracking-widest2 uppercase border border-border2 rounded-sm px-1.5 py-0.5 transition-colors"
+            className="text-muted hover:text-ink text-[11px] tracking-widest2 uppercase border border-border2 rounded-sm px-2 py-1.5 transition-colors"
             aria-label="Open field notes"
           >
             ⊞ {notesCount > 0 ? notesCount : "Notes"}
           </button>
           <SignalBars offline={offline} />
-          <Link href="/" aria-label="Exit demo" className="text-fainter hover:text-ink text-[13px] pl-0.5">
+          <Link href="/" aria-label="Exit demo" className="text-fainter hover:text-ink text-[15px] px-1.5 py-1 -mr-1">
             ✕
           </Link>
         </div>

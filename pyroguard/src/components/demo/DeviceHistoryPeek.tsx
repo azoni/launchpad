@@ -15,7 +15,7 @@ export function DeviceHistoryPeek({ history }: { history: DeviceHistory }) {
     <div className="shrink-0">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="text-muted hover:text-ink text-[10px] tracking-widest2 uppercase border border-border2 rounded-sm px-1.5 py-0.5 transition-colors"
+        className="text-muted hover:text-ink text-[10px] tracking-widest2 uppercase border border-border2 rounded-sm px-2 py-1.5 min-h-[36px] transition-colors"
         aria-expanded={open}
       >
         {open ? "▾ Last yr" : "⌂ Last yr"}

@@ -52,7 +52,7 @@ export const scenario: Scenario = {
       location: "Riser room off the lobby service corridor — the door with the mop bucket and the WET FLOOR sign that's been dry since 2019",
       checklistItems: [
         "Control valve OPEN — locked & supervised",
-        "Static pressure gauge: 65 PSI (last year: 64)",
+        "Static pressure: supply 65 PSI / system 78 (excess held by check valve)",
         "Main drain test: log residual + recovery time",
         "Gauges within 5-yr calibration/replacement",
         "Spare head cabinet: heads + wrench present",
@@ -73,8 +73,8 @@ export const scenario: Scenario = {
       location: "Riser room, on WET-RISER-1",
       checklistItems: [
         "Flow inspector's test connection — time to signal",
-        "Signal received at central station within 90 s (NFPA 72)",
-        "Retard setting intact",
+        "Signal confirmed at central station ≤ 90 s (NFPA 72)",
+        "Retard chamber held — no surge trip",
       ],
       history: {
         lastInspected: "2024-03-11 · T. Reyes",
@@ -120,10 +120,10 @@ export const scenario: Scenario = {
       location: "Lobby, by stair core",
       checklistItems: [
         "Barcode scan — unit verified on route",
+        "Gauge in operable (green) range",
         "Pull pin — examine shell, handle, lever, hose",
-        "Weigh unit — matches stamped gross weight",
-        "Install NEW tamper seal",
-        "Punch NEW annual maintenance tag — date + tech ID",
+        "Heft + new tamper seal",
+        "Punch maintenance tag — month/year + tech ID",
       ],
       history: {
         lastInspected: "2024-03-11 · T. Reyes",
@@ -152,10 +152,11 @@ export const scenario: Scenario = {
       floor: "L3",
       location: "East corridor at the exit door — coffee ring on top like someone's been using it as a coaster",
       checklistItems: [
+        "Gauge in operable (green) range",
         "Pull pin — examine shell, handle, lever, hose, nozzle",
-        "Weigh unit — matches stamped gross weight",
-        "Install NEW tamper seal",
-        "Punch NEW annual maintenance tag — date + tech ID",
+        "Heft — matches full-charge weight",
+        "New pull-pin + tamper seal installed",
+        "Punch maintenance tag — month/year + tech ID",
       ],
       history: {
         lastInspected: "2024-03-11 · T. Reyes",
@@ -194,11 +195,11 @@ export const scenario: Scenario = {
       floor: "B1",
       location: "B1 elevator lobby",
       checklistItems: [
+        "Gauge in operable (green) range",
         "Pull pin — examine shell, handle, lever, hose",
-        "Weigh unit — matches stamped gross weight",
-        "Install NEW tamper seal",
-        "Punch NEW annual maintenance tag — date + tech ID",
-        "6-yr internal exam date verified on collar",
+        "Heft + new tamper seal",
+        "Punch maintenance tag — month/year + tech ID",
+        "6-yr internal exam verified on collar",
       ],
       history: {
         lastInspected: "2024-03-11 · T. Reyes",
@@ -221,7 +222,7 @@ export const scenario: Scenario = {
       painPoint: {
         title: "The morning shuffle",
         oldWay:
-          "Sedona dispatches the job — then the trail goes cold. Inspection forms are paper NFPA 25 templates printed at the shop. Gate codes and riser-room locations live in a binder in truck 6, or in the head of a tech who quit in March. Site history is a filing cabinet. Whatever happens today gets re-keyed into two more systems tonight.",
+          "Sedona dispatches the job — it even has a field app — but neither carries the actual inspection: no NFPA 25 forms, no device-level pass/fail, no deficiency capture. So the trail goes cold. Inspection forms are paper NFPA 25 templates printed at the shop. Gate codes and riser-room locations live in a binder in truck 6, or in the head of a tech who quit in March. Site history is a filing cabinet. Whatever happens today gets re-keyed into two more systems tonight.",
         fix: "One work order carries the agreement, the device roster, every prior reading, and the site intel to the phone before wheels roll. Any tech, any truck, zero phone calls. Nothing printed. Nothing re-keyed.",
         stat: "The status-quo stack is 3–5 disconnected systems — Sedona or QuickBooks for money, ServiceTrade or Inspect Point for inspections, BuildingReports for barcodes, a Brycer portal for the AHJ — with the same data re-keyed between all of them.",
       },
@@ -278,8 +279,8 @@ export const scenario: Scenario = {
       screen: "checklist",
       title: "WET-RISER-1 — main drain + waterflow",
       narrative:
-        "System on test. Control valve open, locked, supervised — check. Static gauge 65 PSI; last year's 64 shows inline, green delta. Crack the main drain: full flow, residual settles at 48 PSI — log it. Recovery to static in 40 seconds, within 2 PSI of last year. Supply is healthy. Now prove the alarm: open the inspector's test connection. Stopwatch runs... dispatcher confirms waterflow signal received at 0:34. NFPA 72 window is 90 seconds. FLOW-SW-1 passes.",
-      interaction: "Pass the checks, drag the gauge to log the main-drain residual, run the ITC stopwatch.",
+        "System on test. Control valve open, locked, supervised — check. Two gauges on a wet riser: supply reads 65 PSI, system side 78 — that's the excess the alarm-check valve traps, exactly as it should be (system below supply would mean a leaking check). Last year's 64 shows inline, green delta. Crack the main drain: full flow, residual settles at 48 PSI off the supply gauge — log it. Recovery to static in 40 seconds, within 10% of last year. Supply is healthy. Now prove the alarm: open the inspector's test connection. Time to signal... dispatcher confirms waterflow received at 0:34. NFPA 72 window is 90 seconds. FLOW-SW-1 passes.",
+      interaction: "Pass the checks, type the main-drain residual and log it, then enter the ITC signal time (or run the timer).",
       painPoint: {
         title: "Clipboard data dies",
         oldWay:
@@ -294,7 +295,7 @@ export const scenario: Scenario = {
       screen: "checklist",
       title: "L1 sweep — street + lobby",
       narrative:
-        "Out the lobby doors. PIV in the Western Ave planting strip: target reads OPEN, locked, supervised. FDC north of the entry: caps in place, swivels free, check valve holding, signage clear. Back inside to the supply side: backflow preventer — valves open, no leakage at the test cocks, forward-flow current. Lobby extinguisher FE-L1-01: scan, pull the pin, examine, weigh, new seal on, new annual tag punched. Four for four. Elevator to 3.",
+        "Out the lobby doors. PIV in the Western Ave planting strip: target reads OPEN, locked, supervised. FDC north of the entry: caps in place, swivels free, check valve holding, signage clear. Back inside to the supply side: backflow preventer — valves open, no leakage at the test cocks, forward-flow current. Lobby extinguisher FE-L1-01: scan, gauge in the green, pull the pin, examine, heft it, new seal on, new tag punched. Four for four. Elevator to 3.",
       interaction: "Batch quick-pass: four devices, a dozen taps, under a minute.",
     },
     {
@@ -303,8 +304,8 @@ export const scenario: Scenario = {
       screen: "extinguishers",
       title: "L3 — heads + portables",
       narrative:
-        "Level 3, east corridor. Floor-level head survey: 18-inch deflector clearance good, no paint, no corrosion, no loading, escutcheons seated. FE-L3-04 at the exit door — this is the annual, not a glance: scan the barcode, pull the pin, examine shell, handle, lever, hose, nozzle. Weigh it — matches stamped gross weight. New tamper seal installed. New maintenance tag punched: date, tech ID. Owner keeps the monthly quick-checks; this is the pro pass, and it leaves new hardware on the unit to prove it.",
-      interaction: "Swipe the head-survey rows to pass, scan the barcode, tap through the annual inspection (maintenance is optional).",
+        "Level 3, east corridor. Floor-level head survey: 18-inch deflector clearance good, no paint, no corrosion, no loading, escutcheons seated. FE-L3-04 at the exit door — this is the annual, not a glance: scan the barcode, confirm the gauge sits in the green, pull the pin, examine shell, handle, lever, hose, nozzle. Heft it — still carries its full-charge weight. New tamper seal installed. New maintenance tag punched: month/year, tech ID. Owner keeps the monthly quick-checks; this is the pro pass, and it leaves new hardware on the unit to prove it.",
+      interaction: "Tap the head-survey rows to pass, scan the barcode, then run the extinguisher's annual maintenance.",
       painPoint: {
         title: "Tag punches and spreadsheets",
         oldWay:
@@ -319,7 +320,7 @@ export const scenario: Scenario = {
       screen: "sitemap",
       title: "B1 — signal lost",
       narrative:
-        "Elevator down to B1 parking. Two floors of concrete overhead. Watch the status bar: three bars... one... NO SERVICE. The console shifts to amber: OFFLINE MODE — ALL WORK SAVED LOCALLY. This is the moment most field apps start lying to you.",
+        "Elevator down to B1 parking — enclosed and heated, so it's wet pipe down here, no dry system to fuss. Two floors of concrete overhead, though. Watch the status bar: three bars... one... NO SERVICE. The console shifts to amber: OFFLINE MODE — ALL WORK SAVED LOCALLY. This is the moment most field apps start lying to you.",
       interaction: "Descend to B1. Watch the signal die. Keep working.",
       signal: "none",
     },
@@ -329,7 +330,7 @@ export const scenario: Scenario = {
       screen: "camera",
       title: "HEAD-B1-C7 — deficiency",
       narrative:
-        "Row C, stall 7, under the exhaust fan. There it is: heavy corrosion across the frame and deflector, exhaust residue loading the head. Two neighbors going the same way. Frame the shot. Shutter. The photo does NOT vanish into a spinner — it lands in the local queue, bound to this head and this work order. Badge: 1 UNSYNCED. Still no bars. Doesn't matter.",
+        "Row C, stall 7, under the exhaust fan. There it is: heavy corrosion across the frame and deflector, exhaust residue loading the head. Two neighbors going the same way. This isn't a speck of surface rust you note and move on — under the 2017/2023 NFPA 25 rule, loading and corrosion only get written up when they're detrimental to performance, and this is: the head may not fuse, and if it does the spray pattern's wrecked. Frame the shot. Shutter. The photo does NOT vanish into a spinner — it lands in the local queue, bound to this head and this work order. Badge: 1 UNSYNCED. Still no bars. Doesn't matter.",
       interaction: "Tap the shutter. Watch the photo file into the local queue.",
       signal: "none",
       painPoint: {
@@ -346,7 +347,7 @@ export const scenario: Scenario = {
       screen: "severity",
       title: "Classify it",
       narrative:
-        "Row C is documented. Now call it. Your report language, your quote's priority, and the AHJ's response all hang on NFPA 25's deficiency classes — impairment, critical, noncritical. System is wet, valve open, in service. But those heads may not fuse — and if they do, the spray pattern is compromised.",
+        "Row C is documented. Now classify it. Severity — critical vs noncritical — drives your report language, the quote's priority, and the AHJ's clock. Impairment is a separate call on a separate axis: it means the system, or part of it, is OUT OF SERVICE — and this riser is wet, valve open, in service. So the only real question is how much these heads hurt performance.",
       interaction: "Make the call. Wrong answers teach the NFPA 25 classification logic.",
       signal: "none",
       choices: [
@@ -383,7 +384,7 @@ export const scenario: Scenario = {
       screen: "checklist",
       title: "B1 sweep — still dark",
       narrative:
-        "Finish the level. VLV-B1-SECT overhead on the ramp: sealed open, tamper switch intact — pass. FE-B1-02 at the elevator lobby: pin pulled, parts examined, weight checked, new seal on, new annual tag punched, 6-yr internal exam date verified — pass. Queue tray climbs with every capture: 2... 3... 4 UNSYNCED. Zero bars the whole time. Zero anxiety.",
+        "Finish the level. VLV-B1-SECT overhead on the ramp: sealed open, tamper switch intact — pass. FE-B1-02 at the elevator lobby: gauge green, pin pulled, parts examined, hefted for charge, new seal on, new tag punched, 6-yr internal exam date verified — pass. Queue tray climbs with every capture: 2... 3... 4 UNSYNCED. Zero bars the whole time. Zero anxiety.",
       interaction: "Work the last two devices offline. Watch the queue climb.",
       signal: "none",
     },
@@ -441,8 +442,8 @@ export const scenario: Scenario = {
       screen: "debrief",
       title: "Debrief — scorecard",
       narrative:
-        "1147. One building. Eleven devices — all eleven inspected, zero open pins. One critical deficiency found, photographed in a dead zone, classified, quoted, filed, and invoiced — before lunch. Tally it against the old way.",
-      interaction: "Read the tallies. Then go run your whole shop like this.",
+        "1147. One building. Eleven devices — all eleven inspected, zero open pins. One critical deficiency found, photographed in a dead zone, classified, quoted, filed, and invoiced — before lunch. Tally it against the old way. Then, since you actually run this route: tell me where I got it wrong.",
+      interaction: "Read the tallies against the old way — then tell me what I botched about your job.",
     },
   ],
 

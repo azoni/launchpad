@@ -14,12 +14,12 @@ function GaugeWidget({ onLog }: { onLog: () => void }) {
   return (
     <div className="mt-1 border border-border2 rounded bg-[#0a0e14] p-3">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="tactical-label min-w-0 truncate">// Main drain</span>
+        <span className="tactical-label min-w-0 truncate">// Main drain — residual</span>
         <span className="text-faint text-[11px] tracking-widest2 shrink-0 whitespace-nowrap">LAST YR: 50 PSI</span>
       </div>
 
       {/* Number entry is the primary control — big, labeled, obviously typeable */}
-      <label className="mt-3 block text-fainter text-[10px] tracking-widest2 uppercase">Residual reading — tap to type</label>
+      <label className="mt-3 block text-fainter text-[10px] tracking-widest2 uppercase">Residual (off the supply gauge) — tap to type</label>
       <div className="mt-1 flex items-center gap-2">
         <input
           type="number"
@@ -59,7 +59,13 @@ function GaugeWidget({ onLog }: { onLog: () => void }) {
         <span>200 PSI</span>
       </div>
 
-      <p className="text-fainter text-[11px] tracking-widest2 uppercase mt-2">▸ Crack the drain — settle the residual at 48 PSI</p>
+      <p className={`text-[11px] tracking-widest2 uppercase mt-2 leading-snug ${atTarget ? "text-pass" : "text-faint"}`}>
+        {!valid
+          ? "▸ Type the residual, or drag the slider to it"
+          : atTarget
+            ? "✓ 48 PSI — within 10% of last year's 50, supply's healthy"
+            : "▸ Full flow settles the residual near 48 PSI — set it there to log (a reading under ~45 is a >10% drop → investigate)"}
+      </p>
       <button
         disabled={!atTarget || logged}
         onClick={() => {

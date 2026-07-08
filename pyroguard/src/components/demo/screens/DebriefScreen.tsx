@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Tally } from "@/lib/demo/types";
 import type { FieldNote } from "@/lib/demo/useFieldNotes";
 import type { DemoDeficiency } from "@/lib/demo/useDeficiencies";
+import { DebriefFeedback } from "@/components/demo/screens/DebriefFeedback";
 
 export function DebriefScreen({
   tallies,
@@ -28,6 +29,15 @@ export function DebriefScreen({
     }
     return t;
   };
+
+  // A compact summary of THIS playthrough, attached to their feedback so the owner
+  // knows the context each reviewer is reacting to.
+  const runContext = [
+    `on-test ${outcomes.ontestFirstTry ? "first try" : "recalled"}`,
+    `severity ${outcomes.severityFirstTry ? "first try" : "coached"}`,
+    `${deficiencies.length} deficiency logged`,
+    `${notes.length} notes`,
+  ].join(" · ");
 
   return (
     <div className="space-y-3">
@@ -75,32 +85,34 @@ export function DebriefScreen({
       </div>
 
       <div
-        className="border border-fire rounded bg-fire/5 p-4 animate-fade-up opacity-0 [animation-fill-mode:forwards]"
+        className="border border-border rounded bg-surface p-4 animate-fade-up opacity-0 [animation-fill-mode:forwards]"
         style={{ animationDelay: `${tallies.length * 180 + 200}ms` }}
       >
         <p className="text-ink text-[13.5px] leading-relaxed font-sans">{closing}</p>
-        <div className="mt-4 space-y-2">
-          <a
-            href="mailto:hello@pyroguard.app?subject=PyroGuard%20demo"
-            className="block text-center bg-fire hover:bg-fire3 active:scale-[0.98] text-white py-3.5 rounded text-[12px] tracking-widest2 uppercase transition-all"
-          >
-            Run your whole shop like this →
-          </a>
-          <div className="flex gap-2">
-            <button
-              onClick={onReplay}
-              className="flex-1 border border-border hover:border-fire text-faint hover:text-ink py-2.5 rounded text-[12px] tracking-widest2 uppercase transition-colors"
-            >
-              ↻ Replay
-            </button>
-            <Link
-              href="/"
-              className="flex-1 text-center border border-border hover:border-fire text-faint hover:text-ink py-2.5 rounded text-[12px] tracking-widest2 uppercase transition-colors"
-            >
-              ← Back to base
-            </Link>
-          </div>
-        </div>
+      </div>
+
+      {/* The real ending: the ask. This is the primary action now, not a sales CTA. */}
+      <div
+        className="animate-fade-up opacity-0 [animation-fill-mode:forwards]"
+        style={{ animationDelay: `${tallies.length * 180 + 360}ms` }}
+      >
+        <DebriefFeedback runContext={runContext} />
+      </div>
+
+      {/* Quiet secondary links — deliberately demoted so they don't compete with the ask. */}
+      <div className="flex items-center justify-center gap-5 pt-1 pb-2">
+        <button
+          onClick={onReplay}
+          className="text-fainter hover:text-ink text-[11px] tracking-widest2 uppercase transition-colors"
+        >
+          ↻ Replay
+        </button>
+        <Link
+          href="/"
+          className="text-fainter hover:text-ink text-[11px] tracking-widest2 uppercase transition-colors"
+        >
+          ← Back to base
+        </Link>
       </div>
     </div>
   );

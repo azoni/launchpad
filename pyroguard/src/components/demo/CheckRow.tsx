@@ -23,7 +23,7 @@ export function CheckRow({
         haptic(8);
         onCheck();
       }}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded border text-left transition-colors ${
+      className={`w-full min-h-[44px] flex items-center gap-3 px-3 py-3 rounded border text-left transition-colors ${
         checked
           ? "border-pass/40 bg-pass/[0.06]"
           : "border-border bg-surface hover:border-fire active:bg-[#0a0e14]"

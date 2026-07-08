@@ -26,7 +26,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             </div>
             <div className="space-y-2">
               <div className="tactical-label">Company</div>
-              <a className="block hover:text-ink" href="mailto:hello@pyroguard.app">
+              <a className="block hover:text-ink" href="mailto:charltonuw@gmail.com?subject=PyroGuard">
                 Contact
               </a>
             </div>

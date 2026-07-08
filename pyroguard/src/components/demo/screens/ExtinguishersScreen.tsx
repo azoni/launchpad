@@ -67,7 +67,7 @@ function BarcodeScan({ deviceId, onScanned }: { deviceId: string; onScanned: () 
         (!manual ? (
           <button
             onClick={() => setManual(true)}
-            className="mt-1.5 text-fainter text-[11px] tracking-widest2 uppercase hover:text-ink underline underline-offset-2"
+            className="mt-1.5 min-h-[44px] text-fainter text-[11px] tracking-widest2 uppercase hover:text-ink underline underline-offset-2"
           >
             Can&apos;t scan / different unit? Enter tag →
           </button>
@@ -101,15 +101,13 @@ function BarcodeScan({ deviceId, onScanned }: { deviceId: string; onScanned: () 
   );
 }
 
-// NFPA 10 annual INSPECTION = the quick visual check (much shorter than maintenance).
-const INSPECTION_ROWS = [
-  "Gauge reads in operable (green) range",
-  "Pull-pin & tamper seal intact",
-  "No damage, corrosion, or leakage",
-  "Access clear; signage visible",
-  "Inspection tag legible & current",
-];
-
+/**
+ * NFPA 10 ANNUAL = certified-tech maintenance (the required work on a yearly visit): gauge in
+ * the green, pull-pin external exam, heft for charge, new tamper seal, punched tag. Not the
+ * owner's monthly glance. The 6-yr internal / 12-yr hydro ride the asset record and
+ * auto-schedule; they're not tapped here. The exact rows come from the device record
+ * (extinguisher.checklistItems) so the scenario data is the single source of truth.
+ */
 export function ExtinguishersScreen({
   survey,
   extinguisher,
@@ -120,24 +118,22 @@ export function ExtinguishersScreen({
   onDone: () => void;
 }) {
   const surveyRows = survey.checklistItems ?? [];
-  const maintRows = extinguisher.checklistItems ?? []; // fuller annual maintenance — optional
+  const maintRows = extinguisher.checklistItems ?? [];
   const [surveyChecked, setSurveyChecked] = useState<Record<number, boolean>>({});
   const [scanned, setScanned] = useState(false);
-  const [inspDone, setInspDone] = useState<Record<number, boolean>>({});
-  const [showMaint, setShowMaint] = useState(false);
   const [maintDone, setMaintDone] = useState<Record<number, boolean>>({});
   const finished = useRef(false);
 
   const surveyComplete = surveyRows.length > 0 && surveyRows.every((_, i) => surveyChecked[i]);
-  const inspectionComplete = scanned && INSPECTION_ROWS.every((_, i) => inspDone[i]);
+  const maintenanceComplete = scanned && maintRows.length > 0 && maintRows.every((_, i) => maintDone[i]);
 
   useEffect(() => {
-    if (surveyComplete && inspectionComplete && !finished.current) {
+    if (surveyComplete && maintenanceComplete && !finished.current) {
       finished.current = true;
       setTimeout(onDone, 350);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [surveyComplete, inspectionComplete]);
+  }, [surveyComplete, maintenanceComplete]);
 
   return (
     <div className="space-y-3">
@@ -162,51 +158,33 @@ export function ExtinguishersScreen({
       </div>
 
       {surveyComplete && (
-        <div className={`animate-fade-up border rounded bg-surface ${inspectionComplete ? "border-pass/40" : "border-border"}`}>
+        <div className={`animate-fade-up border rounded bg-surface ${maintenanceComplete ? "border-pass/40" : "border-border"}`}>
           <div className="px-3 py-2 border-b border-border2 flex items-start justify-between gap-2">
             <div className="min-w-0">
               <span className="text-fire text-[12px] tracking-widest2">{extinguisher.id}</span>
-              <div className="text-ink text-[11px] uppercase tracking-wide truncate">{extinguisher.label} — annual inspection</div>
+              <div className="text-ink text-[11px] uppercase tracking-wide truncate">{extinguisher.label} — annual maintenance</div>
               <div className="text-fainter text-[11.5px] leading-snug font-sans">{extinguisher.location}</div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {extinguisher.history && <DeviceHistoryPeek history={extinguisher.history} />}
-              {inspectionComplete && <span className="text-pass text-[12px] tracking-widest2">✓ PASS</span>}
+              {maintenanceComplete && <span className="text-pass text-[12px] tracking-widest2">✓ PASS</span>}
             </div>
           </div>
           <div className="p-2 space-y-1.5">
             <BarcodeScan deviceId={extinguisher.id} onScanned={() => setScanned(true)} />
             {scanned &&
-              INSPECTION_ROWS.map((row, i) => (
+              maintRows.map((row, i) => (
                 <CheckRow
                   key={row}
                   label={row}
-                  checked={!!inspDone[i]}
-                  onCheck={() => setInspDone((m) => ({ ...m, [i]: true }))}
+                  checked={!!maintDone[i]}
+                  onCheck={() => setMaintDone((m) => ({ ...m, [i]: true }))}
                 />
               ))}
-
-            {scanned && maintRows.length > 0 && (
-              <div className="pt-1 border-t border-border2 mt-1">
-                <button
-                  onClick={() => setShowMaint((v) => !v)}
-                  className="w-full flex items-center gap-1.5 text-fainter text-[11px] tracking-widest2 uppercase px-1 py-1.5 hover:text-ink transition-colors"
-                >
-                  {showMaint ? "▾" : "▸"} Annual maintenance (optional)
-                </button>
-                {showMaint && (
-                  <div className="space-y-1.5">
-                    {maintRows.map((row, i) => (
-                      <CheckRow
-                        key={row}
-                        label={row}
-                        checked={!!maintDone[i]}
-                        onCheck={() => setMaintDone((m) => ({ ...m, [i]: true }))}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
+            {scanned && (
+              <p className="px-1 pt-1 text-fainter text-[10.5px] leading-snug font-sans">
+                6-yr internal exam &amp; 12-yr hydro dates ride the asset record — they auto-schedule, no tag math.
+              </p>
             )}
           </div>
         </div>

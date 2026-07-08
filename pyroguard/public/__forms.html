@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PyroGuard feedback form (Netlify detection)</title>
+  </head>
+  <body>
+    <!--
+      Hidden static form so Netlify detects "demo-feedback" at deploy time and
+      accepts the JS-driven POST from the debrief screen. Every field the
+      DebriefFeedback component can send MUST be declared here or it is dropped.
+    -->
+    <form name="demo-feedback" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="demo-feedback" />
+      <input name="bot-field" />
+      <input name="realism" />
+      <textarea name="wrong"></textarea>
+      <input name="using_today" />
+      <textarea name="blocker"></textarea>
+      <input name="name" />
+      <input name="cert" />
+      <input name="from" />
+      <input name="run" />
+    </form>
+  </body>
+</html>

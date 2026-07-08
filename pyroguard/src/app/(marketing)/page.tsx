@@ -50,7 +50,7 @@ export default function LandingPage() {
             ▶ Play: A Day in the Field
           </Link>
           <a
-            href="mailto:hello@pyroguard.app"
+            href="mailto:charltonuw@gmail.com?subject=PyroGuard"
             className="border border-border hover:border-fire text-faint hover:text-ink px-4 py-3 rounded transition-colors"
           >
             Get in touch →

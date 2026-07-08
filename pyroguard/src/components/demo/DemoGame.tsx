@@ -63,7 +63,8 @@ export function DemoGame() {
 
   const step = steps[stepIndex];
   const offline = offlineArmed && step.signal === "none";
-  const contextId = stepDevices[step.id]?.[0] ?? step.id;
+  // Only a real device id becomes a note's context — never leak an internal step id like "s08-deficiency".
+  const contextId = stepDevices[step.id]?.[0];
 
   const markDone = useCallback(() => setDone(true), []);
   const bumpUnsynced = useCallback(() => setUnsynced((n) => n + 1), []);
@@ -80,13 +81,15 @@ export function DemoGame() {
   };
 
   const reset = () => {
-    setStarted(false);
+    // Replay drops straight back into the run (Step 1), not the Clock-in title screen.
+    haptic();
     setStepIndex(0);
     setDone(false);
     setUnsynced(0);
     setOfflineArmed(false);
     setOutcomes({ ontestFirstTry: true, severityFirstTry: true });
     defs.reset();
+    setStarted(true);
   };
 
   const deviceById = (id: string) => devices.find((d) => d.id === id)!;
