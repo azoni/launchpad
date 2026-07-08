@@ -11,8 +11,10 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait",
     background_color: "#080c10",
     theme_color: "#080c10",
-    // TODO(v2): generate /icon-192.png and /icon-512.png (never existed in v1) and redraw
-    // icon.svg in the tactical palette — see REBUILD.md §5.
-    icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
+    icons: [
+      { src: "/icon.svg", sizes: "any", type: "image/svg+xml" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { src: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   };
 }

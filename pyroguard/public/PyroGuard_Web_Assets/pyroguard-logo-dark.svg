@@ -1,0 +1,7 @@
+<svg width="350" height="60" viewBox="0 0 350 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(0, 5) scale(0.1)">
+        <path d="M256 60 L60 420 H452 Z" stroke="#FF4F00" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M256 180 C 256 180 196 260 196 320 C 196 355 220 380 256 380 C 292 380 316 355 316 320 C 316 260 256 180 256 180 Z" fill="#FF4F00"/>
+    </g>
+    <text x="65" y="40" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="bold" fill="#FFFFFF" letter-spacing="3">PYROGUARD <tspan fill="#FF4F00">AI</tspan></text>
+</svg>
