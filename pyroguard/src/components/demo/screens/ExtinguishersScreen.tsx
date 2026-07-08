@@ -3,89 +3,101 @@ import { useEffect, useRef, useState } from "react";
 import type { Device } from "@/lib/demo/types";
 import { haptic } from "@/lib/haptics";
 import { DeviceHistoryPeek } from "@/components/demo/DeviceHistoryPeek";
-
-function SwipeRow({ label, onPass }: { label: string; onPass: () => void }) {
-  const [dx, setDx] = useState(0);
-  const [passed, setPassed] = useState(false);
-  const startX = useRef<number | null>(null);
-
-  return (
-    <div
-      className="relative overflow-hidden rounded-sm"
-      onPointerDown={(e) => {
-        if (passed) return;
-        startX.current = e.clientX;
-        e.currentTarget.setPointerCapture(e.pointerId);
-      }}
-      onPointerMove={(e) => {
-        if (passed || startX.current === null) return;
-        setDx(Math.max(0, Math.min(e.clientX - startX.current, 120)));
-      }}
-      onPointerUp={() => {
-        if (passed) return;
-        if (dx > 64) {
-          setPassed(true);
-          haptic();
-          onPass();
-        }
-        setDx(0);
-        startX.current = null;
-      }}
-      onPointerCancel={() => {
-        setDx(0);
-        startX.current = null;
-      }}
-      style={{ touchAction: "pan-y" }}
-    >
-      <div className="absolute inset-0 flex items-center pl-3 bg-pass/10 text-pass text-[12px] tracking-widest2 uppercase">
-        ✓ Pass
-      </div>
-      <div
-        className={`relative px-3 py-2.5 text-[12px] leading-snug border border-border2 rounded-sm bg-surface transition-transform ${
-          passed ? "text-pass border-pass/40" : "text-muted"
-        }`}
-        style={{ transform: passed ? undefined : `translateX(${dx}px)`, transition: dx === 0 ? "transform 150ms ease" : "none" }}
-      >
-        {passed ? "✓" : "⇥"} {label}
-      </div>
-    </div>
-  );
-}
+import { CheckRow } from "@/components/demo/CheckRow";
 
 function BarcodeScan({ deviceId, onScanned }: { deviceId: string; onScanned: () => void }) {
-  const [phase, setPhase] = useState<"idle" | "scanning" | "done">("idle");
-  return (
-    <button
-      disabled={phase !== "idle"}
-      onClick={() => {
-        haptic();
-        setPhase("scanning");
-        setTimeout(() => {
-          setPhase("done");
-          haptic(25);
-          onScanned();
-        }, 1100);
-      }}
-      className={`relative w-full overflow-hidden border rounded p-3 text-left transition-colors ${
-        phase === "done" ? "border-pass/50" : "border-border hover:border-fire"
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <span className="flex gap-[2px]" aria-hidden>
-          {[3, 1, 2, 1, 3, 2, 1, 3, 1, 2].map((w, i) => (
-            <span key={i} className={`h-8 ${phase === "done" ? "bg-pass" : "bg-ink"}`} style={{ width: w }} />
-          ))}
-        </span>
-        <span className={`text-[12px] tracking-widest2 uppercase ${phase === "done" ? "text-pass" : "text-ink2"}`}>
-          {phase === "idle" && `Scan barcode — ${deviceId}`}
-          {phase === "scanning" && "Scanning…"}
-          {phase === "done" && `✓ ${deviceId} verified on route`}
+  const [phase, setPhase] = useState<"idle" | "scanning" | "done" | "offroute">("idle");
+  const [manual, setManual] = useState(false);
+  const [tag, setTag] = useState("");
+
+  const runScan = () => {
+    haptic();
+    setPhase("scanning");
+    setTimeout(() => {
+      setPhase("done");
+      haptic(25);
+      onScanned();
+    }, 1100);
+  };
+
+  const submitManual = () => {
+    const t = tag.trim().toUpperCase();
+    if (!t) return;
+    haptic(25);
+    setTag(t);
+    // A tag that isn't the one on the route = a swapped/added unit — the app takes it anyway.
+    setPhase(t === deviceId.toUpperCase() ? "done" : "offroute");
+    onScanned();
+  };
+
+  if (phase === "done" || phase === "offroute") {
+    const off = phase === "offroute";
+    return (
+      <div className={`w-full border rounded p-3 ${off ? "border-warn/50 bg-warn/5" : "border-pass/50 bg-pass/5"}`}>
+        <span className={`text-[12px] tracking-widest2 uppercase ${off ? "text-warn" : "text-pass"}`}>
+          {off ? `⚠ ${tag} — off-route unit, added to job` : `✓ ${deviceId} verified on route`}
         </span>
       </div>
-      {phase === "scanning" && (
-        <span className="absolute inset-y-0 left-0 w-0.5 bg-fire shadow-[0_0_12px_2px_rgba(255,69,0,0.8)] animate-[scanline_1.1s_linear]" />
-      )}
-    </button>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        disabled={phase === "scanning"}
+        onClick={runScan}
+        className="relative w-full overflow-hidden border rounded p-3 text-left transition-colors border-border hover:border-fire"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex gap-[2px]" aria-hidden>
+            {[3, 1, 2, 1, 3, 2, 1, 3, 1, 2].map((w, i) => (
+              <span key={i} className="h-8 bg-ink" style={{ width: w }} />
+            ))}
+          </span>
+          <span className="text-[12px] tracking-widest2 uppercase text-ink2">
+            {phase === "scanning" ? "Scanning…" : `Scan barcode — ${deviceId}`}
+          </span>
+        </div>
+        {phase === "scanning" && (
+          <span className="absolute inset-y-0 left-0 w-0.5 bg-fire shadow-[0_0_12px_2px_rgba(255,69,0,0.8)] animate-[scanline_1.1s_linear]" />
+        )}
+      </button>
+
+      {phase === "idle" &&
+        (!manual ? (
+          <button
+            onClick={() => setManual(true)}
+            className="mt-1.5 text-fainter text-[11px] tracking-widest2 uppercase hover:text-ink underline underline-offset-2"
+          >
+            Can&apos;t scan / different unit? Enter tag →
+          </button>
+        ) : (
+          <div className="mt-2">
+            <div className="flex gap-2">
+              <input
+                value={tag}
+                onChange={(e) => setTag(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitManual();
+                }}
+                placeholder="Tag # — e.g. FE-L3-04"
+                className="flex-1 bg-surface border border-border rounded px-2.5 py-2 text-[12px] text-ink uppercase placeholder:text-fainter outline-none focus:border-fire"
+                aria-label="Enter extinguisher tag manually"
+              />
+              <button
+                onClick={submitManual}
+                disabled={!tag.trim()}
+                className="bg-fire text-white px-3 rounded text-[11px] tracking-widest2 uppercase disabled:opacity-40"
+              >
+                Log
+              </button>
+            </div>
+            <p className="mt-1 text-fainter text-[10px] leading-snug font-sans">
+              A unit that isn&apos;t on the route logs as an off-route find — the AHJ never sees a gap.
+            </p>
+          </div>
+        ))}
+    </div>
   );
 }
 
@@ -109,14 +121,14 @@ export function ExtinguishersScreen({
 }) {
   const surveyRows = survey.checklistItems ?? [];
   const maintRows = extinguisher.checklistItems ?? []; // fuller annual maintenance — optional
-  const [surveyDone, setSurveyDone] = useState(0);
+  const [surveyChecked, setSurveyChecked] = useState<Record<number, boolean>>({});
   const [scanned, setScanned] = useState(false);
   const [inspDone, setInspDone] = useState<Record<number, boolean>>({});
   const [showMaint, setShowMaint] = useState(false);
   const [maintDone, setMaintDone] = useState<Record<number, boolean>>({});
   const finished = useRef(false);
 
-  const surveyComplete = surveyDone >= surveyRows.length;
+  const surveyComplete = surveyRows.length > 0 && surveyRows.every((_, i) => surveyChecked[i]);
   const inspectionComplete = scanned && INSPECTION_ROWS.every((_, i) => inspDone[i]);
 
   useEffect(() => {
@@ -138,9 +150,13 @@ export function ExtinguishersScreen({
           {surveyComplete && <span className="text-pass text-[12px] tracking-widest2">✓ PASS</span>}
         </div>
         <div className="p-2 space-y-1.5">
-          {!surveyComplete && <p className="text-fainter text-[11px] tracking-widest2 uppercase px-1">▸ Swipe right to pass each check</p>}
-          {surveyRows.map((row) => (
-            <SwipeRow key={row} label={row} onPass={() => setSurveyDone((n) => n + 1)} />
+          {surveyRows.map((row, i) => (
+            <CheckRow
+              key={row}
+              label={row}
+              checked={!!surveyChecked[i]}
+              onCheck={() => setSurveyChecked((m) => ({ ...m, [i]: true }))}
+            />
           ))}
         </div>
       </div>
@@ -162,19 +178,12 @@ export function ExtinguishersScreen({
             <BarcodeScan deviceId={extinguisher.id} onScanned={() => setScanned(true)} />
             {scanned &&
               INSPECTION_ROWS.map((row, i) => (
-                <button
+                <CheckRow
                   key={row}
-                  onClick={() => {
-                    if (inspDone[i]) return;
-                    haptic(8);
-                    setInspDone((m) => ({ ...m, [i]: true }));
-                  }}
-                  className={`w-full text-left px-2 py-1.5 rounded-sm text-[12px] leading-snug transition-colors ${
-                    inspDone[i] ? "text-pass" : "text-muted hover:bg-[#0a0e14] active:bg-[#0a0e14]"
-                  }`}
-                >
-                  {inspDone[i] ? "✓" : "○"} {row}
-                </button>
+                  label={row}
+                  checked={!!inspDone[i]}
+                  onCheck={() => setInspDone((m) => ({ ...m, [i]: true }))}
+                />
               ))}
 
             {scanned && maintRows.length > 0 && (
@@ -185,22 +194,18 @@ export function ExtinguishersScreen({
                 >
                   {showMaint ? "▾" : "▸"} Annual maintenance (optional)
                 </button>
-                {showMaint &&
-                  maintRows.map((row, i) => (
-                    <button
-                      key={row}
-                      onClick={() => {
-                        if (maintDone[i]) return;
-                        haptic(8);
-                        setMaintDone((m) => ({ ...m, [i]: true }));
-                      }}
-                      className={`w-full text-left px-2 py-1.5 rounded-sm text-[12px] leading-snug transition-colors ${
-                        maintDone[i] ? "text-pass" : "text-muted hover:bg-[#0a0e14] active:bg-[#0a0e14]"
-                      }`}
-                    >
-                      {maintDone[i] ? "✓" : "○"} {row}
-                    </button>
-                  ))}
+                {showMaint && (
+                  <div className="space-y-1.5">
+                    {maintRows.map((row, i) => (
+                      <CheckRow
+                        key={row}
+                        label={row}
+                        checked={!!maintDone[i]}
+                        onCheck={() => setMaintDone((m) => ({ ...m, [i]: true }))}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -3,46 +3,65 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Device } from "@/lib/demo/types";
 import { haptic } from "@/lib/haptics";
 import { DeviceHistoryPeek } from "@/components/demo/DeviceHistoryPeek";
+import { CheckRow } from "@/components/demo/CheckRow";
 
 function GaugeWidget({ onLog }: { onLog: () => void }) {
-  const [psi, setPsi] = useState(65);
+  const [psi, setPsi] = useState<number>(65);
   const [logged, setLogged] = useState(false);
+  const valid = Number.isFinite(psi);
+  const atTarget = valid && Math.abs(psi - 48) <= 1; // small tolerance — no pixel-hunting
+
   return (
     <div className="mt-1 border border-border2 rounded bg-[#0a0e14] p-3">
       <div className="flex items-baseline justify-between gap-2">
         <span className="tactical-label min-w-0 truncate">// Main drain</span>
         <span className="text-faint text-[11px] tracking-widest2 shrink-0 whitespace-nowrap">LAST YR: 50 PSI</span>
       </div>
-      <div className="mt-3 flex items-center gap-3">
+
+      {/* Number entry is the primary control — big, labeled, obviously typeable */}
+      <label className="mt-3 block text-fainter text-[10px] tracking-widest2 uppercase">Residual reading — tap to type</label>
+      <div className="mt-1 flex items-center gap-2">
         <input
           type="number"
-          min={40}
-          max={66}
-          value={psi}
+          inputMode="numeric"
+          min={0}
+          max={300}
+          value={valid ? psi : ""}
           disabled={logged}
-          onChange={(e) => setPsi(e.target.value === "" ? 0 : Number(e.target.value))}
-          className={`w-[72px] bg-surface border border-border rounded px-2 py-1 text-2xl tabular-nums text-center outline-none focus:border-fire disabled:opacity-70 ${psi === 48 ? "text-pass" : "text-ink"}`}
-          aria-label="Type the residual reading in PSI"
+          onChange={(e) => setPsi(e.target.value === "" ? NaN : Number(e.target.value))}
+          placeholder="––"
+          className={`w-[86px] bg-surface border-2 rounded px-2 py-1.5 text-2xl tabular-nums text-center outline-none disabled:opacity-70 ${
+            logged || atTarget ? "border-pass text-pass" : "border-fire/60 focus:border-fire text-ink"
+          }`}
+          aria-label="Type the residual pressure in PSI"
         />
         <span className="text-faint text-[13px]">PSI</span>
+        {logged && <span className="text-pass text-[12px] ml-auto">✓ Logged</span>}
       </div>
+
+      {/* Slider is a coarse assist over a realistic range */}
       <input
         type="range"
-        min={40}
-        max={66}
+        min={0}
+        max={200}
         step={1}
-        value={psi}
+        value={valid ? psi : 0}
         disabled={logged}
         onChange={(e) => {
           setPsi(Number(e.target.value));
           haptic(5);
         }}
-        className="w-full mt-2 accent-[#ff4500]"
-        aria-label="Drag the gauge to the residual reading"
+        className="w-full mt-3 accent-[#ff4500]"
+        aria-label="Drag to the residual reading"
       />
-      <p className="text-fainter text-[11px] tracking-widest2 uppercase mt-1">▸ Crack the drain — type or drag to the residual (48)</p>
+      <div className="flex justify-between text-fainter text-[10px] tracking-widest2 mt-0.5">
+        <span>0</span>
+        <span>200 PSI</span>
+      </div>
+
+      <p className="text-fainter text-[11px] tracking-widest2 uppercase mt-2">▸ Crack the drain — settle the residual at 48 PSI</p>
       <button
-        disabled={psi !== 48 || logged}
+        disabled={!atTarget || logged}
         onClick={() => {
           haptic();
           setLogged(true);
@@ -51,12 +70,12 @@ function GaugeWidget({ onLog }: { onLog: () => void }) {
         className={`mt-2 w-full py-2.5 rounded text-[12px] tracking-widest2 uppercase border transition-all ${
           logged
             ? "border-pass/50 text-pass"
-            : psi === 48
+            : atTarget
               ? "border-fire bg-fire text-white active:scale-[0.98]"
               : "border-border2 text-fainter"
         }`}
       >
-        {logged ? "✓ Logged — 48 PSI, recovery 0:40" : "Log residual"}
+        {logged ? `✓ Logged — ${valid ? psi : 48} PSI, recovery 0:40` : "Log residual"}
       </button>
     </div>
   );
@@ -245,21 +264,7 @@ export function ChecklistScreen({
                 // widgets stay mounted after logging so their success states actually paint
                 if (kind === "gauge") return <GaugeWidget key={key} onLog={() => passRow(d, i)} />;
                 if (kind === "stopwatch") return <StopwatchWidget key={key} onLog={() => passRow(d, i, true)} />;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      if (ok) return;
-                      haptic(8);
-                      passRow(d, i);
-                    }}
-                    className={`w-full text-left px-2 py-2.5 rounded-sm text-[12px] leading-snug transition-colors ${
-                      ok ? "text-pass" : "text-muted hover:bg-[#0a0e14] active:bg-[#0a0e14]"
-                    }`}
-                  >
-                    {ok ? "✓" : "○"} {row}
-                  </button>
-                );
+                return <CheckRow key={key} label={row} checked={!!ok} onCheck={() => passRow(d, i)} />;
               })}
             </div>
           </div>
