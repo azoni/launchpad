@@ -268,7 +268,7 @@ export const scenario: Scenario = {
       title: "L3 — heads + portables",
       narrative:
         "Level 3, east corridor. Floor-level head survey: 18-inch deflector clearance good, no paint, no corrosion, no loading, escutcheons seated. FE-L3-04 at the exit door — this is the annual, not a glance: scan the barcode, pull the pin, examine shell, handle, lever, hose, nozzle. Weigh it — matches stamped gross weight. New tamper seal installed. New maintenance tag punched: date, tech ID. Owner keeps the monthly quick-checks; this is the pro pass, and it leaves new hardware on the unit to prove it.",
-      interaction: "Swipe the head-survey rows to pass, scan the barcode, tap through the annual maintenance.",
+      interaction: "Swipe the head-survey rows to pass, scan the barcode, tap through the annual inspection (maintenance is optional).",
       painPoint: {
         title: "Tag punches and spreadsheets",
         oldWay:

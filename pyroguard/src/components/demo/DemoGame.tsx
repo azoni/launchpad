@@ -122,7 +122,7 @@ export function DemoGame() {
         <h1 className="mt-2 font-display text-3xl uppercase tracking-widest2 text-ink">{metaInfo.title}</h1>
         <p className="mt-3 text-muted text-[11px] leading-relaxed max-w-[260px]">{metaInfo.tagline}</p>
       </div>
-      <div className="text-fainter text-[9px] tracking-widest2 uppercase">
+      <div className="text-fainter text-[11px] tracking-widest2 uppercase">
         ~{metaInfo.estimatedMinutes} min · {dummyData.inspector.name} · {dummyData.inspector.certs.split(" — ")[0]}
       </div>
       <button
@@ -170,7 +170,7 @@ export function DemoGame() {
         <div className="tactical-label mt-6">// Playable demo</div>
         <h1 className="mt-2 font-display text-3xl uppercase tracking-widest2 text-ink leading-tight">{metaInfo.title}</h1>
         <p className="mt-4 text-muted text-[12px] leading-relaxed">{metaInfo.tagline}</p>
-        <p className="mt-4 text-faint text-[10px] leading-relaxed">
+        <p className="mt-4 text-faint text-[12px] leading-relaxed">
           Built for a thumb — open it on your phone for the real feel. Everything you play here is the workflow the
           PyroGuard field app ships: same steps, same offline queue, same paper it kills.
         </p>

@@ -96,7 +96,7 @@ export function SitemapScreen({
             <button
               key={f.id}
               onClick={() => pickFloor(f.id)}
-              className={`flex-1 py-2.5 rounded-sm text-[10px] tracking-widest2 uppercase border transition-colors ${
+              className={`flex-1 py-2.5 rounded-sm text-[12px] tracking-widest2 uppercase border transition-colors ${
                 active ? "border-fire text-fire bg-fire/5" : "border-border text-faint hover:text-ink"
               } ${pulse ? "animate-soft-pulse border-warn text-warn" : ""}`}
             >
@@ -133,16 +133,16 @@ export function SitemapScreen({
         </svg>
         {offlineBanner && (
           <div className="absolute inset-x-0 bottom-0 bg-warn/10 border-t border-warn/50 px-3 py-2 animate-fade-up">
-            <span className="text-warn text-[10px] tracking-widest2 uppercase">⚠ Offline mode — all work saved locally</span>
+            <span className="text-warn text-[12px] tracking-widest2 uppercase">⚠ Offline mode — all work saved locally</span>
           </div>
         )}
       </div>
 
       {mode === "orient" && !done && (
-        <p className="text-faint text-[10px] tracking-widest2 uppercase text-center animate-soft-pulse">▸ Tap the riser room pin on L1</p>
+        <p className="text-faint text-[12px] tracking-widest2 uppercase text-center animate-soft-pulse">▸ Tap the riser room pin on L1</p>
       )}
       {mode === "descend" && !done && (
-        <p className="text-faint text-[10px] tracking-widest2 uppercase text-center animate-soft-pulse">▸ Take the elevator — tap B1</p>
+        <p className="text-faint text-[12px] tracking-widest2 uppercase text-center animate-soft-pulse">▸ Take the elevator — tap B1</p>
       )}
     </div>
   );

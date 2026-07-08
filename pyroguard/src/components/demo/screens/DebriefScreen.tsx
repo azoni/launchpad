@@ -34,7 +34,7 @@ export function DebriefScreen({
           >
             <div className="tactical-label">// {t.label}</div>
             <div className="mt-1 text-fire text-[12px] uppercase tracking-wide leading-snug">{t.value}</div>
-            <p className="mt-1.5 text-faint text-[10px] leading-relaxed">{t.contrast}</p>
+            <p className="mt-1.5 text-faint text-[12px] leading-relaxed">{t.contrast}</p>
           </div>
         ))}
       </div>
@@ -54,13 +54,13 @@ export function DebriefScreen({
           <div className="flex gap-2">
             <button
               onClick={onReplay}
-              className="flex-1 border border-border hover:border-fire text-faint hover:text-ink py-2.5 rounded text-[10px] tracking-widest2 uppercase transition-colors"
+              className="flex-1 border border-border hover:border-fire text-faint hover:text-ink py-2.5 rounded text-[12px] tracking-widest2 uppercase transition-colors"
             >
               ↻ Replay
             </button>
             <Link
               href="/"
-              className="flex-1 text-center border border-border hover:border-fire text-faint hover:text-ink py-2.5 rounded text-[10px] tracking-widest2 uppercase transition-colors"
+              className="flex-1 text-center border border-border hover:border-fire text-faint hover:text-ink py-2.5 rounded text-[12px] tracking-widest2 uppercase transition-colors"
             >
               ← Back to base
             </Link>

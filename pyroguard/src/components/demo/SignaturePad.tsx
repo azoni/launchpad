@@ -96,7 +96,7 @@ export function SignaturePad({ onSigned, disabled = false }: { onSigned: (signed
       </div>
       {!disabled && (
         <div className="mt-2 flex justify-end">
-          <button onClick={clear} className="text-faint hover:text-ink text-[10px] tracking-widest2 uppercase">
+          <button onClick={clear} className="text-faint hover:text-ink text-[12px] tracking-widest2 uppercase">
             ✕ Clear
           </button>
         </div>

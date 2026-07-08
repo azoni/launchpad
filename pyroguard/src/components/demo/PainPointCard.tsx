@@ -10,15 +10,15 @@ export function PainPointCard({ painPoint }: { painPoint: PainPoint }) {
       </div>
       <div className="p-4 space-y-3">
         <div className="border-l-2 border-alarm/60 pl-3">
-          <div className="text-[9px] tracking-widest2 uppercase text-alarm/80 mb-1">The old way</div>
+          <div className="text-[11px] tracking-widest2 uppercase text-alarm/80 mb-1">The old way</div>
           <p className="text-muted text-[11px] leading-relaxed">{painPoint.oldWay}</p>
         </div>
         <div className="border-l-2 border-fire pl-3">
-          <div className="text-[9px] tracking-widest2 uppercase text-fire mb-1">PyroGuard</div>
+          <div className="text-[11px] tracking-widest2 uppercase text-fire mb-1">PyroGuard</div>
           <p className="text-ink2 text-[11px] leading-relaxed">{painPoint.fix}</p>
         </div>
         {painPoint.stat && (
-          <p className="text-faint text-[10px] leading-relaxed border-t border-border2 pt-2">▸ {painPoint.stat}</p>
+          <p className="text-faint text-[12px] leading-relaxed border-t border-border2 pt-2">▸ {painPoint.stat}</p>
         )}
       </div>
     </div>

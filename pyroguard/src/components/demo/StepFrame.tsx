@@ -27,8 +27,8 @@ export function StepFrame({
   return (
     <div className="flex flex-col gap-4 p-4 animate-slide-in">
       <div>
-        <h2 className="text-ink text-[15px] uppercase tracking-widest2 leading-snug">{title}</h2>
-        <p className="mt-2 text-muted text-[11px] leading-relaxed">{narrative}</p>
+        <h2 className="text-ink text-[16px] uppercase tracking-widest2 leading-snug">{title}</h2>
+        <p className="mt-2 text-ink2 text-[13.5px] leading-relaxed">{narrative}</p>
       </div>
 
       <div>{children}</div>

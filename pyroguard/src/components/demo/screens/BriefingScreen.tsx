@@ -22,13 +22,13 @@ export function BriefingScreen({ data, onDone }: { data: DummyData; onDone: () =
           <span className="text-fire text-[11px] tracking-widest2">WO-2841</span>
         </div>
         <div className="mt-3 text-ink text-[13px] uppercase tracking-wide">{data.site.name}</div>
-        <div className="text-faint text-[10px] mt-1">{data.site.address}</div>
-        <div className="mt-3 flex flex-wrap gap-2 text-[9px] tracking-widest2 uppercase">
+        <div className="text-faint text-[12px] mt-1">{data.site.address}</div>
+        <div className="mt-3 flex flex-wrap gap-2 text-[11px] tracking-widest2 uppercase">
           <span className="border border-border rounded-sm px-1.5 py-0.5 text-muted">NFPA 25 annual</span>
           <span className="border border-border rounded-sm px-1.5 py-0.5 text-muted">NFPA 10 round</span>
           <span className="border border-border rounded-sm px-1.5 py-0.5 text-muted">ITM yr 2/3</span>
         </div>
-        <div className="mt-3 border-t border-border2 pt-3 text-[10px] text-faint">
+        <div className="mt-3 border-t border-border2 pt-3 text-[12px] text-faint">
           {data.inspector.name} · {data.inspector.certs} · {data.inspector.license}
         </div>
       </div>
@@ -50,8 +50,8 @@ export function BriefingScreen({ data, onDone }: { data: DummyData; onDone: () =
           <div className="flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-4 px-4 pb-1">
             {intel.map((c) => (
               <div key={c.label} className="snap-start shrink-0 w-56 border border-border rounded bg-surface p-3">
-                <div className="text-fire text-[9px] tracking-widest2 uppercase">▸ {c.label}</div>
-                <p className="mt-2 text-muted text-[10px] leading-relaxed">{c.body}</p>
+                <div className="text-fire text-[11px] tracking-widest2 uppercase">▸ {c.label}</div>
+                <p className="mt-2 text-muted text-[12px] leading-relaxed">{c.body}</p>
               </div>
             ))}
           </div>

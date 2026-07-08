@@ -38,7 +38,7 @@ export function SyncScreen({
       <div className="border border-border rounded bg-surface p-3">
         <div className="flex items-center justify-between">
           <span className="tactical-label">// Local queue</span>
-          <span className={`text-[10px] tracking-widest2 uppercase ${allSynced ? "text-pass" : "text-warn animate-soft-pulse"}`}>
+          <span className={`text-[12px] tracking-widest2 uppercase ${allSynced ? "text-pass" : "text-warn animate-soft-pulse"}`}>
             {allSynced ? "✓ All records synced" : `⬆ Draining ${QUEUE.length - synced} …`}
           </span>
         </div>
@@ -48,7 +48,7 @@ export function SyncScreen({
             return (
               <div
                 key={item}
-                className={`px-2 py-1.5 rounded-sm text-[10px] border transition-colors ${
+                className={`px-2 py-1.5 rounded-sm text-[12px] border transition-colors ${
                   isSynced ? "border-pass/30 text-pass" : "border-border2 text-muted"
                 }`}
               >
@@ -74,8 +74,8 @@ export function SyncScreen({
       )}
       {restored && (
         <div className="animate-fade-up border border-pass/40 rounded bg-pass/5 p-3">
-          <span className="text-pass text-[10px] tracking-widest2 uppercase">✓ 4471-ME off test 1132 — dispatcher confirmed</span>
-          <p className="text-faint text-[10px] mt-1 leading-relaxed">
+          <span className="text-pass text-[12px] tracking-widest2 uppercase">✓ 4471-ME off test 1132 — dispatcher confirmed</span>
+          <p className="text-faint text-[12px] mt-1 leading-relaxed">
             Logged next to the morning&apos;s on-test entry. Window closed — nobody&apos;s real alarms get ignored on your account.
           </p>
         </div>

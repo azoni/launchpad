@@ -60,7 +60,7 @@ export function ChoiceScreen({
             picked.correct ? "border-pass/50 bg-pass/5 text-ink2" : "border-alarm/50 bg-alarm/5 text-muted"
           }`}
         >
-          <div className={`text-[9px] tracking-widest2 uppercase mb-1 ${picked.correct ? "text-pass" : "text-alarm"}`}>
+          <div className={`text-[11px] tracking-widest2 uppercase mb-1 ${picked.correct ? "text-pass" : "text-alarm"}`}>
             {picked.correct ? "// Confirmed" : "// Negative — pick again"}
           </div>
           {picked.feedback}

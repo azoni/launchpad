@@ -10,7 +10,7 @@ function SignalBars({ offline }: { offline: boolean }) {
             <span key={h} className="w-[3px] bg-fainter" style={{ height: h }} />
           ))}
         </span>
-        <span className="text-[9px] tracking-widest2 uppercase">No signal</span>
+        <span className="text-[11px] tracking-widest2 uppercase">No signal</span>
       </span>
     );
   }
@@ -21,7 +21,7 @@ function SignalBars({ offline }: { offline: boolean }) {
           <span key={h} className="w-[3px] bg-pass" style={{ height: h }} />
         ))}
       </span>
-      <span className="text-[9px] tracking-widest2 uppercase">LTE</span>
+      <span className="text-[11px] tracking-widest2 uppercase">LTE</span>
     </span>
   );
 }
@@ -45,7 +45,7 @@ export function Hud({
         <span className="tactical-label">// {phase}</span>
         <div className="flex items-center gap-3">
           {unsynced > 0 && (
-            <span className="text-warn text-[9px] tracking-widest2 uppercase border border-warn/40 rounded-sm px-1.5 py-0.5">
+            <span className="text-warn text-[11px] tracking-widest2 uppercase border border-warn/40 rounded-sm px-1.5 py-0.5">
               ⬆ {unsynced} unsynced
             </span>
           )}

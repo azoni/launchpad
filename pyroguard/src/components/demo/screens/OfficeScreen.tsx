@@ -52,16 +52,16 @@ export function OfficeScreen({ data, onDone }: { data: DummyData; onDone: () => 
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className={`text-[10px] tracking-widest2 uppercase ${isStamped ? "text-pass" : "text-fire"}`}>
+              <span className={`text-[12px] tracking-widest2 uppercase ${isStamped ? "text-pass" : "text-fire"}`}>
                 {isStamped ? "✓" : "▸"} {b.key}
               </span>
-              <span className="text-fainter text-[9px] tracking-widest2">{isStamped ? `DONE ${b.time}` : isNext ? "TAP" : "—"}</span>
+              <span className="text-fainter text-[11px] tracking-widest2">{isStamped ? `DONE ${b.time}` : isNext ? "TAP" : "—"}</span>
             </div>
-            <p className={`mt-1.5 text-[10px] leading-relaxed ${isStamped ? "text-ink2" : "text-muted"}`}>{b.body}</p>
+            <p className={`mt-1.5 text-[12px] leading-relaxed ${isStamped ? "text-ink2" : "text-muted"}`}>{b.body}</p>
           </button>
         );
       })}
-      <p className="text-fainter text-[9px] tracking-widest2 uppercase text-center pt-1">Zero humans re-keying</p>
+      <p className="text-fainter text-[11px] tracking-widest2 uppercase text-center pt-1">Zero humans re-keying</p>
     </div>
   );
 }
