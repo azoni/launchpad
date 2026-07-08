@@ -1,0 +1,52 @@
+"use client";
+import type { PainPoint } from "@/lib/demo/types";
+import { PainPointCard } from "@/components/demo/PainPointCard";
+import { haptic } from "@/lib/haptics";
+
+/**
+ * Common chrome for one step: title + narrative, the interaction area,
+ * then (once the interaction is complete) the pain-point card and CONTINUE.
+ */
+export function StepFrame({
+  title,
+  narrative,
+  done,
+  painPoint,
+  onContinue,
+  continueLabel = "Continue →",
+  children,
+}: {
+  title: string;
+  narrative: string;
+  done: boolean;
+  painPoint?: PainPoint;
+  onContinue: () => void;
+  continueLabel?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-4 p-4 animate-slide-in">
+      <div>
+        <h2 className="text-ink text-[15px] uppercase tracking-widest2 leading-snug">{title}</h2>
+        <p className="mt-2 text-muted text-[11px] leading-relaxed">{narrative}</p>
+      </div>
+
+      <div>{children}</div>
+
+      {done && (
+        <div className="space-y-4">
+          {painPoint && <PainPointCard painPoint={painPoint} />}
+          <button
+            onClick={() => {
+              haptic();
+              onContinue();
+            }}
+            className="w-full bg-fire hover:bg-fire3 active:scale-[0.98] text-white py-3.5 rounded text-[12px] tracking-widest2 uppercase transition-all"
+          >
+            {continueLabel}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
