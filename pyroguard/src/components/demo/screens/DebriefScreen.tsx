@@ -51,9 +51,9 @@ export function DebriefScreen({
           <div className="tactical-label">// Field notes ({notes.length}) — still here, nothing lost</div>
           <div className="mt-2 space-y-1.5">
             {notes.map((n) => (
-              <div key={n.id} className="text-ink2 text-[12.5px] leading-relaxed">
+              <div key={n.id} className="text-ink2 text-[12.5px] leading-relaxed font-sans">
                 <span className="text-fainter">▪</span> {n.text}
-                {n.tag ? <span className="text-fire"> · {n.tag}</span> : null}
+                {n.tag ? <span className="text-fire font-mono"> · {n.tag}</span> : null}
               </div>
             ))}
           </div>
@@ -69,7 +69,7 @@ export function DebriefScreen({
           >
             <div className="tactical-label">// {t.label}</div>
             <div className="mt-1 text-fire text-[12px] uppercase tracking-wide leading-snug">{t.value}</div>
-            <p className="mt-1.5 text-faint text-[12px] leading-relaxed">{t.contrast}</p>
+            <p className="mt-1.5 text-faint text-[12.5px] leading-relaxed font-sans">{t.contrast}</p>
           </div>
         ))}
       </div>
@@ -78,7 +78,7 @@ export function DebriefScreen({
         className="border border-fire rounded bg-fire/5 p-4 animate-fade-up opacity-0 [animation-fill-mode:forwards]"
         style={{ animationDelay: `${tallies.length * 180 + 200}ms` }}
       >
-        <p className="text-ink text-[12px] leading-relaxed uppercase tracking-wide">{closing}</p>
+        <p className="text-ink text-[13.5px] leading-relaxed font-sans">{closing}</p>
         <div className="mt-4 space-y-2">
           <a
             href="mailto:hello@pyroguard.app?subject=PyroGuard%20demo"

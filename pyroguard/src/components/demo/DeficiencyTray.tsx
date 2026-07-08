@@ -47,9 +47,9 @@ export function DeficiencyTray({
                     </span>
                   )}
                 </div>
-                <div className="text-ink text-[13px] mt-1">{d.label}</div>
-                <div className="text-fainter text-[11px] mt-0.5 leading-snug">{d.floor} · {d.location}</div>
-                {d.historyNote && <div className="text-warn text-[11px] mt-1.5 leading-snug">↳ last year: {d.historyNote}</div>}
+                <div className="text-ink text-[13px] mt-1 font-sans">{d.label}</div>
+                <div className="text-fainter text-[11.5px] mt-0.5 leading-snug font-sans">{d.floor} · {d.location}</div>
+                {d.historyNote && <div className="text-warn text-[11.5px] mt-1.5 leading-snug font-sans">↳ last year: {d.historyNote}</div>}
                 <div className="flex items-center gap-3 mt-2">
                   {d.photo && <span className="text-pass text-[10px] tracking-widest2 uppercase">▣ Photo</span>}
                   <span className="text-muted text-[10px] tracking-widest2 uppercase">{STATUS[d.status]}</span>

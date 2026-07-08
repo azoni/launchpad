@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono, Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
@@ -8,6 +8,13 @@ const mono = JetBrains_Mono({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-mono",
+});
+
+// Proportional face for long reading prose — mono stays for the tactical chrome.
+const sans = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
 });
 
 export const metadata: Metadata = {
@@ -57,7 +64,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={mono.variable}>
+    <html lang="en" suppressHydrationWarning className={`${mono.variable} ${sans.variable}`}>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

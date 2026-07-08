@@ -39,14 +39,14 @@ export function NotesSheet({
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-2 no-scrollbar">
           {notes.length === 0 && (
-            <p className="text-fainter text-[12px] text-center py-6 leading-relaxed">
+            <p className="text-fainter text-[12.5px] text-center py-6 leading-relaxed font-sans">
               No notes yet. Jot anything — it survives reload and comes back at the debrief.
             </p>
           )}
           {notes.map((n) => (
             <div key={n.id} className="border border-border2 rounded bg-[#0a0e14] p-2.5">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-ink2 text-[13px] leading-relaxed">{n.text}</p>
+                <p className="text-ink2 text-[13px] leading-relaxed font-sans">{n.text}</p>
                 <button
                   onClick={() => onRemove(n.id)}
                   className="text-fainter hover:text-fire text-[14px] leading-none shrink-0"
@@ -67,7 +67,7 @@ export function NotesSheet({
               if (e.key === "Enter") submit();
             }}
             placeholder={contextId ? `Note on ${contextId}…` : "Add a note…"}
-            className="flex-1 bg-bg border border-border rounded px-3 py-2 text-[13px] text-ink placeholder:text-fainter outline-none focus:border-fire"
+            className="flex-1 bg-bg border border-border rounded px-3 py-2 text-[13px] text-ink placeholder:text-fainter outline-none focus:border-fire font-sans"
             aria-label="New field note"
           />
           <button

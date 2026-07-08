@@ -52,7 +52,7 @@ export function BriefingScreen({ data, onDone }: { data: DummyData; onDone: () =
             {intel.map((c) => (
               <div key={c.label} className="snap-start shrink-0 w-56 border border-border rounded bg-surface p-3">
                 <div className="text-fire text-[11px] tracking-widest2 uppercase">▸ {c.label}</div>
-                <p className="mt-2 text-muted text-[12px] leading-relaxed">{c.body}</p>
+                <p className="mt-2 text-muted text-[12.5px] leading-relaxed font-sans">{c.body}</p>
               </div>
             ))}
           </div>

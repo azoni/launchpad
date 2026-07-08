@@ -39,7 +39,7 @@ function Row({ label, value, valueClass = "text-ink2" }: { label: string; value:
   return (
     <div>
       <div className="text-fainter text-[10px] tracking-widest2 uppercase">{label}</div>
-      <div className={`text-[11.5px] leading-snug ${valueClass}`}>{value}</div>
+      <div className={`text-[12px] leading-snug font-sans ${valueClass}`}>{value}</div>
     </div>
   );
 }

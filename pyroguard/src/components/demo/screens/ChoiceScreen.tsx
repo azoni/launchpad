@@ -56,11 +56,11 @@ export function ChoiceScreen({
       {picked && (
         <div
           key={picked.label}
-          className={`animate-fade-up border rounded p-3 text-[11px] leading-relaxed ${
+          className={`animate-fade-up border rounded p-3 text-[12.5px] leading-relaxed font-sans ${
             picked.correct ? "border-pass/50 bg-pass/5 text-ink2" : "border-alarm/50 bg-alarm/5 text-muted"
           }`}
         >
-          <div className={`text-[11px] tracking-widest2 uppercase mb-1 ${picked.correct ? "text-pass" : "text-alarm"}`}>
+          <div className={`text-[11px] tracking-widest2 uppercase mb-1 font-mono ${picked.correct ? "text-pass" : "text-alarm"}`}>
             {picked.correct ? "// Confirmed" : "// Negative — pick again"}
           </div>
           {picked.feedback}

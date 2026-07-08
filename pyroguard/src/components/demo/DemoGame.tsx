@@ -190,7 +190,7 @@ export function DemoGame() {
       <div>
         <div className="tactical-label">// Playable demo</div>
         <h1 className="mt-2 font-display text-3xl uppercase tracking-widest2 text-ink">{metaInfo.title}</h1>
-        <p className="mt-3 text-muted text-[12.5px] leading-relaxed max-w-[280px]">{metaInfo.tagline}</p>
+        <p className="mt-3 text-muted text-[13px] leading-relaxed max-w-[280px] font-sans">{metaInfo.tagline}</p>
       </div>
       <div className="text-fainter text-[11px] tracking-widest2 uppercase">
         ~{metaInfo.estimatedMinutes} min · {dummyData.inspector.name} · {dummyData.inspector.certs.split(" — ")[0]}
@@ -219,8 +219,8 @@ export function DemoGame() {
       <div className="flex-1 overflow-y-auto">
         {step.screen === "debrief" ? (
           <div className="p-4 animate-slide-in">
-            <h2 className="text-ink text-[16px] uppercase tracking-widest2">{step.title}</h2>
-            <p className="mt-2 mb-4 text-ink2 text-[13px] leading-relaxed">{step.narrative}</p>
+            <h2 className="text-ink text-[17px] uppercase tracking-widest2">{step.title}</h2>
+            <p className="mt-2.5 mb-4 text-ink2 text-[14px] leading-relaxed font-sans">{step.narrative}</p>
             {renderScreen()}
           </div>
         ) : (
@@ -258,8 +258,8 @@ export function DemoGame() {
         <SiteLogo />
         <div className="tactical-label mt-6">// Playable demo</div>
         <h1 className="mt-2 font-display text-3xl uppercase tracking-widest2 text-ink leading-tight">{metaInfo.title}</h1>
-        <p className="mt-4 text-muted text-[13px] leading-relaxed">{metaInfo.tagline}</p>
-        <p className="mt-4 text-faint text-[12.5px] leading-relaxed">
+        <p className="mt-4 text-muted text-[13.5px] leading-relaxed font-sans">{metaInfo.tagline}</p>
+        <p className="mt-4 text-faint text-[13px] leading-relaxed font-sans">
           Built for a thumb — open it on your phone for the real feel. Everything you play here is the workflow the
           PyroGuard field app ships: same steps, same offline queue, same paper it kills.
         </p>

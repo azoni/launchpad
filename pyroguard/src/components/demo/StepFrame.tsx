@@ -29,12 +29,12 @@ export function StepFrame({
   return (
     <div className="flex flex-col gap-4 p-4 animate-slide-in">
       <div>
-        <h2 className="text-ink text-[16px] uppercase tracking-widest2 leading-snug">{title}</h2>
-        <p className="mt-2 text-ink2 text-[13.5px] leading-relaxed">{narrative}</p>
+        <h2 className="text-ink text-[17px] uppercase tracking-widest2 leading-snug">{title}</h2>
+        <p className="mt-2.5 text-ink2 text-[14px] leading-relaxed font-sans">{narrative}</p>
         {!done && interaction && (
           <div className="mt-3 flex items-start gap-2 border border-fire/25 bg-fire/5 rounded px-2.5 py-2">
             <span className="text-fire text-[11px] tracking-widest2 uppercase shrink-0 mt-[1px]">▸ Do</span>
-            <span className="text-ink2 text-[12.5px] leading-snug">{interaction}</span>
+            <span className="text-ink2 text-[13px] leading-snug font-sans">{interaction}</span>
           </div>
         )}
       </div>

@@ -9,9 +9,9 @@ function GaugeWidget({ onLog }: { onLog: () => void }) {
   const [logged, setLogged] = useState(false);
   return (
     <div className="mt-1 border border-border2 rounded bg-[#0a0e14] p-3">
-      <div className="flex items-baseline justify-between">
-        <span className="tactical-label">// Main drain — residual</span>
-        <span className="text-faint text-[11px] tracking-widest2">LAST YR: 50 PSI</span>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="tactical-label min-w-0 truncate">// Main drain</span>
+        <span className="text-faint text-[11px] tracking-widest2 shrink-0 whitespace-nowrap">LAST YR: 50 PSI</span>
       </div>
       <div className="mt-3 flex items-center gap-3">
         <input
@@ -108,8 +108,8 @@ function StopwatchWidget({ onLog }: { onLog: () => void }) {
   return (
     <div className="mt-1 border border-border2 rounded bg-[#0a0e14] p-3">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="tactical-label">// Inspector&apos;s test connection</span>
-        <span className="text-faint text-[11px] tracking-widest2 shrink-0">NFPA 72: ≤ 90 s</span>
+        <span className="tactical-label min-w-0 truncate">// Inspector&apos;s test</span>
+        <span className="text-faint text-[11px] tracking-widest2 shrink-0 whitespace-nowrap">NFPA 72: ≤ 90 s</span>
       </div>
 
       <div className="mt-2 flex items-center justify-between gap-2">
@@ -230,7 +230,7 @@ export function ChecklistScreen({
               <div className="min-w-0">
                 <span className="text-fire text-[12px] tracking-widest2">{d.id}</span>
                 <div className="text-ink text-[11px] uppercase tracking-wide truncate">{d.label}</div>
-                <div className="text-fainter text-[11px] leading-snug">{d.location}</div>
+                <div className="text-fainter text-[11.5px] leading-snug font-sans">{d.location}</div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {d.history && <DeviceHistoryPeek history={d.history} />}

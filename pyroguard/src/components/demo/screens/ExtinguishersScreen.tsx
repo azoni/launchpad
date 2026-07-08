@@ -151,7 +151,7 @@ export function ExtinguishersScreen({
             <div className="min-w-0">
               <span className="text-fire text-[12px] tracking-widest2">{extinguisher.id}</span>
               <div className="text-ink text-[11px] uppercase tracking-wide truncate">{extinguisher.label} — annual inspection</div>
-              <div className="text-fainter text-[11px] leading-snug">{extinguisher.location}</div>
+              <div className="text-fainter text-[11.5px] leading-snug font-sans">{extinguisher.location}</div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {extinguisher.history && <DeviceHistoryPeek history={extinguisher.history} />}
