@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { shieldDataUri } from "./_og-shield";
 
 export const runtime = "edge";
 export const alt = "PyroGuard — Fire/Life-Safety Inspection, Done Right";
@@ -21,20 +22,8 @@ export default async function Image() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <svg width="96" height="96" viewBox="0 0 512 512">
-            <path
-              d="M256 60 L60 420 H452 Z"
-              fill="none"
-              stroke="#FF4F00"
-              strokeWidth="44"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <path
-              d="M256 180 C 256 180 196 260 196 320 C 196 355 220 380 256 380 C 292 380 316 355 316 320 C 316 260 256 180 256 180 Z"
-              fill="#FF4F00"
-            />
-          </svg>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={shieldDataUri} width={96} height={96} style={{ borderRadius: 18 }} alt="" />
           <div style={{ display: "flex", gap: 10, fontSize: 40, fontWeight: 700, letterSpacing: -0.5 }}>
             <span>PyroGuard</span>
             <span style={{ color: "#FF4F00" }}>AI</span>
