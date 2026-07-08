@@ -62,10 +62,15 @@ export const STATUS_COLOR: Record<DeficiencyStatus, { bg: string; text: string; 
   declined:     { bg: "rgba(107,114,128,0.15)", text: "#9ca3af", ring: "rgba(107,114,128,0.3)" },
 };
 
-export const SEVERITY_COLOR: Record<Severity, { dot: string; label: string }> = {
-  critical: { dot: "#dc2626", label: "Critical" },
-  major:    { dot: "#f59e0b", label: "Major" },
-  minor:    { dot: "#3b82f6", label: "Minor" },
+/**
+ * Single source of truth for how severity maps to the shared badge/banner visual language.
+ * `tone` keys into the SeverityBadge token styles (alarm/warn/info). Job priority maps to the
+ * same tones (see PRIORITY_TONE in lib/jobs.ts) so "Critical" reads identically everywhere.
+ */
+export const SEVERITY_TONE: Record<Severity, { label: string; tone: "alarm" | "warn" | "info" }> = {
+  critical: { label: "Critical", tone: "alarm" },
+  major:    { label: "Major", tone: "warn" },
+  minor:    { label: "Minor", tone: "info" },
 };
 
 export const STATUS_ORDER: DeficiencyStatus[] = [

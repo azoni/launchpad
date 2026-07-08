@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase/client";
 import { useWorkspace } from "@/lib/store/workspace";
 import { useJobs, useReports } from "@/lib/jobs";
 import { NFPA72Pdf } from "@/components/reports/NFPA72Pdf";
+import { SeverityBadge } from "@/components/ui/severity-badge";
 import type { SeedJob } from "@/lib/seed-data";
 
 const REPORT_TYPES = [
@@ -166,26 +167,23 @@ export default function ReportsPage() {
                 className="bg-surface border border-border rounded p-4 flex justify-between items-center hover:border-fire transition-colors"
               >
                 <div className="min-w-0">
-                  <div className="text-[12px] font-semibold text-ink truncate">{r.site}</div>
-                  <div className="text-[10px] text-muted">
+                  <div className="text-[13px] font-semibold text-ink truncate">{r.site}</div>
+                  <div className="text-[12px] text-muted">
                     {r.date} · {r.type}
                   </div>
                   {r.deficiencies > 0 && (
-                    <div className="text-[10px] text-fire2 mt-0.5">
+                    <div className="text-[12px] text-fire3 mt-0.5">
                       ⚠ {r.deficiencies} deficienc{r.deficiencies === 1 ? "y" : "ies"}
                     </div>
                   )}
                 </div>
                 <div className="flex gap-2 items-center shrink-0">
-                  <span
-                    className="text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-sm"
-                    style={{
-                      background: r.status === "PASS" ? "#0d2e1a" : "#2e0d0d",
-                      color: r.status === "PASS" ? "#4ade80" : "#ff4444",
-                    }}
-                  >
-                    {r.status}
-                  </span>
+                  <SeverityBadge
+                    label={r.status}
+                    tone={r.status === "PASS" ? "pass" : "alarm"}
+                    size="sm"
+                    dot={false}
+                  />
                 </div>
               </div>
             ))}

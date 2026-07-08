@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useWorkspace } from "@/lib/store/workspace";
-import { useJobs } from "@/lib/jobs";
+import { useJobs, PRIORITY_TONE } from "@/lib/jobs";
+import { SeverityBadge } from "@/components/ui/severity-badge";
 
 export default function InspectIndexPage() {
   const { workspaceId } = useWorkspace();
@@ -10,25 +11,30 @@ export default function InspectIndexPage() {
   return (
     <div className="p-6 animate-slide-in max-w-5xl mx-auto">
       <div className="mb-6">
-        <div className="font-display text-3xl sm:text-4xl tracking-widest3 text-white">
-          INSPECTION CHECKLIST
-        </div>
-        <div className="text-[11px] tracking-widest2 text-faint uppercase">
-          NFPA 72 & IFC Compliant
+        <h1 className="font-display text-3xl sm:text-4xl tracking-tight text-ink font-semibold">
+          Inspection checklist
+        </h1>
+        <div className="text-[12px] tracking-widest2 text-muted uppercase mt-1">
+          NFPA 72 &amp; IFC Compliant
         </div>
       </div>
-      <div className="text-[12px] text-faint mb-4">Select a job to begin inspection:</div>
+      <div className="text-[13px] text-muted mb-4">Select a job to begin inspection:</div>
       <div className="space-y-2">
         {jobs.map((job) => (
           <Link
             key={job.id}
             href={`/app/inspect/${job.id}`}
-            className="block bg-surface border border-border rounded p-4 hover:border-fire hover:translate-x-0.5 transition-all"
+            className="flex items-center justify-between gap-3 bg-surface border border-border rounded p-4 hover:border-fire hover:translate-x-0.5 transition-all"
           >
-            <div className="font-semibold text-ink mb-1">{job.name}</div>
-            <div className="text-[10px] text-muted tracking-wide">
-              {job.address} · {job.type}
+            <div className="min-w-0">
+              <div className="font-semibold text-[15px] text-ink mb-1 truncate">{job.name}</div>
+              <div className="text-[13px] text-muted truncate">
+                {job.address} · {job.type}
+              </div>
             </div>
+            {PRIORITY_TONE[job.priority] && (
+              <SeverityBadge {...PRIORITY_TONE[job.priority]} size="sm" className="shrink-0" />
+            )}
           </Link>
         ))}
       </div>

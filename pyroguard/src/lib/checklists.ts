@@ -12,6 +12,7 @@ export type SystemKey =
   | "Elevator Recall"
   | "Mass Notification"
   | "Nurse Call Integration"
+  | "Fire Extinguisher"
   | "NFPA 72";
 
 export const CHECKLIST_ITEMS: Record<SystemKey, string[]> = {
@@ -107,6 +108,16 @@ export const CHECKLIST_ITEMS: Record<SystemKey, string[]> = {
     "Silent alarm path verification",
     "Patient area device test (each bed)",
   ],
+  // NFPA 10 annual INSPECTION = the quick visual verification (much shorter than maintenance).
+  "Fire Extinguisher": [
+    "In designated location, unobstructed & visible",
+    "Signage present; mounting/bracket secure",
+    "Pressure gauge reads in operable (green) range",
+    "Pull-pin & tamper seal intact",
+    "No physical damage, corrosion, leakage, or clogged nozzle",
+    "Inspection tag & label legible and current",
+    "Fullness confirmed by weight/heft",
+  ],
   "NFPA 72": [
     "Annual record-of-completion review",
     "Sequence-of-operations walkthrough",
@@ -115,6 +126,27 @@ export const CHECKLIST_ITEMS: Record<SystemKey, string[]> = {
     "Secondary power 24hr + 5min load test",
   ],
 };
+
+/**
+ * NFPA 10 annual MAINTENANCE — the fuller "pro pass" (internal exam, new tag, hydro dates).
+ * Kept OPTIONAL/collapsed in the flow so the standard extinguisher round is the short inspection,
+ * not the whole maintenance procedure.
+ */
+export const EXTINGUISHER_MAINTENANCE: string[] = [
+  "Scan barcode — verify unit against the route",
+  "Internal examination per NFPA 10 schedule",
+  "Weigh against stamped gross weight",
+  "Install new tamper seal",
+  "Punch new annual maintenance tag — date + tech ID",
+  "Verify 6-yr internal & 12-yr hydrostatic dates",
+];
+
+/** Which interactive widget (if any) a checklist item renders in the inspect flow. */
+export function itemWidget(item: string): "gauge" | "timer" | null {
+  if (item === "Main drain test" || item === "Check pressure gauges") return "gauge";
+  if (item === "Flow switch test") return "timer";
+  return null;
+}
 
 export const AI_RESPONSES: Record<string, string> = {
   default:

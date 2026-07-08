@@ -3,13 +3,15 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useWorkspaceId } from "@/lib/auth";
 import { SiteLogo } from "@/components/SiteLogo";
-import { LayoutDashboard, AlertTriangle, Mail, ClipboardCheck, FileText } from "lucide-react";
+import { CalendarDays, LayoutDashboard, AlertTriangle, Mail, ClipboardCheck, Map, FileText } from "lucide-react";
 
 const TABS = [
-  { key: "dashboard", href: "/app", label: "Dashboard", icon: LayoutDashboard, match: (p: string) => p === "/app" },
+  { key: "today", href: "/app", label: "Today", icon: CalendarDays, match: (p: string) => p === "/app" },
+  { key: "dashboard", href: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, match: (p: string) => p.startsWith("/app/dashboard") },
   { key: "deficiencies", href: "/app/deficiencies", label: "Deficiencies", icon: AlertTriangle, match: (p: string) => p.startsWith("/app/deficiencies") },
   { key: "follow-ups", href: "/app/follow-ups", label: "Follow-Ups", icon: Mail, match: (p: string) => p.startsWith("/app/follow-ups") },
   { key: "inspect", href: "/app/inspect", label: "Inspect", icon: ClipboardCheck, match: (p: string) => p.startsWith("/app/inspect") },
+  { key: "routes", href: "/app/routes", label: "Routes", icon: Map, match: (p: string) => p.startsWith("/app/routes") },
   { key: "reports", href: "/app/reports", label: "Reports", icon: FileText, match: (p: string) => p.startsWith("/app/reports") },
 ];
 
@@ -38,6 +40,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               if (confirm("Reset your sandbox? Clears this browser's workspace data.")) {
                 localStorage.removeItem("pyroguard_workspace_id");
                 localStorage.removeItem("pyroguard-workspace");
+                localStorage.removeItem("pyroguard-prefs");
                 router.push("/app");
                 setTimeout(() => window.location.reload(), 50);
               }

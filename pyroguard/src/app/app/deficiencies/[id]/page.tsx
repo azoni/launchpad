@@ -4,9 +4,12 @@ import { notFound, useParams } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, Mail, FileText, CheckCircle2, Calendar, Camera, Copy, Check } from "lucide-react";
 import {
-  DEFICIENCIES, STATUS_LABEL, STATUS_COLOR, SEVERITY_COLOR,
+  DEFICIENCIES, STATUS_LABEL, SEVERITY_TONE,
   type DeficiencyStatus,
 } from "@/lib/deficiencies";
+import { CriticalBanner } from "@/components/ui/critical-banner";
+import { SeverityBadge } from "@/components/ui/severity-badge";
+import { StatusPill } from "@/components/ui/status-pill";
 
 export default function DeficiencyDetail() {
   const params = useParams<{ id: string }>();
@@ -17,8 +20,6 @@ export default function DeficiencyDetail() {
   const [copied, setCopied] = useState(false);
 
   if (!def) return notFound();
-  const sc = STATUS_COLOR[status ?? def.status];
-  const sev = SEVERITY_COLOR[def.severity];
 
   function generateEmail() {
     if (!def) return;
@@ -55,27 +56,27 @@ export default function DeficiencyDetail() {
         Back to deficiencies
       </Link>
 
+      {def.severity === "critical" && (
+        <CriticalBanner
+          className="mb-6"
+          title={`Critical — ${def.systemType} deficiency`}
+          detail="Requires priority follow-up. Escalate ahead of routine findings."
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
         <div className="min-w-0">
           <div className="flex items-center gap-3 mb-2">
             <span className="font-mono text-[12px] text-faint">{def.id}</span>
-            <span className="inline-flex items-center gap-1.5 text-[11.5px] text-muted">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: sev.dot }} />
-              {sev.label}
-            </span>
+            <SeverityBadge {...SEVERITY_TONE[def.severity]} size="sm" />
           </div>
           <h1 className="font-display text-3xl text-ink font-semibold tracking-tight">
             {def.customer}
           </h1>
           <p className="text-[14px] text-muted mt-1">{def.property}</p>
         </div>
-        <span
-          className="inline-flex px-3 py-1.5 rounded-md text-[11px] tracking-wide font-medium"
-          style={{ background: sc.bg, color: sc.text, boxShadow: `inset 0 0 0 1px ${sc.ring}` }}
-        >
-          {STATUS_LABEL[status ?? def.status]}
-        </span>
+        <StatusPill status={status ?? def.status} className="px-3 py-1.5 text-[11px]" />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">

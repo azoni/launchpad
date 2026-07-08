@@ -81,10 +81,21 @@ export function useReports(workspaceId: string | null): ReportDoc[] {
 }
 
 export const PRIORITY_COLOR: Record<string, string> = {
-  Critical: "#ff2d2d",
-  High: "#ff7a00",
-  Medium: "#f5c842",
-  Low: "#4ade80",
+  Critical: "#dc2626", // was #ff2d2d — unified with the alarm token so "Critical" is one red everywhere
+  High: "#f97316",
+  Medium: "#f59e0b",
+  Low: "#10b981",
+};
+
+/**
+ * Job priority on the SAME visual language as deficiency severity (see SEVERITY_TONE).
+ * Priority keeps its own 4-level scale but shares the SeverityBadge tones.
+ */
+export const PRIORITY_TONE: Record<string, { label: string; tone: "alarm" | "ember" | "warn" | "pass" }> = {
+  Critical: { label: "Critical", tone: "alarm" },
+  High: { label: "High", tone: "ember" },
+  Medium: { label: "Medium", tone: "warn" },
+  Low: { label: "Low", tone: "pass" },
 };
 
 export const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {

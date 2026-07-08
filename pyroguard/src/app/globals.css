@@ -42,10 +42,10 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
   .eyebrow {
-    @apply uppercase text-[10.5px] tracking-widest2 text-faint font-medium;
+    @apply uppercase text-[12px] tracking-widest2 text-muted font-medium;
   }
   .tactical-label {
-    @apply uppercase text-[10.5px] tracking-widest2 text-faint font-medium;
+    @apply uppercase text-[12px] tracking-widest2 text-muted font-medium;
   }
   .grid-bg {
     background-image:

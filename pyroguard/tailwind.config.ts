@@ -20,9 +20,9 @@ const config: Config = {
         border2: "#161e2d",
         ink: "#f3f4f6",
         ink2: "#d1d5db",
-        muted: "#9ca3af",
-        faint: "#6b7280",
-        fainter: "#4b5563",
+        muted: "#b0b9c6",
+        faint: "#9aa5b4",
+        fainter: "#6b7280",
         fire: "#dc2626",
         fire2: "#ef4444",
         fire3: "#f87171",
@@ -39,7 +39,7 @@ const config: Config = {
       },
       letterSpacing: {
         widest2: "0.12em",
-        widest3: "0.18em",
+        widest3: "0.1em",
       },
       boxShadow: {
         card: "0 1px 2px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02) inset",
