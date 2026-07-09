@@ -13,12 +13,12 @@ export function OfficeScreen({ data, onDone }: { data: DummyData; onDone: () => 
     {
       key: "AHJ",
       time: "1154",
-      body: `Report routed to ${data.ahj.name} via ${data.ahj.portal}. Deficiency flagged — correction deadline clock running.`,
+      body: `Report routed to ${data.ahj.name} via ${data.ahj.portal}. Deficiencies flagged — correction deadline clock running.`,
     },
     {
       key: "QUOTE",
       time: "1157",
-      body: "Critical deficiency is already a priced head-replacement quote — parts + labor from the pricebook — on a hosted approval link in Dana's inbox.",
+      body: "Both deficiencies are already priced quotes — head replacement + a radio backup battery — parts + labor from the pricebook — on a hosted approval link in Dana's inbox.",
     },
     {
       key: "INVOICE",

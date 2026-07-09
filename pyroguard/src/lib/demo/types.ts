@@ -4,6 +4,7 @@ export type ScreenKind =
   | "ontest"
   | "sitemap"
   | "checklist"
+  | "firealarm"
   | "camera"
   | "severity"
   | "extinguishers"

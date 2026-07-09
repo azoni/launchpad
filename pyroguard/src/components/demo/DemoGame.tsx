@@ -10,6 +10,7 @@ import { BriefingScreen } from "@/components/demo/screens/BriefingScreen";
 import { SitemapScreen } from "@/components/demo/screens/SitemapScreen";
 import { ChoiceScreen } from "@/components/demo/screens/ChoiceScreen";
 import { ChecklistScreen } from "@/components/demo/screens/ChecklistScreen";
+import { FireAlarmScreen } from "@/components/demo/screens/FireAlarmScreen";
 import { ExtinguishersScreen } from "@/components/demo/screens/ExtinguishersScreen";
 import { CameraScreen } from "@/components/demo/screens/CameraScreen";
 import { SyncScreen } from "@/components/demo/screens/SyncScreen";
@@ -24,7 +25,8 @@ const CONTINUE_LABELS: Record<string, string> = {
   "s01-morning": "Roll out →",
   "s02-sitemap": "Into the riser room →",
   "s03-ontest": "Run the riser →",
-  "s04-riser": "Head to the street →",
+  "s04-riser": "To the fire panel →",
+  "s04b-firealarm": "Head to the street →",
   "s05-l1-sweep": "Elevator to L3 →",
   "s06-l3-round": "Down to B1 →",
   "s07-descend": "Find the head →",
@@ -45,6 +47,20 @@ const C7_DEF = {
   status: "local" as const,
   photo: true,
   historyNote: "minor surface corrosion noted — monitor",
+};
+
+// Second deficiency — the overdue radio backup battery, caught on a load-test in the riser
+// room (online), so it syncs the moment it's logged.
+const RADIO_DEF = {
+  id: "def-radio-batt",
+  deviceId: "RADIO-1",
+  label: "Communicator backup battery — failed load test",
+  floor: "L1",
+  location: "Riser room, above FACP-1",
+  severity: "critical" as const,
+  status: "synced" as const,
+  photo: false,
+  historyNote: "12V 8Ah, in since 2020-09 — overdue, sagged to 10.4 V under load",
 };
 
 export function DemoGame() {
@@ -147,6 +163,14 @@ export function DemoGame() {
             onDone={markDone}
           />
         );
+      case "firealarm":
+        return (
+          <FireAlarmScreen
+            devices={["FACP-1", "BOOST-L3", "RADIO-1"].map(deviceById)}
+            onDeficiency={() => defs.add(RADIO_DEF)}
+            onDone={markDone}
+          />
+        );
       case "extinguishers":
         return <ExtinguishersScreen survey={deviceById("HEADS-L3")} extinguisher={deviceById("FE-L3-04")} onDone={markDone} />;
       case "camera":
@@ -177,6 +201,7 @@ export function DemoGame() {
             data={dummyData}
             onDone={() => {
               defs.setStatus("def-c7", "quoted");
+              defs.setStatus("def-radio-batt", "quoted");
               markDone();
             }}
           />

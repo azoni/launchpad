@@ -477,6 +477,22 @@ export const scenario: Scenario = {
       },
     },
     {
+      id: "s04b-firealarm",
+      phase: "ON SITE",
+      screen: "firealarm",
+      title: "FACP-1 — panel + backup batteries",
+      narrative:
+        "Still in the riser room — the fire alarm panel sits right beside the sprinkler riser, and the account's already on test, so this is the moment to run it. Notifier NFS2-3030: no active alarms, no troubles on the display. Now the part the annual usually skips — load-test the standby batteries under the panel's own load, then walk-test a device to the annunciators and central station. The pre-load flagged the radio's backup battery overdue. Let's see if it holds.",
+      interaction: "Load-test each battery set, log what fails, then run the walk-test. Watch the radio.",
+      painPoint: {
+        title: "The battery nobody load-tests",
+        oldWay:
+          "The annual is a visual glance and a date on a sticker — the standby batteries rarely get pulled under load. A 5-year-old radio battery reads 12 V sitting idle and collapses the instant the panel needs it, so the one time the alarm has to run on secondary power, it can't.",
+        fix: "Load-test captured against the pre-loaded battery age and amp-hours. A battery that sags under load is a deficiency the moment it's found — logged, synced to the office on the spot (signal's good up here), and priced into the same quote as the sprinkler finding.",
+        stat: "NFPA 72 sizes secondary power for a standby-plus-alarm window (commonly 24 h + 5 min); a dead standby battery fails that requirement silently until the power actually drops.",
+      },
+    },
+    {
       id: "s05-l1-sweep",
       phase: "ON SITE",
       screen: "checklist",
@@ -597,7 +613,7 @@ export const scenario: Scenario = {
       screen: "signature",
       title: "1140 — FM sign-off",
       narrative:
-        "Lobby. Walk Dana Whitfield through it on the phone: eleven devices, ten passed clean, one critical deficiency with the photo right there on screen — corroded heads, Row C, replacement recommended. Dana squints at the photo: 'That's the one by the fan, isn't it. It's always the one by the fan.' No surprises later, no disputed findings. She signs the glass with her thumb.",
+        "Lobby. Walk Dana Whitfield through it on the phone: the sprinkler round, the extinguishers, and the fire-alarm panel — two critical deficiencies, both with the evidence on screen. A corroded head in B1, Row C, photographed, replacement recommended — and the radio's backup battery that failed its load-test, already on order. Everything else passed clean. Dana squints at the head photo: 'That's the one by the fan, isn't it. It's always the one by the fan.' No surprises later, no disputed findings. She signs the glass with her thumb.",
       interaction: "Hand-the-phone moment: draw Dana's signature, then confirm.",
       painPoint: {
         title: "The carbon-copy handshake",
@@ -613,7 +629,7 @@ export const scenario: Scenario = {
       screen: "office",
       title: "Meanwhile, back at the office",
       narrative:
-        "Four beats, zero humans re-keying: report auto-generated and stamped with the inspector's license. AHJ filing routed with the deadline clock running. The critical deficiency already a priced quote on a hosted approval link. Today's inspection invoiced — same day. Truck's still on Western Ave.",
+        "Four beats, zero humans re-keying: report auto-generated and stamped with the inspector's license. AHJ filing routed with the deadline clock running. Both deficiencies already priced quotes on a hosted approval link. Today's inspection invoiced — same day. Truck's still on Western Ave.",
       interaction: "Tap through the four office beats as they stamp DONE.",
       painPoint: {
         title: "Where the old way goes to die",
@@ -629,7 +645,7 @@ export const scenario: Scenario = {
       screen: "debrief",
       title: "Debrief — scorecard",
       narrative:
-        "1147. One building. Eleven devices — all eleven inspected, zero open pins. One critical deficiency found, photographed in a dead zone, classified, quoted, filed, and invoiced — before lunch. Tally it against the old way. Then, since you actually run this route: tell me where I got it wrong.",
+        "1147. One building — sprinkler riser, portables, and the fire-alarm panel, all in one pass, zero open pins. Two deficiencies found: a corroded head photographed in a dead zone, and a dead radio backup battery caught on a load-test — both classified, quoted, filed, and invoiced before lunch. Tally it against the old way. Then, since you actually run this route: tell me where I got it wrong.",
       interaction: "Read the tallies against the old way — then tell me what I botched about your job.",
     },
   ],
@@ -683,6 +699,7 @@ export const scenario: Scenario = {
 /** devices covered by each checklist-style step */
 export const stepDevices: Record<string, string[]> = {
   "s04-riser": ["WET-RISER-1", "FLOW-SW-1"],
+  "s04b-firealarm": ["FACP-1"],
   "s05-l1-sweep": ["PIV-1", "FDC-1", "BFP-1", "FE-L1-01"],
   "s06-l3-round": ["HEADS-L3", "FE-L3-04"],
   "s10-b1-sweep": ["VLV-B1-SECT", "FE-B1-02"],

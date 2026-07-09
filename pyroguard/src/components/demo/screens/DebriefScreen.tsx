@@ -38,7 +38,7 @@ export function DebriefScreen({
   const runContext = [
     `on-test ${outcomes.ontestFirstTry ? "first try" : "recalled"}`,
     `severity ${outcomes.severityFirstTry ? "first try" : "coached"}`,
-    `${deficiencies.length} deficiency logged`,
+    `${deficiencies.length} ${deficiencies.length === 1 ? "deficiency" : "deficiencies"} logged`,
     `${reviewerNotes.length} field notes`,
   ].join(" · ");
 
@@ -47,7 +47,8 @@ export function DebriefScreen({
       {deficiencies.length > 0 && (
         <div className="border border-fire/40 rounded bg-fire/5 p-3">
           <div className="tactical-label">// Deficiencies logged ({deficiencies.length})</div>
-          {deficiencies.map((d) => (
+          {/* newest first — the corroded head (the climactic find) leads, matching the narrative */}
+          {[...deficiencies].reverse().map((d) => (
             <div key={d.id} className="mt-2 text-[12.5px] leading-snug">
               <span className="text-fire tracking-widest2">{d.deviceId}</span>
               <span className="text-ink2">
