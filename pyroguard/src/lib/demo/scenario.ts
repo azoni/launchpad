@@ -629,8 +629,8 @@ export const scenario: Scenario = {
       screen: "office",
       title: "Meanwhile, back at the office",
       narrative:
-        "Four beats, zero humans re-keying: report auto-generated and stamped with the inspector's license. AHJ filing routed with the deadline clock running. Both deficiencies already priced quotes on a hosted approval link. Today's inspection invoiced — same day. Truck's still on Western Ave.",
-      interaction: "Tap through the four office beats as they stamp DONE.",
+        "Zero humans re-keying. Watch the office side write itself: the AHJ red-tag letter drafts live from your two findings — the exact NFPA 25 and 72 citations, the 30-day clock, your license stamp. Read it; it's real, not a template. Then the rest fans out — filed to the AHJ, both deficiencies priced on an approval link, today's inspection invoiced. Truck's still on Western Ave.",
+      interaction: "Draft the report — watch the AHJ letter write itself from your two findings.",
       painPoint: {
         title: "Where the old way goes to die",
         oldWay:
