@@ -30,13 +30,16 @@ export function DebriefScreen({
     return t;
   };
 
+  // Only the reviewer's OWN notes are feedback — the two seeded flavor notes aren't.
+  const reviewerNotes = notes.filter((n) => !n.seeded);
+
   // A compact summary of THIS playthrough, attached to their feedback so the owner
   // knows the context each reviewer is reacting to.
   const runContext = [
     `on-test ${outcomes.ontestFirstTry ? "first try" : "recalled"}`,
     `severity ${outcomes.severityFirstTry ? "first try" : "coached"}`,
     `${deficiencies.length} deficiency logged`,
-    `${notes.length} notes`,
+    `${reviewerNotes.length} field notes`,
   ].join(" · ");
 
   return (
@@ -96,7 +99,7 @@ export function DebriefScreen({
         className="animate-fade-up opacity-0 [animation-fill-mode:forwards]"
         style={{ animationDelay: `${tallies.length * 180 + 360}ms` }}
       >
-        <DebriefFeedback runContext={runContext} />
+        <DebriefFeedback runContext={runContext} fieldNotes={reviewerNotes.map((n) => (n.tag ? `[${n.tag}] ${n.text}` : n.text))} />
       </div>
 
       {/* Quiet secondary links — deliberately demoted so they don't compete with the ask. */}

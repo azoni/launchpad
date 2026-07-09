@@ -21,11 +21,34 @@ const SYS_KIND: Record<string, string> = {
   standpipe: "text-muted",
 };
 
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
+// Collapsed-by-default so the pre-load reads as a scannable index, not a wall — the detail
+// is one tap away, and "Roll out" stays reachable without scrolling the whole roster.
+function Collapsible({
+  title,
+  detail,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  detail: React.ReactNode;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border border-border rounded bg-surface p-3">
-      <div className="tactical-label">{label}</div>
-      <div className="mt-2 space-y-2">{children}</div>
+    <div className="border border-border rounded bg-surface">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="w-full min-h-[44px] flex items-center justify-between gap-2 px-3 py-2.5 text-left"
+      >
+        <span className="min-w-0 leading-snug">
+          <span className="text-fire text-[11px] tracking-widest2 uppercase">{title}</span>{" "}
+          <span className="text-muted text-[12px] font-sans">{detail}</span>
+        </span>
+        <span className="text-fainter text-[13px] shrink-0">{open ? "▾" : "▸"}</span>
+      </button>
+      {open && <div className="px-3 pb-3 space-y-2">{children}</div>}
     </div>
   );
 }
@@ -51,6 +74,7 @@ export function BriefingScreen({
   const batteryUnits = fireAlarmDevices.flatMap((d) => d.batteries ?? []);
   const totalCells = batteryUnits.reduce((n, b) => n + b.count, 0);
   const dueCells = batteryUnits.reduce((n, b) => n + (b.status !== "ok" ? b.count : 0), 0);
+  const twoPersonITC = systems.filter((s) => s.itcCrew === "two-person").length;
 
   return (
     <div className="space-y-4">
@@ -108,7 +132,15 @@ export function BriefingScreen({
 
           {/* Sprinkler systems & inspector's-test locations */}
           {systems.length > 0 && (
-            <Section label="// Systems & test points — plan the route">
+            <Collapsible
+              title="Systems"
+              detail={
+                <>
+                  {systems.length} · {systems.map((s) => s.kind).join(" + ")}
+                  {twoPersonITC > 0 && <span className="text-warn"> · {twoPersonITC} two-person ITC</span>}
+                </>
+              }
+            >
               {systems.map((sys) => (
                 <div key={sys.id} className="border border-border2 rounded bg-[#0a0e14] p-2">
                   <div className="flex items-center justify-between gap-2">
@@ -127,12 +159,20 @@ export function BriefingScreen({
                   )}
                 </div>
               ))}
-            </Section>
+            </Collapsible>
           )}
 
           {/* Fire-alarm inventory + batteries */}
           {fa && (
-            <Section label="// Fire-alarm inventory (NFPA 72)">
+            <Collapsible
+              title="Fire alarm"
+              detail={
+                <>
+                  {fa.panelMake} {fa.panelModel} · {totalCells} batteries
+                  {dueCells > 0 && <span className="text-warn">, {dueCells} due</span>}
+                </>
+              }
+            >
               <div className="text-ink2 text-[12.5px] leading-relaxed font-sans">
                 <span className="text-fire tracking-widest2">{fa.panelMake} {fa.panelModel}</span> · {fa.panelClass} ·{" "}
                 {fa.panelLocation}
@@ -168,12 +208,12 @@ export function BriefingScreen({
                   ))}
                 </div>
               </div>
-            </Section>
+            </Collapsible>
           )}
 
           {/* Monitoring accounts */}
           {monitoring.length > 0 && (
-            <Section label="// Monitoring — who to call">
+            <Collapsible title="Monitoring" detail={`${monitoring.length} accounts · ${monitoring[0].company}`}>
               {monitoring.map((m) => (
                 <div key={m.id} className="border border-border2 rounded bg-[#0a0e14] p-2">
                   <div className="flex items-center justify-between gap-2">
@@ -207,12 +247,12 @@ export function BriefingScreen({
                   {showPass ? "hide passcodes" : "reveal passcodes"}
                 </button>
               )}
-            </Section>
+            </Collapsible>
           )}
 
           {/* Retail / occupancy spaces */}
           {spaces.length > 0 && (
-            <Section label="// Spaces — retail & occupancy">
+            <Collapsible title="Spaces" detail={`${spaces.length} · ${spaces.map((s) => s.kind).join(" + ")}`}>
               {spaces.map((sp) => (
                 <div key={sp.id} className="border border-border2 rounded bg-[#0a0e14] p-2">
                   <div className="flex items-center justify-between gap-2">
@@ -226,7 +266,7 @@ export function BriefingScreen({
                   {sp.access && <p className="mt-1 text-fainter text-[11.5px] leading-snug font-sans">{sp.access}</p>}
                 </div>
               ))}
-            </Section>
+            </Collapsible>
           )}
 
           <p className="text-fainter text-[11px] leading-relaxed font-sans px-1">

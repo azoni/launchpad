@@ -25,7 +25,14 @@ const encode = (data: Record<string, string>) =>
     .map(([k, v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v))
     .join("&");
 
-export function DebriefFeedback({ runContext = "" }: { runContext?: string }) {
+export function DebriefFeedback({
+  runContext = "",
+  fieldNotes = [],
+}: {
+  runContext?: string;
+  /** the reviewer's own in-run field notes — captured so they're never discarded */
+  fieldNotes?: string[];
+}) {
   const [from, setFrom] = useState("");
   const [realism, setRealism] = useState<string>("");
   const [wrong, setWrong] = useState("");
@@ -46,6 +53,9 @@ export function DebriefFeedback({ runContext = "" }: { runContext?: string }) {
     }
   }, []);
 
+  // Join on newline — impossible for a single-line note input to contain, so it never
+  // fragments a reviewer's note (a literal " | " in prose would).
+  const notesJoined = fieldNotes.join("\n");
   const payload = {
     realism,
     wrong,
@@ -55,6 +65,7 @@ export function DebriefFeedback({ runContext = "" }: { runContext?: string }) {
     cert,
     from,
     run: runContext,
+    notes: notesJoined,
   };
 
   const mailtoHref = () => {
@@ -67,6 +78,7 @@ export function DebriefFeedback({ runContext = "" }: { runContext?: string }) {
       ``,
       `What you use for this today:  ${usingToday || "—"}`,
       `One thing that'd stop you using this:  ${blocker || "—"}`,
+      ...(fieldNotes.length ? [``, `Field notes from the run:`, ...fieldNotes.map((n) => `• ${n}`)] : []),
       ``,
       `— ${name || "(name optional)"}${cert ? `, ${cert}` : ""}`,
     ].join("\n");
@@ -118,6 +130,12 @@ export function DebriefFeedback({ runContext = "" }: { runContext?: string }) {
           You just ran a shift I built for inspectors like you. Tell me what&apos;s wrong with it — it changes what I
           build next.
         </p>
+        {fieldNotes.length > 0 && (
+          <p className="mt-2 text-pass text-[11.5px] leading-snug font-sans">
+            ▪ Your {fieldNotes.length} field {fieldNotes.length === 1 ? "note" : "notes"} from the run will ride along
+            with this.
+          </p>
+        )}
       </div>
 
       {/* Step 1 — one tap, captures even if they type nothing */}

@@ -12,6 +12,7 @@ type Submission = {
   cert: string;
   from: string;
   run: string;
+  notes: string;
 };
 
 type Todo = { id: string; text: string; done: boolean; created: number };
@@ -176,7 +177,7 @@ export function AdminDashboard() {
 
           <div className="space-y-3">
             {sorted.map((s) => {
-              const empty = !s.wrong && !s.using_today && !s.blocker;
+              const empty = !s.wrong && !s.using_today && !s.blocker && !s.notes;
               return (
                 <div key={s.id} className="border border-border rounded bg-surface p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -203,6 +204,18 @@ export function AdminDashboard() {
                           <span className="text-ink2">{s.blocker}</span>
                         </div>
                       )}
+                    </div>
+                  )}
+                  {s.notes && (
+                    <div className="mt-2 border-l-2 border-fire/40 pl-2.5">
+                      <div className="text-fainter uppercase tracking-widest2 text-[10px]">Field notes from the run</div>
+                      <div className="mt-1 space-y-0.5">
+                        {s.notes.split(/\n| \| /).map((n, i) => (
+                          <p key={i} className="text-ink2 text-[12.5px] leading-snug font-sans">
+                            ▪ {n}
+                          </p>
+                        ))}
+                      </div>
                     </div>
                   )}
                   {empty && <p className="mt-2 text-fainter text-[12.5px] italic font-sans">Tapped a rating, left no notes.</p>}

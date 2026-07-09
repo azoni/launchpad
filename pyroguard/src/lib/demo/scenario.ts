@@ -10,7 +10,7 @@ export const scenario: Scenario = {
   metaInfo: {
     title: "A Day in the Field",
     tagline: "Play one real NFPA 25 inspection, riser to invoice. Watch four systems become one.",
-    estimatedMinutes: 4,
+    estimatedMinutes: 8,
   },
 
   dummyData: {

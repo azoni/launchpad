@@ -4,7 +4,7 @@ import { DemoGame } from "@/components/demo/DemoGame";
 export const metadata: Metadata = {
   title: "A Day in the Field — playable demo",
   description:
-    "Play one real NFPA 25 inspection as the inspector — riser to invoice. Offline photo capture in a dead zone, severity classification, AHJ filing, same-day invoice. ~4 minutes, built for your phone.",
+    "Play one real NFPA 25 inspection as the inspector — riser to invoice. Offline photo capture in a dead zone, severity classification, AHJ filing, same-day invoice. ~8 minutes, built for your phone.",
   alternates: { canonical: "https://pyroguard-demo.netlify.app/demo" },
   openGraph: {
     type: "website",

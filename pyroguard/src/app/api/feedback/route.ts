@@ -43,6 +43,7 @@ export async function GET() {
       cert: s.data?.cert ?? "",
       from: s.data?.from ?? "",
       run: s.data?.run ?? "",
+      notes: s.data?.notes ?? "",
     }));
     return NextResponse.json({ ok: true, submissions });
   } catch {

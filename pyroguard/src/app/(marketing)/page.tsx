@@ -58,7 +58,7 @@ export default function LandingPage() {
           <span className="animate-soft-pulse text-warn basis-full sm:basis-auto">● Rebuild in progress</span>
         </div>
         <p className="mt-3 text-faint text-[10px] tracking-widest2 uppercase">
-          ▸ Playable demo — one real NFPA 25 inspection, riser to invoice. ~4 min, best on your phone.
+          ▸ Playable demo — one real NFPA 25 inspection, riser to invoice. ~8 min, best on your phone.
         </p>
       </section>
 
