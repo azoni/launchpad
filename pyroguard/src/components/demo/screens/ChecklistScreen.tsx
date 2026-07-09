@@ -8,8 +8,10 @@ import { CheckRow } from "@/components/demo/CheckRow";
 function GaugeWidget({ onLog }: { onLog: () => void }) {
   const [psi, setPsi] = useState<number>(65);
   const [logged, setLogged] = useState(false);
+  const [socked, setSocked] = useState(false); // property-damage critical note, re-triggered in context
   const valid = Number.isFinite(psi);
   const atTarget = valid && Math.abs(psi - 48) <= 1; // small tolerance — no pixel-hunting
+  const ready = atTarget && socked;
 
   return (
     <div className="mt-1 border border-border2 rounded bg-[#0a0e14] p-3">
@@ -17,6 +19,35 @@ function GaugeWidget({ onLog }: { onLog: () => void }) {
         <span className="tactical-label min-w-0 truncate">// Main drain — residual</span>
         <span className="text-faint text-[11px] tracking-widest2 shrink-0 whitespace-nowrap">LAST YR: 50 PSI</span>
       </div>
+
+      {/* Critical note fires right where it matters — before you flow water */}
+      {!logged && (
+        <button
+          type="button"
+          onClick={() => {
+            if (socked) return;
+            haptic(8);
+            setSocked(true);
+          }}
+          aria-pressed={socked}
+          className={`mt-2 w-full flex items-start gap-2 rounded border px-2.5 py-2 text-left transition-colors ${
+            socked ? "border-pass/40 bg-pass/[0.06]" : "border-warn/50 bg-warn/5"
+          }`}
+        >
+          <span className={`mt-[1px] w-4 h-4 rounded-[4px] border-2 shrink-0 flex items-center justify-center ${socked ? "bg-pass border-pass" : "border-warn"}`}>
+            {socked && (
+              <svg width="10" height="8" viewBox="0 0 12 10" aria-hidden>
+                <polyline points="1,5 4.3,8.4 11,1.4" stroke="#0a0e14" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </span>
+          <span className={`text-[11.5px] leading-snug font-sans ${socked ? "text-pass" : "text-warn"}`}>
+            {socked
+              ? "Sock attached — flower bed's safe, flow away"
+              : "⚠ Property: main drain dumps in the flower bed. Attach the sock before you flow — tap to confirm."}
+          </span>
+        </button>
+      )}
 
       {/* Number entry is the primary control — big, labeled, obviously typeable */}
       <label className="mt-3 block text-fainter text-[10px] tracking-widest2 uppercase">Residual (off the supply gauge) — tap to type</label>
@@ -59,15 +90,17 @@ function GaugeWidget({ onLog }: { onLog: () => void }) {
         <span>200 PSI</span>
       </div>
 
-      <p className={`text-[11px] tracking-widest2 uppercase mt-2 leading-snug ${atTarget ? "text-pass" : "text-faint"}`}>
+      <p className={`text-[11px] tracking-widest2 uppercase mt-2 leading-snug ${ready ? "text-pass" : "text-faint"}`}>
         {!valid
           ? "▸ Type the residual, or drag the slider to it"
-          : atTarget
-            ? "✓ 48 PSI — within 10% of last year's 50, supply's healthy"
-            : "▸ Full flow settles the residual near 48 PSI — set it there to log (a reading under ~45 is a >10% drop → investigate)"}
+          : !atTarget
+            ? "▸ Full flow settles the residual near 48 PSI — set it there to log (a reading under ~45 is a >10% drop → investigate)"
+            : !socked
+              ? "▸ 48 PSI reads good — confirm the sock, then log"
+              : "✓ 48 PSI — within 10% of last year's 50, supply's healthy"}
       </p>
       <button
-        disabled={!atTarget || logged}
+        disabled={!ready || logged}
         onClick={() => {
           haptic();
           setLogged(true);
@@ -76,7 +109,7 @@ function GaugeWidget({ onLog }: { onLog: () => void }) {
         className={`mt-2 w-full py-2.5 rounded text-[12px] tracking-widest2 uppercase border transition-all ${
           logged
             ? "border-pass/50 text-pass"
-            : atTarget
+            : ready
               ? "border-fire bg-fire text-white active:scale-[0.98]"
               : "border-border2 text-fainter"
         }`}

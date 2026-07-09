@@ -97,7 +97,15 @@ export function DemoGame() {
   const renderScreen = () => {
     switch (step.screen) {
       case "briefing":
-        return <BriefingScreen data={dummyData} onDone={markDone} />;
+        return (
+          <BriefingScreen
+            data={dummyData}
+            fireAlarmDevices={devices.filter((d) =>
+              ["facp", "booster", "communicator", "annunciator"].includes(d.type)
+            )}
+            onDone={markDone}
+          />
+        );
       case "sitemap":
         return (
           <SitemapScreen

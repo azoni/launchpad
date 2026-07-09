@@ -41,6 +41,93 @@ export const scenario: Scenario = {
       frequencies:
         "NFPA 25: annual full inspection; semiannual waterflow device test; quarterly control-valve and gauge inspections. NFPA 10: annual maintenance with barcode-tagged units (owner performs monthly quick-checks); 6-yr internal exam and 12-yr hydro dates tracked.",
     },
+
+    // --- Pre-load intel (v2, from inspector feedback) — carried to the phone before wheels roll ---
+    fireAlarm: {
+      panelMake: "Notifier",
+      panelModel: "NFS2-3030",
+      panelClass: "addressable",
+      panelLocation: "L1 riser room, beside the sprinkler riser",
+      annunciators: { count: 2, locations: ["Main lobby — FD entrance", "B1 parking elevator lobby"] },
+      boosters: { count: 1, locations: ["L3 east IDF/electrical closet"] },
+      radio: { tech: "radio-mesh", make: "AES-IntelliNet" },
+    },
+    systems: [
+      {
+        id: "SYS-WET-1",
+        label: "Wet system — tower (L1–L3)",
+        kind: "wet",
+        floor: "L1",
+        itcLocation: "At the riser (shotgun) — riser room off the lobby service corridor",
+        itcCrew: "one-person",
+        mainDrainLocation: "2-in. drain to the Western Ave planting strip",
+      },
+      {
+        id: "SYS-DRY-1",
+        label: "Dry system — exposed parking ramp",
+        kind: "dry",
+        floor: "B1",
+        itcLocation: "Bottom of the open ramp, south corner behind the column — weather-exposed, bring a second tech for the trip test",
+        itcCrew: "two-person",
+      },
+    ],
+    criticalNotes: [
+      {
+        id: "cn-ontest",
+        category: "on-test",
+        text: "The tower wet system and the ramp dry system share account 4471-ME — BOTH go on test at the same time, and neither comes off test until all testing is done.",
+        severity: "high",
+      },
+      {
+        id: "cn-drain",
+        category: "property-damage",
+        text: "Main drain dumps into the Western Ave flower bed — erodes the soil and throws dirt up the facade. Run a sock/hose to daylight BEFORE you flow it.",
+        severity: "high",
+      },
+      {
+        id: "cn-access",
+        category: "access",
+        text: "Freight-elevator key at the front desk, 2nd drawer. Garage gate 4471# — keypad sticks, press like you mean it.",
+        severity: "med",
+      },
+    ],
+    monitoring: [
+      {
+        id: "mon-fire",
+        account: "4471-ME",
+        covers: "Fire — tower + B1 (shared account)",
+        company: "Rapid Response",
+        phone: "1-800-555-0143",
+        signalFormat: "Contact ID over AES radio",
+        passcode: "PYRO-7788",
+      },
+      {
+        id: "mon-elev",
+        account: "ELV-4471-2",
+        covers: "Elevator recall + emergency phone",
+        company: "Rapid Response",
+        phone: "1-800-555-0143",
+        signalFormat: "Contact ID over cellular",
+        passcode: "PYRO-7788",
+      },
+    ],
+    spaces: [
+      {
+        id: "sp-coffee",
+        kind: "retail",
+        name: "Meridian Coffee Roasters — lobby retail suite",
+        hours: "Opens 0600 · slammed by 0730",
+        contact: "Mgr. Priya · 206-555-0110",
+        access: "Off the lobby; on the tower wet system — flowing the L1 waterflow trips their evac",
+      },
+      {
+        id: "sp-law",
+        kind: "office",
+        name: "Kessler & Bright — law firm, L3",
+        hours: "0830–1800",
+        contact: "Front desk · 206-555-0132",
+      },
+    ],
   },
 
   devices: [
@@ -208,6 +295,106 @@ export const scenario: Scenario = {
         trendFlag: "watch",
       },
     },
+
+    // --- NFPA 72 fire-alarm equipment (v2) — inventoried for pre-load, batteries tracked ---
+    {
+      id: "FACP-1",
+      label: "Fire Alarm Panel — Notifier NFS2-3030",
+      type: "facp",
+      floor: "L1",
+      location: "Riser room, beside the sprinkler riser",
+      batteries: [
+        {
+          voltage: 12,
+          ampHours: 8,
+          count: 2,
+          installed: "2021-04",
+          nextDue: "2025-04",
+          status: "due-soon",
+          lastLoadTest: "2024-03 · 25.9 V under load · pass",
+        },
+      ],
+      history: {
+        lastInspected: "2024-03-11 · T. Reyes",
+        lastReading: "no trouble · standby pair in since 2021-04",
+        priorNotes: "Batteries flagged 'replace next visit' last year. Still in.",
+        trendFlag: "watch",
+      },
+    },
+    {
+      id: "BOOST-L3",
+      label: "NAC Booster / Power Supply — Altronix",
+      type: "booster",
+      floor: "L3",
+      location: "L3 east IDF/electrical closet",
+      batteries: [
+        {
+          voltage: 12,
+          ampHours: 8,
+          count: 2,
+          installed: "2023-05",
+          nextDue: "2027-05",
+          status: "ok",
+          lastLoadTest: "2024-03 · 26.3 V under load · pass",
+        },
+      ],
+      history: {
+        lastInspected: "2024-03-11 · T. Reyes",
+        lastReading: "24 VDC out · batteries 1 yr old",
+        priorNotes: "Powers the L3 corridor horn/strobes. Closet key on the FM ring.",
+        trendFlag: "ok",
+      },
+    },
+    {
+      id: "RADIO-1",
+      label: "Communicator — AES-IntelliNet mesh radio",
+      type: "communicator",
+      floor: "L1",
+      location: "Riser room, on the wall above FACP-1",
+      batteries: [
+        {
+          voltage: 12,
+          ampHours: 8,
+          count: 1,
+          installed: "2020-09",
+          nextDue: "2024-09",
+          status: "overdue",
+          lastLoadTest: "2024-03 · 12.1 V · pass (aging)",
+        },
+      ],
+      history: {
+        lastInspected: "2024-03-11 · T. Reyes",
+        lastReading: "signal to acct 4471-ME good · backup battery in since 2020-09",
+        priorNotes: "The one battery everybody forgets. It's overdue — bring a 12V 8Ah.",
+        trendFlag: "worse",
+      },
+    },
+    {
+      id: "ANN-L1",
+      label: "Remote Annunciator (LCD)",
+      type: "annunciator",
+      floor: "L1",
+      location: "Main lobby — FD entrance",
+      history: {
+        lastInspected: "2024-03-11 · T. Reyes",
+        lastReading: "mirrors panel · panel-powered (no battery)",
+        priorNotes: "The one the fire department reads first. Keep it clean.",
+        trendFlag: "ok",
+      },
+    },
+    {
+      id: "ANN-B1",
+      label: "Remote Annunciator (LCD)",
+      type: "annunciator",
+      floor: "B1",
+      location: "B1 parking elevator lobby",
+      history: {
+        lastInspected: "2024-03-11 · T. Reyes",
+        lastReading: "mirrors panel · panel-powered (no battery)",
+        priorNotes: "Added when the garage expansion went in.",
+        trendFlag: "ok",
+      },
+    },
   ],
 
   steps: [
@@ -320,7 +507,7 @@ export const scenario: Scenario = {
       screen: "sitemap",
       title: "B1 — signal lost",
       narrative:
-        "Elevator down to B1 parking — enclosed and heated, so it's wet pipe down here, no dry system to fuss. Two floors of concrete overhead, though. Watch the status bar: three bars... one... NO SERVICE. The console shifts to amber: OFFLINE MODE — ALL WORK SAVED LOCALLY. This is the moment most field apps start lying to you.",
+        "Elevator down to B1 parking — enclosed and heated, so the heads down here are wet pipe, no freeze worry (only the exposed ramp runs dry). Two floors of concrete overhead, though. Watch the status bar: three bars... one... NO SERVICE. The console shifts to amber: OFFLINE MODE — ALL WORK SAVED LOCALLY. This is the moment most field apps start lying to you.",
       interaction: "Descend to B1. Watch the signal die. Keep working.",
       signal: "none",
     },
