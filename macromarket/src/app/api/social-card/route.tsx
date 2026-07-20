@@ -279,6 +279,8 @@ export async function GET(req: Request) {
               display: "flex",
               alignItems: "baseline",
               gap: 18,
+              flexWrap: "wrap",
+              maxWidth: "100%",
             }}
           >
             <div
