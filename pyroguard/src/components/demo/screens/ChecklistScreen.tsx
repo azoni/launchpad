@@ -2,58 +2,130 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Device } from "@/lib/demo/types";
 import { haptic } from "@/lib/haptics";
+import { DeviceHistoryPeek } from "@/components/demo/DeviceHistoryPeek";
+import { CheckRow } from "@/components/demo/CheckRow";
 
 function GaugeWidget({ onLog }: { onLog: () => void }) {
-  const [psi, setPsi] = useState(65);
+  const [psi, setPsi] = useState<number>(65);
   const [logged, setLogged] = useState(false);
+  const [socked, setSocked] = useState(false); // property-damage critical note, re-triggered in context
+  const valid = Number.isFinite(psi);
+  const atTarget = valid && Math.abs(psi - 48) <= 1; // small tolerance — no pixel-hunting
+  const ready = atTarget && socked;
+
   return (
     <div className="mt-1 border border-border2 rounded bg-[#0a0e14] p-3">
-      <div className="flex items-baseline justify-between">
-        <span className="tactical-label">// Main drain — residual</span>
-        <span className="text-faint text-[9px] tracking-widest2">LAST YR: 50 PSI</span>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="tactical-label min-w-0 truncate">// Main drain — residual</span>
+        <span className="text-faint text-[11px] tracking-widest2 shrink-0 whitespace-nowrap">LAST YR: 50 PSI</span>
       </div>
-      <div className="mt-3 flex items-center gap-3">
-        <span className={`text-2xl tabular-nums ${psi === 48 ? "text-pass" : "text-ink"}`}>{psi}</span>
-        <span className="text-faint text-[10px]">PSI</span>
+
+      {/* Critical note fires right where it matters — before you flow water */}
+      {!logged && (
+        <button
+          type="button"
+          onClick={() => {
+            if (socked) return;
+            haptic(8);
+            setSocked(true);
+          }}
+          aria-pressed={socked}
+          className={`mt-2 w-full flex items-start gap-2 rounded border px-2.5 py-2 text-left transition-colors ${
+            socked ? "border-pass/40 bg-pass/[0.06]" : "border-warn/50 bg-warn/5"
+          }`}
+        >
+          <span className={`mt-[1px] w-4 h-4 rounded-[4px] border-2 shrink-0 flex items-center justify-center ${socked ? "bg-pass border-pass" : "border-warn"}`}>
+            {socked && (
+              <svg width="10" height="8" viewBox="0 0 12 10" aria-hidden>
+                <polyline points="1,5 4.3,8.4 11,1.4" stroke="#0a0e14" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
+          </span>
+          <span className={`text-[11.5px] leading-snug font-sans ${socked ? "text-pass" : "text-warn"}`}>
+            {socked
+              ? "Sock attached — flower bed's safe, flow away"
+              : "⚠ Property: main drain dumps in the flower bed. Attach the sock before you flow — tap to confirm."}
+          </span>
+        </button>
+      )}
+
+      {/* Number entry is the primary control — big, labeled, obviously typeable */}
+      <label className="mt-3 block text-fainter text-[10px] tracking-widest2 uppercase">Residual (off the supply gauge) — tap to type</label>
+      <div className="mt-1 flex items-center gap-2">
+        <input
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={300}
+          value={valid ? psi : ""}
+          disabled={logged}
+          onChange={(e) => setPsi(e.target.value === "" ? NaN : Number(e.target.value))}
+          placeholder="––"
+          className={`w-[86px] bg-surface border-2 rounded px-2 py-1.5 text-2xl tabular-nums text-center outline-none disabled:opacity-70 ${
+            logged || atTarget ? "border-pass text-pass" : "border-fire/60 focus:border-fire text-ink"
+          }`}
+          aria-label="Type the residual pressure in PSI"
+        />
+        <span className="text-faint text-[13px]">PSI</span>
+        {logged && <span className="text-pass text-[12px] ml-auto">✓ Logged</span>}
       </div>
+
+      {/* Slider is a coarse assist over a realistic range */}
       <input
         type="range"
-        min={40}
-        max={66}
+        min={0}
+        max={200}
         step={1}
-        value={psi}
+        value={valid ? psi : 0}
         disabled={logged}
         onChange={(e) => {
           setPsi(Number(e.target.value));
           haptic(5);
         }}
-        className="w-full mt-2 accent-[#ff4500]"
-        aria-label="Drag the gauge to the residual reading"
+        className="w-full mt-3 accent-[#ff4500]"
+        aria-label="Drag to the residual reading"
       />
-      <p className="text-fainter text-[9px] tracking-widest2 uppercase mt-1">▸ Crack the drain — settle the needle at 48</p>
+      <div className="flex justify-between text-fainter text-[10px] tracking-widest2 mt-0.5">
+        <span>0</span>
+        <span>200 PSI</span>
+      </div>
+
+      <p className={`text-[11px] tracking-widest2 uppercase mt-2 leading-snug ${ready ? "text-pass" : "text-faint"}`}>
+        {!valid
+          ? "▸ Type the residual, or drag the slider to it"
+          : !atTarget
+            ? "▸ Full flow settles the residual near 48 PSI — set it there to log (a reading under ~45 is a >10% drop → investigate)"
+            : !socked
+              ? "▸ 48 PSI reads good — confirm the sock, then log"
+              : "✓ 48 PSI — within 10% of last year's 50, supply's healthy"}
+      </p>
       <button
-        disabled={psi !== 48 || logged}
+        disabled={!ready || logged}
         onClick={() => {
           haptic();
           setLogged(true);
           onLog();
         }}
-        className={`mt-2 w-full py-2.5 rounded text-[10px] tracking-widest2 uppercase border transition-all ${
+        className={`mt-2 w-full py-2.5 rounded text-[12px] tracking-widest2 uppercase border transition-all ${
           logged
             ? "border-pass/50 text-pass"
-            : psi === 48
+            : ready
               ? "border-fire bg-fire text-white active:scale-[0.98]"
               : "border-border2 text-fainter"
         }`}
       >
-        {logged ? "✓ Logged — 48 PSI, recovery 0:40" : "Log residual"}
+        {logged ? `✓ Logged — ${valid ? psi : 48} PSI, recovery 0:40` : "Log residual"}
       </button>
     </div>
   );
 }
 
 function StopwatchWidget({ onLog }: { onLog: () => void }) {
-  const [phase, setPhase] = useState<"idle" | "running" | "signal" | "logged">("idle");
+  // Default: just type the seconds. The running stopwatch is an optional aid.
+  const [useTimer, setUseTimer] = useState(false);
+  const [secs, setSecs] = useState<string>("");
+  const [logged, setLogged] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "running" | "signal">("idle");
   const [t, setT] = useState(0);
   const raf = useRef(0);
 
@@ -68,6 +140,7 @@ function StopwatchWidget({ onLog }: { onLog: () => void }) {
       setT(el);
       if (el >= 34) {
         setPhase("signal");
+        setSecs("34");
         haptic(30);
         return;
       }
@@ -76,39 +149,80 @@ function StopwatchWidget({ onLog }: { onLog: () => void }) {
     raf.current = requestAnimationFrame(tick);
   };
 
+  const n = Number(secs);
+  const valid = secs !== "" && n > 0;
+  const stamp = valid ? `0:${String(Math.floor(n)).padStart(2, "0")}` : "";
   const mmss = `0:${String(Math.floor(t)).padStart(2, "0")}`;
+
+  if (logged) {
+    return (
+      <div className="mt-1 border border-pass/40 rounded bg-[#0a0e14] p-3">
+        <span className="tactical-label">// Inspector&apos;s test connection</span>
+        <p className="mt-2 text-pass text-[12px] tracking-widest2 uppercase">✓ FLOW-SW-1 passes — {stamp} signal, retard intact</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-1 border border-border2 rounded bg-[#0a0e14] p-3">
-      <div className="flex items-baseline justify-between">
-        <span className="tactical-label">// Inspector&apos;s test connection</span>
-        <span className="text-faint text-[9px] tracking-widest2">NFPA 72: ≤ 90 s</span>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="tactical-label min-w-0 truncate">// Inspector&apos;s test</span>
+        <span className="text-faint text-[11px] tracking-widest2 shrink-0 whitespace-nowrap">NFPA 72: ≤ 90 s</span>
       </div>
-      <div className={`mt-3 text-2xl tabular-nums ${phase === "signal" || phase === "logged" ? "text-pass" : "text-ink"}`}>{mmss}</div>
-      {phase === "idle" && (
-        <button onClick={start} className="mt-2 w-full py-2.5 rounded text-[10px] tracking-widest2 uppercase bg-fire text-white active:scale-[0.98]">
-          Open ITC — start clock
+
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <span className="text-fainter text-[11px] tracking-widest2 uppercase">Waterflow signal at</span>
+        <button
+          onClick={() => setUseTimer((v) => !v)}
+          className="text-fire text-[11px] tracking-widest2 uppercase underline underline-offset-2 shrink-0"
+        >
+          {useTimer ? "Enter manually" : "Use timer"}
         </button>
-      )}
-      {phase === "running" && (
-        <p className="mt-2 text-warn text-[10px] tracking-widest2 uppercase animate-soft-pulse">▸ Water flowing — waiting on central station…</p>
-      )}
-      {phase === "signal" && (
-        <div className="animate-fade-up">
-          <p className="mt-2 text-pass text-[10px] tracking-widest2 uppercase">● Dispatcher: waterflow signal received — acct 4471-ME</p>
-          <button
-            onClick={() => {
-              haptic();
-              setPhase("logged");
-              onLog();
-            }}
-            className="mt-2 w-full py-2.5 rounded text-[10px] tracking-widest2 uppercase bg-fire text-white active:scale-[0.98]"
-          >
-            Log signal — 0:34
-          </button>
+      </div>
+
+      {!useTimer ? (
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            type="number"
+            min={0}
+            value={secs}
+            onChange={(e) => setSecs(e.target.value)}
+            placeholder="34"
+            className="w-[72px] bg-surface border border-border rounded px-2 py-1.5 text-xl tabular-nums text-center text-ink outline-none focus:border-fire"
+            aria-label="Seconds to waterflow signal"
+          />
+          <span className="text-faint text-[13px]">seconds</span>
+        </div>
+      ) : (
+        <div className="mt-2">
+          <div className={`text-2xl tabular-nums ${phase === "signal" ? "text-pass" : "text-ink"}`}>{mmss}</div>
+          {phase === "idle" && (
+            <button onClick={start} className="mt-2 w-full py-2.5 rounded text-[12px] tracking-widest2 uppercase bg-fire text-white active:scale-[0.98]">
+              Open ITC — start clock
+            </button>
+          )}
+          {phase === "running" && (
+            <p className="mt-2 text-warn text-[12px] tracking-widest2 uppercase animate-soft-pulse">▸ Water flowing — waiting on central station…</p>
+          )}
+          {phase === "signal" && (
+            <p className="mt-2 text-pass text-[12px] tracking-widest2 uppercase animate-fade-up">● Dispatcher: signal received — acct 4471-ME</p>
+          )}
         </div>
       )}
-      {phase === "logged" && <p className="mt-2 text-pass text-[10px] tracking-widest2 uppercase">✓ FLOW-SW-1 passes — retard intact</p>}
+
+      <button
+        disabled={!valid}
+        onClick={() => {
+          haptic();
+          setLogged(true);
+          onLog();
+        }}
+        className={`mt-3 w-full py-2.5 rounded text-[12px] tracking-widest2 uppercase border transition-all ${
+          valid ? "border-fire bg-fire text-white active:scale-[0.98]" : "border-border2 text-fainter"
+        }`}
+      >
+        {valid ? `Log signal — ${stamp}` : "Log signal"}
+      </button>
     </div>
   );
 }
@@ -170,13 +284,16 @@ export function ChecklistScreen({
         const isDone = isDeviceDone(d);
         return (
           <div key={d.id} className={`border rounded bg-surface transition-colors ${isDone ? "border-pass/40" : "border-border"}`}>
-            <div className="px-3 py-2 border-b border-border2 flex items-center justify-between gap-2">
+            <div className="px-3 py-2 border-b border-border2 flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <span className="text-fire text-[10px] tracking-widest2">{d.id}</span>
+                <span className="text-fire text-[12px] tracking-widest2">{d.id}</span>
                 <div className="text-ink text-[11px] uppercase tracking-wide truncate">{d.label}</div>
-                <div className="text-fainter text-[9px] truncate">{d.location}</div>
+                <div className="text-fainter text-[11.5px] leading-snug font-sans">{d.location}</div>
               </div>
-              {isDone && <span className="text-pass text-[10px] tracking-widest2 shrink-0">✓ PASS</span>}
+              <div className="flex items-center gap-2 shrink-0">
+                {d.history && <DeviceHistoryPeek history={d.history} />}
+                {isDone && <span className="text-pass text-[12px] tracking-widest2">✓ PASS</span>}
+              </div>
             </div>
             <div className="p-2 space-y-1">
               {d.checklistItems?.map((row, i) => {
@@ -186,28 +303,14 @@ export function ChecklistScreen({
                 // widgets stay mounted after logging so their success states actually paint
                 if (kind === "gauge") return <GaugeWidget key={key} onLog={() => passRow(d, i)} />;
                 if (kind === "stopwatch") return <StopwatchWidget key={key} onLog={() => passRow(d, i, true)} />;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      if (ok) return;
-                      haptic(8);
-                      passRow(d, i);
-                    }}
-                    className={`w-full text-left px-2 py-1.5 rounded-sm text-[10px] leading-snug transition-colors ${
-                      ok ? "text-pass" : "text-muted hover:bg-[#0a0e14] active:bg-[#0a0e14]"
-                    }`}
-                  >
-                    {ok ? "✓" : "○"} {row}
-                  </button>
-                );
+                return <CheckRow key={key} label={row} checked={!!ok} onCheck={() => passRow(d, i)} />;
               })}
             </div>
           </div>
         );
       })}
       {offline && (
-        <p className="text-warn text-[9px] tracking-widest2 uppercase text-center">⚠ Offline — every capture files to the local queue</p>
+        <p className="text-warn text-[11px] tracking-widest2 uppercase text-center">⚠ Offline — every capture files to the local queue</p>
       )}
     </div>
   );

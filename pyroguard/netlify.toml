@@ -5,15 +5,6 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-[functions]
-  included_files = []
-
-[functions."api/clone-template"]
-  timeout = 120
-
-[functions."api/claude-assistant"]
-  timeout = 30
-
 [[headers]]
   for = "/*"
   [headers.values]

@@ -92,5 +92,17 @@
       "Claude API",
       "Nutrition"
     ]
+  },
+  {
+    "name": "Health Recap",
+    "slug": "health",
+    "description": "A year-over-year recap of a personal Apple Health export — steps, calories, workouts, and personal records compared across years. Benchmark banner (peak year vs now), per-year annual recaps, all-time records, best day/week/month breakdowns, and activity mix.",
+    "url": "https://health-recap-azoni.netlify.app",
+    "tags": [
+      "Static",
+      "Data Viz",
+      "Apple Health",
+      "Personal"
+    ]
   }
 ]

@@ -29,7 +29,7 @@ export function SignatureScreen({ data, onDone }: { data: DummyData; onDone: () 
         </div>
         <div className="mt-2 flex items-center gap-2 border border-border2 rounded-sm p-2">
           <CorrodedHead className="w-10 shrink-0 rounded-sm border border-border" />
-          <p className="text-muted text-[10px] leading-relaxed">
+          <p className="text-muted text-[12px] leading-relaxed">
             HEAD-B1-C7 — corroded, loaded pendent head (+2 adjacent). Critical deficiency. Replacement recommended.
           </p>
         </div>
@@ -58,7 +58,7 @@ export function SignatureScreen({ data, onDone }: { data: DummyData; onDone: () 
         </button>
       ) : (
         <div className="animate-fade-up border border-pass/40 rounded bg-pass/5 p-3">
-          <span className="text-pass text-[10px] tracking-widest2 uppercase">
+          <span className="text-pass text-[12px] tracking-widest2 uppercase">
             ✓ Signed — {data.customer.name}, 1141 · bound to WO-2841
           </span>
         </div>

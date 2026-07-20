@@ -58,10 +58,10 @@ export function CameraScreen({ onCaptured, onDone }: { onCaptured: () => void; o
           <span className="absolute top-2 right-2 w-5 h-5 border-t-2 border-r-2 border-fire" />
           <span className="absolute bottom-2 left-2 w-5 h-5 border-b-2 border-l-2 border-fire" />
           <span className="absolute bottom-2 right-2 w-5 h-5 border-b-2 border-r-2 border-fire" />
-          <span className="absolute top-3 left-1/2 -translate-x-1/2 text-[9px] tracking-widest2 text-fire uppercase">
+          <span className="absolute top-3 left-1/2 -translate-x-1/2 text-[11px] tracking-widest2 text-fire uppercase">
             HEAD-B1-C7 · WO-2841
           </span>
-          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[9px] tracking-widest2 text-warn uppercase">
+          <span className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[11px] tracking-widest2 text-warn uppercase">
             ⚠ No signal — local capture
           </span>
         </div>
@@ -82,8 +82,8 @@ export function CameraScreen({ onCaptured, onDone }: { onCaptured: () => void; o
         <div className="animate-fade-up border border-warn/50 rounded bg-warn/5 p-3 flex items-center gap-3">
           <CorrodedHead className="w-12 shrink-0 border border-border rounded-sm" />
           <div>
-            <div className="text-warn text-[10px] tracking-widest2 uppercase">⬆ 1 unsynced — committed to local queue</div>
-            <p className="text-faint text-[10px] mt-1 leading-relaxed">
+            <div className="text-warn text-[12px] tracking-widest2 uppercase">⬆ 1 unsynced — committed to local queue</div>
+            <p className="text-faint text-[12px] mt-1 leading-relaxed">
               Bound to HEAD-B1-C7 · WO-2841. On disk before any network call. Survives app kill, reboot, and this garage.
             </p>
           </div>

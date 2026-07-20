@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { shieldDataUri } from "./_og-shield";
 
 export const runtime = "edge";
 export const alt = "PyroGuard — Fire/Life-Safety Inspection, Done Right";
@@ -14,28 +15,19 @@ export default async function Image() {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          background: "linear-gradient(135deg, #0F172A 0%, #1E293B 55%, #0F172A 100%)",
+          background: "linear-gradient(135deg, #080c10 0%, #0d1420 55%, #080c10 100%)",
           padding: "72px",
           color: "white",
           fontFamily: "system-ui, sans-serif",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <div
-            style={{
-              width: 96,
-              height: 96,
-              borderRadius: 20,
-              background: "#0F172A",
-              border: "4px solid #334155",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <div style={{ fontSize: 56 }}>🔥</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={shieldDataUri} width={96} height={96} style={{ borderRadius: 18 }} alt="" />
+          <div style={{ display: "flex", gap: 10, fontSize: 40, fontWeight: 700, letterSpacing: -0.5 }}>
+            <span>PyroGuard</span>
+            <span style={{ color: "#FF4F00" }}>AI</span>
           </div>
-          <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: -0.5 }}>PyroGuard</div>
         </div>
         <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 20 }}>
           <div

@@ -7,9 +7,9 @@ const config: Config = {
     container: { center: true, padding: "1rem", screens: { "2xl": "1280px" } },
     extend: {
       fontFamily: {
-        sans: ["var(--font-mono)", "ui-monospace", "monospace"],
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
-        display: ["var(--font-display)", "sans-serif"],
+        display: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
         bg: "#080c10",
@@ -17,11 +17,11 @@ const config: Config = {
         surface2: "#0a1520",
         border: "#1a2535",
         border2: "#111c2a",
-        ink: "#e0e8f0",
-        ink2: "#c8d8e8",
-        muted: "#7a9ab0",
-        faint: "#556",
-        fainter: "#334",
+        ink: "#eef3f8",
+        ink2: "#cfdcea",
+        muted: "#a7bece",
+        faint: "#8fa0b3",
+        fainter: "#76889a",
         fire: "#ff4500",
         fire2: "#ff7a00",
         fire3: "#ff6030",
@@ -36,8 +36,8 @@ const config: Config = {
         sm: "2px",
       },
       letterSpacing: {
-        widest2: "0.15em",
-        widest3: "0.2em",
+        widest2: "0.1em",
+        widest3: "0.12em",
       },
       keyframes: {
         "slide-in": {

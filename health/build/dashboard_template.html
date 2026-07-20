@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Health Recap — a year-over-year look at my activity</title>
+<meta name="description" content="A year-over-year recap of my Apple Health data — steps, calories, workouts and records, compared across years. Chasing my most active year.">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)">
+<link rel="canonical" href="https://health-recap-azoni.netlify.app/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://health-recap-azoni.netlify.app/">
+<meta property="og:title" content="Health Recap — year-over-year activity">
+<meta property="og:description" content="Steps, calories, workouts and personal records compared across years — can I get back to my peak? Built from an Apple Health export.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Health Recap — year-over-year activity">
+<meta name="twitter:description" content="Steps, calories, workouts and personal records compared across years.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%93%3C/text%3E%3C/svg%3E">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebSite","name":"Health Recap","url":"https://health-recap-azoni.netlify.app/","description":"A year-over-year recap of Apple Health data — steps, calories, workouts and personal records compared across years.","creator":{"@type":"Person","name":"azoni","url":"https://azoni.ai"}}
+</script>
+<style>
+:root{
+  --surface-1:#fcfcfb; --plane:#f4f3ef; --card:#ffffff;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --muted:#898781;
+  --grid:#e6e5df; --axis:#c3c2b7; --border:rgba(11,11,11,.10);
+  --good:#006300; --bad:#c0392b;
+  --s2026:#2a78d6; --s2025:#1baf7a; --s2024:#eda100; --s2023:#008300; --s2022:#4a3aa7; --s2021:#e34948;
+  /* sequential blue ramp for heatmap */
+  --q0:#eef1ee; --q1:#cde2fb; --q2:#86b6ef; --q3:#3987e5; --q4:#256abf; --q5:#0d366b;
+}
+:root[data-theme="dark"]{
+  --surface-1:#1a1a19; --plane:#0d0d0d; --card:#201f1e;
+  --text-primary:#ffffff; --text-secondary:#c3c2b7; --muted:#898781;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+  --good:#0ca30c; --bad:#e66767;
+  --s2026:#3987e5; --s2025:#199e70; --s2024:#c98500; --s2023:#37a137; --s2022:#9085e9; --s2021:#e66767;
+  --q0:#242423; --q1:#12345a; --q2:#184f95; --q3:#256abf; --q4:#3987e5; --q5:#86b6ef;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --surface-1:#1a1a19; --plane:#0d0d0d; --card:#201f1e;
+    --text-primary:#ffffff; --text-secondary:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10);
+    --good:#0ca30c; --bad:#e66767;
+    --s2026:#3987e5; --s2025:#199e70; --s2024:#c98500; --s2023:#37a137; --s2022:#9085e9; --s2021:#e66767;
+    --q0:#242423; --q1:#12345a; --q2:#184f95; --q3:#256abf; --q4:#3987e5; --q5:#86b6ef;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--plane); color:var(--text-primary);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:14px; line-height:1.45; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px; margin:0 auto; padding:28px 20px 80px}
+h1{font-size:26px; font-weight:650; margin:0 0 4px; letter-spacing:-.01em}
+.sub{color:var(--text-secondary); font-size:13.5px; margin:0}
+.sub b{color:var(--text-primary); font-weight:600}
+a{color:var(--s2026)}
+.tag{display:inline-block; font-size:11px; color:var(--muted); border:1px solid var(--border); border-radius:20px; padding:2px 9px; margin-left:6px; vertical-align:middle}
+
+/* ---- controls ---- */
+.controls{position:sticky; top:0; z-index:30; background:color-mix(in srgb, var(--plane) 88%, transparent); backdrop-filter:blur(8px); margin:18px -20px 22px; padding:12px 20px; border-bottom:1px solid var(--border)}
+.ctl-row{display:flex; flex-wrap:wrap; gap:16px 22px; align-items:flex-end}
+.ctl{display:flex; flex-direction:column; gap:6px}
+.ctl > label{font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--muted)}
+select{font:inherit; font-size:13px; padding:7px 30px 7px 11px; border-radius:9px; border:1px solid var(--border); background:var(--card); color:var(--text-primary); cursor:pointer; -webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23898781' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 11px center}
+.seg{display:inline-flex; background:var(--plane); border:1px solid var(--border); border-radius:9px; padding:2px}
+.seg button{font:inherit; font-size:12.5px; padding:6px 12px; border:0; background:transparent; color:var(--text-secondary); border-radius:7px; cursor:pointer; white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--card); color:var(--text-primary); box-shadow:0 1px 2px rgba(0,0,0,.08); font-weight:550}
+.seg button:disabled{opacity:.35; cursor:not-allowed}
+.spacer{flex:1}
+.ghost{font:inherit; font-size:12.5px; padding:7px 12px; border:1px solid var(--border); background:var(--card); color:var(--text-secondary); border-radius:9px; cursor:pointer}
+.ghost:hover{color:var(--text-primary)}
+
+/* legend / year toggles */
+.legend{display:flex; flex-wrap:wrap; gap:7px}
+.chip{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; padding:5px 11px 5px 9px; border-radius:20px; border:1px solid var(--border); background:var(--card); cursor:pointer; color:var(--text-primary); font-variant-numeric:tabular-nums; user-select:none}
+.chip .k{width:14px; height:3px; border-radius:2px; flex:none}
+.chip[aria-pressed="false"]{opacity:.4}
+.chip[aria-pressed="false"] .lbl{text-decoration:line-through}
+
+/* ---- cards / grid ---- */
+.section{margin:34px 0 0}
+.section > h2{font-size:16px; font-weight:620; margin:0 0 3px; letter-spacing:-.005em}
+.section > .hint{color:var(--muted); font-size:12.5px; margin:0 0 14px}
+.card{background:var(--card); border:1px solid var(--border); border-radius:14px}
+.pad{padding:16px 18px}
+
+.years{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px}
+.ycard{background:var(--card); border:1px solid var(--border); border-radius:13px; padding:13px 14px; position:relative; overflow:hidden}
+.ycard .yr{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--text-secondary); font-weight:600; font-variant-numeric:tabular-nums}
+.ycard .yr .dot{width:9px; height:9px; border-radius:50%; flex:none}
+.ycard .val{font-size:26px; font-weight:650; margin-top:7px; letter-spacing:-.01em; line-height:1.05}
+.ycard .val small{font-size:13px; font-weight:500; color:var(--muted); margin-left:3px}
+.ycard .meta{font-size:11.5px; color:var(--muted); margin-top:3px}
+.delta{font-size:12px; font-weight:600; margin-top:6px; font-variant-numeric:tabular-nums; display:inline-flex; align-items:center; gap:4px}
+.delta.up{color:var(--good)} .delta.down{color:var(--bad)} .delta.flat{color:var(--muted)}
+
+/* benchmark banner */
+.bench-grid{display:grid; grid-template-columns:1.3fr 1fr 1.2fr; gap:22px}
+@media(max-width:760px){.bench-grid{grid-template-columns:1fr; gap:16px}}
+.bench-cell{display:flex; flex-direction:column; gap:4px}
+.bench-cell + .bench-cell{border-left:1px solid var(--border); padding-left:22px}
+@media(max-width:760px){.bench-cell + .bench-cell{border-left:0; padding-left:0; border-top:1px solid var(--border); padding-top:14px}}
+.bench-cell .bl{font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--muted)}
+.bench-cell .by{font-size:26px; font-weight:680; letter-spacing:-.01em; display:flex; align-items:center; gap:9px}
+.bench-cell .by small{font-size:13px; font-weight:500; color:var(--muted)}
+.bench-cell .bstats{font-size:12.5px; color:var(--text-secondary); line-height:1.5}
+.bench-cell .bstats.life{font-size:13px}
+.bench-cell .up{color:var(--good)} .bench-cell .down{color:var(--bad)}
+.peak-badge{font-size:10px; font-weight:700; letter-spacing:.06em; color:#fff; background:var(--good); border-radius:5px; padding:2px 6px; vertical-align:middle}
+
+/* annual recap panels */
+.recaps{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px}
+.recap{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 16px 14px}
+.recap.peak{border-color:color-mix(in srgb, var(--good) 55%, var(--border)); box-shadow:0 0 0 1px color-mix(in srgb, var(--good) 30%, transparent)}
+.rc-head{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.rc-year{font-size:20px; font-weight:700; letter-spacing:-.01em; font-variant-numeric:tabular-nums}
+.rc-pct{font-size:11px; font-weight:700; border-radius:20px; padding:2px 8px; border:1px solid var(--border)}
+.rc-pct.up{color:var(--good); background:color-mix(in srgb,var(--good) 10%,transparent)}
+.rc-pct.mid{color:var(--text-secondary)}
+.rc-pct.down{color:var(--bad); background:color-mix(in srgb,var(--bad) 8%,transparent)}
+.rc-partial{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em}
+.rc-hero{font-size:27px; font-weight:680; letter-spacing:-.01em; margin-top:10px; line-height:1.05}
+.rc-hero small{font-size:12.5px; font-weight:500; color:var(--muted)}
+.rc-sub{font-size:11.5px; color:var(--muted); margin-top:2px}
+.rc-stats{margin-top:12px; border-top:1px solid var(--border); padding-top:8px}
+.rc-row{display:grid; grid-template-columns:1fr auto auto; gap:8px; align-items:baseline; padding:3px 0; font-size:12.5px}
+.rc-row .rc-k{color:var(--text-secondary)}
+.rc-row .rc-v{font-weight:650; font-variant-numeric:tabular-nums}
+.rc-row .rc-d{color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; min-width:64px; text-align:right}
+.rc-wk{margin-top:12px; border-top:1px solid var(--border); padding-top:10px}
+.rc-wk-h{font-size:11.5px; color:var(--text-secondary); font-weight:600; margin-bottom:7px}
+.rc-pills{display:flex; flex-wrap:wrap; gap:5px}
+.rc-none{font-size:11.5px; color:var(--muted)}
+
+/* year-bests table */
+#yearBests .yb-year{font-weight:700; font-variant-numeric:tabular-nums}
+#yearBests .yb-v{font-weight:650; font-variant-numeric:tabular-nums}
+#yearBests .yb-v small{color:var(--muted); font-weight:500; font-size:10.5px}
+#yearBests .yb-d{color:var(--muted); font-size:11px; margin-top:1px}
+#yearBests td{vertical-align:top}
+
+/* chart */
+.chartcard{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 12px 8px}
+svg{display:block; width:100%; overflow:visible}
+.tick text{fill:var(--muted); font-size:11px}
+.axis-title{fill:var(--muted); font-size:11px; font-weight:600}
+.gridline{stroke:var(--grid); stroke-width:1}
+.zeroline{stroke:var(--axis); stroke-width:1}
+
+.tooltip{position:fixed; z-index:60; pointer-events:none; background:var(--card); border:1px solid var(--border); border-radius:11px; padding:9px 11px; box-shadow:0 8px 26px rgba(0,0,0,.16); font-size:12.5px; min-width:150px; opacity:0; transition:opacity .08s}
+.tooltip .tt-title{font-weight:650; margin-bottom:6px; font-size:12px; color:var(--text-secondary)}
+.tt-row{display:flex; align-items:center; gap:8px; padding:1.5px 0; font-variant-numeric:tabular-nums}
+.tt-row .k{width:13px; height:3px; border-radius:2px; flex:none}
+.tt-row .nm{color:var(--text-secondary); flex:1}
+.tt-row .v{font-weight:650; color:var(--text-primary)}
+
+/* records */
+.records{display:grid; grid-template-columns:repeat(auto-fit,minmax(185px,1fr)); gap:12px}
+.rec{background:var(--card); border:1px solid var(--border); border-radius:13px; padding:14px 15px}
+.rec .rl{font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--muted)}
+.rec .rv{font-size:23px; font-weight:650; margin-top:8px; letter-spacing:-.01em}
+.rec .rv small{font-size:12px; color:var(--muted); font-weight:500; margin-left:3px}
+.rec .rd{font-size:12px; color:var(--text-secondary); margin-top:5px}
+.rec .rsub{font-size:11.5px; color:var(--muted); margin-top:2px}
+
+/* leaderboard */
+.lb{display:flex; flex-direction:column; gap:0}
+.lb-row{display:grid; grid-template-columns:26px 96px 1fr auto; align-items:center; gap:12px; padding:7px 0; border-bottom:1px solid var(--border)}
+.lb-row:last-child{border-bottom:0}
+.lb-rank{font-size:12px; color:var(--muted); font-weight:600; text-align:right; font-variant-numeric:tabular-nums}
+.lb-date{font-size:12.5px; color:var(--text-secondary); font-variant-numeric:tabular-nums}
+.lb-bar{height:14px; border-radius:0 4px 4px 0; min-width:2px}
+.lb-val{font-size:13px; font-weight:650; font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap}
+.lb-row.top .lb-val{color:var(--text-primary)}
+.lb-companions{grid-column:1/-1; padding-left:38px; font-size:11.5px; color:var(--muted); margin-top:3px; display:flex; flex-wrap:wrap; align-items:center}
+.lb-companions .cstat{white-space:nowrap}
+.lb-companions .cstat b{color:var(--text-secondary); font-weight:650; font-variant-numeric:tabular-nums}
+.lb-companions .cdot{margin:0 7px; opacity:.45}
+.lb-acts{grid-column:1/-1; padding-left:38px; margin-top:5px; display:flex; flex-wrap:wrap; gap:6px}
+.act{font-size:11px; color:var(--text-secondary); background:color-mix(in srgb, var(--s2026) 9%, transparent); border:1px solid var(--border); border-radius:20px; padding:2px 9px; white-space:nowrap; font-variant-numeric:tabular-nums}
+
+/* heatmap */
+.hm-wrap{overflow-x:auto; padding-bottom:4px}
+.hm-year{display:flex; align-items:center; gap:14px; margin:2px 0}
+.hm-label{width:42px; font-size:13px; font-weight:600; color:var(--text-secondary); font-variant-numeric:tabular-nums; text-align:right; flex:none}
+.hm-legend{display:flex; align-items:center; gap:7px; font-size:11.5px; color:var(--muted); margin-top:10px}
+.hm-legend .sw{width:12px; height:12px; border-radius:3px; border:1px solid var(--border)}
+.cell{stroke:var(--surface-1); stroke-width:1.5}
+.cell:hover{stroke:var(--text-primary); stroke-width:1.5}
+
+/* workouts */
+.wk-grid{display:grid; grid-template-columns:1.1fr 1fr; gap:14px}
+@media(max-width:760px){.wk-grid{grid-template-columns:1fr}}
+.wk-legend{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:8px;font-size:11px;color:var(--muted)}
+.wk-legend .wk-key{display:inline-flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.wk-legend .sw{width:9px;height:9px;border-radius:2px}
+#recordsBoard td .rbv{font-weight:650;font-variant-numeric:tabular-nums}
+#recordsBoard td .rbv small{color:var(--muted);font-weight:500;font-size:10.5px;margin-left:2px}
+#recordsBoard td .rbd{color:var(--muted);font-size:10.5px;margin-top:1px;font-variant-numeric:tabular-nums}
+#recordsBoard tbody tr{cursor:pointer}
+#recordsBoard tbody tr:hover td{background:color-mix(in srgb, var(--s2026) 7%, transparent)}
+#recordsBoard tbody tr.sel td{background:color-mix(in srgb, var(--s2026) 13%, transparent)}
+#recordsBoard td:first-child{font-weight:600}
+
+/* table */
+table{width:100%; border-collapse:collapse; font-size:12.5px; font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap}
+th:first-child,td:first-child{text-align:left; font-variant-numeric:normal}
+thead th{font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); font-weight:600; position:sticky; top:0; background:var(--card)}
+tbody tr:hover td{background:color-mix(in srgb, var(--s2026) 6%, transparent)}
+.table-scroll{overflow-x:auto; border:1px solid var(--border); border-radius:12px; background:var(--card)}
+.note{font-size:12px; color:var(--muted); margin-top:10px; line-height:1.6}
+.foot{margin-top:40px; font-size:12px; color:var(--muted); border-top:1px solid var(--border); padding-top:16px}
+.empty{color:var(--muted); font-size:13px; padding:16px}
+.table-scroll, .hm-wrap{ -webkit-overflow-scrolling:touch; }
+
+/* ---- mobile ---- */
+@media (max-width:560px){
+  .wrap{padding:18px 13px 60px}
+  h1{font-size:22px}
+  .sub{font-size:12.5px}
+  .controls{margin:14px -13px 18px; padding:11px 13px}
+  select{padding:10px 30px 10px 12px; font-size:15px}        /* 15px avoids iOS zoom-on-focus */
+  .chip{padding:8px 12px; font-size:13px}                     /* bigger tap target */
+  .ghost{padding:9px 13px}
+  .section{margin:26px 0 0}
+  .section > h2{font-size:15px}
+  .pad{padding:14px 13px}
+  .bench-cell .by{font-size:23px}
+  .recaps{grid-template-columns:1fr}
+  .recap{padding:15px 15px 13px}
+  /* scroll affordance: tables that overflow get a subtle right-edge fade */
+  .table-scroll{position:relative; background:
+    linear-gradient(to right, var(--card) 30%, transparent) left/24px 100% no-repeat,
+    linear-gradient(to left, var(--card) 30%, transparent) right/24px 100% no-repeat,
+    radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,.10), transparent) right/12px 100% no-repeat;
+    background-attachment:local,local,scroll;}
+  th,td{padding:9px 11px}
+  .lb-row{grid-template-columns:22px 84px 1fr auto; gap:9px}
+  .lb-date{font-size:12px}
+  .lb-companions,.lb-acts{padding-left:31px}
+  table{font-size:12px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Health Recap <span class="tag" id="rangeTag">—</span></h1>
+    <p class="sub" id="subline">—</p>
+  </header>
+
+  <div class="controls">
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="metric">Focus metric <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">— drives the breakdowns, top days &amp; heatmap</span></label>
+        <select id="metric"></select>
+      </div>
+      <div class="spacer"></div>
+      <button class="ghost" id="themeBtn" title="Toggle light/dark">◐ Theme</button>
+    </div>
+    <div class="ctl-row" style="margin-top:12px">
+      <div class="ctl" style="width:100%">
+        <label>Years (click to show / hide)</label>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- benchmark -->
+  <section class="section" id="benchSection">
+    <div class="card pad" id="benchmark"></div>
+  </section>
+
+  <!-- annual recaps -->
+  <section class="section">
+    <h2>Annual recap — compare your years</h2>
+    <p class="hint">One panel per year. Your most active year is the <b>benchmark to beat</b>; the % shows where each year lands vs that peak. This is the target as you start tracking again.</p>
+    <div class="recaps" id="recaps"></div>
+  </section>
+
+  <!-- all-metrics records board -->
+  <section class="section">
+    <h2>All-time records — the targets to beat</h2>
+    <p class="hint">Your best-ever runs for every metric. <b>Lifetime</b> = total ever (activity metrics) or overall average (rate metrics). 7-day / 30-day are sliding windows — any start day counts. Click a row to focus it below. <span style="color:var(--muted)">Resting/walking HR: lowest wins.</span></p>
+    <div class="table-scroll"><table id="recordsBoard"></table></div>
+  </section>
+
+  <!-- per-year bests -->
+  <section class="section">
+    <h2 id="ybTitle">Best day · week · month, by year</h2>
+    <p class="hint" id="ybHint"></p>
+    <div class="table-scroll"><table id="yearBests"></table></div>
+  </section>
+
+  <!-- leaderboard -->
+  <section class="section">
+    <h2 id="lbTitle">Top 10 days</h2>
+    <p class="hint" id="lbHint"></p>
+    <div class="card pad"><div class="lb" id="leaderboard"></div></div>
+  </section>
+
+  <!-- heatmap -->
+  <section class="section">
+    <h2 id="hmTitle">Calendar heatmap</h2>
+    <p class="hint">Every day, colored by intensity. Same scale across years — <span id="hmDir">darker means more</span>. Scroll sideways on narrow screens.</p>
+    <div class="card pad">
+      <div class="hm-wrap" id="heatmap"></div>
+      <div class="hm-legend">Less
+        <span class="sw" style="background:var(--q0)"></span>
+        <span class="sw" style="background:var(--q1)"></span>
+        <span class="sw" style="background:var(--q2)"></span>
+        <span class="sw" style="background:var(--q3)"></span>
+        <span class="sw" style="background:var(--q4)"></span>
+        <span class="sw" style="background:var(--q5)"></span>
+        More <span id="hmScale" style="margin-left:8px"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- workouts -->
+  <section class="section">
+    <h2>Workouts</h2>
+    <p class="hint">Logged Apple Watch workouts by year. You logged a lot of tennis.</p>
+    <div class="wk-grid">
+      <div class="chartcard"><div style="font-size:12.5px;font-weight:600;color:var(--text-secondary);margin:2px 6px 8px">Sessions per year</div><div id="wkYear"></div></div>
+      <div class="chartcard"><div style="font-size:12.5px;font-weight:600;color:var(--text-secondary);margin:2px 6px 8px">Tennis sessions by month</div><div id="wkMonth"></div></div>
+    </div>
+  </section>
+
+  <!-- table -->
+  <section class="section">
+    <h2>Full comparison table</h2>
+    <p class="hint">Per-year figures for every metric. <a href="#" id="csvBtn">Download CSV ↓</a></p>
+    <div class="table-scroll"><table id="table"></table></div>
+    <p class="note" id="methodNote"></p>
+  </section>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<div class="tooltip" id="tooltip" role="status" aria-live="polite"></div>
+
+<script id="hd" type="application/json">__HEALTH_DATA__</script>
+<script>
+"use strict";
+/* ============================ data ============================ */
+const RAW = JSON.parse(document.getElementById('hd').textContent);
+const DAYS = RAW.days;                 // {"YYYY-MM-DD": {metric:val,...}}
+const WORKOUTS = RAW.workouts;
+const DATE_KEYS = Object.keys(DAYS).sort();
+
+const METRICS = [
+  {key:'steps',        label:'Steps',              unit:'',       dec:0, agg:'sum', better:'high'},
+  {key:'distance',     label:'Walk/run distance',  unit:'mi',     dec:1, agg:'sum', better:'high'},
+  {key:'totalEnergy',  label:'Total energy (active + resting)', unit:'Cal', dec:0, agg:'sum', better:'high'},
+  {key:'activeEnergy', label:'Active energy (Move ring)',       unit:'Cal', dec:0, agg:'sum', better:'high'},
+  {key:'exerciseMin',  label:'Exercise minutes',   unit:'min',    dec:0, agg:'sum', better:'high'},
+  {key:'flights',      label:'Flights climbed',    unit:'',       dec:0, agg:'sum', better:'high'},
+  {key:'standHours',   label:'Stand hours',        unit:'h',      dec:0, agg:'sum', better:'high'},
+  {key:'restingHR',    label:'Resting heart rate', unit:'bpm',    dec:0, agg:'avg', better:'low'},
+  {key:'walkingHR',    label:'Walking heart rate', unit:'bpm',    dec:0, agg:'avg', better:'low'},
+  {key:'hrv',          label:'Heart rate variability', unit:'ms', dec:0, agg:'avg', better:'high'},
+  {key:'vo2',          label:'VO₂ max',       unit:'',       dec:1, agg:'avg', better:'high'},
+  {key:'spo2',         label:'Blood oxygen',       unit:'%',      dec:1, agg:'avg', better:'high'},
+  {key:'respRate',     label:'Respiratory rate',   unit:'br/min', dec:1, agg:'avg', better:null},
+  {key:'sleepHours',   label:'Time in bed',        unit:'h',      dec:1, agg:'avg', better:'high', sparse:true},
+];
+const M = k => METRICS.find(m=>m.key===k);
+
+// years present
+const YEARS = [...new Set(DATE_KEYS.map(d=>+d.slice(0,4)))].sort((a,b)=>a-b);
+const YEAR_COLOR = y => getComputedStyle(document.documentElement).getPropertyValue('--s'+y).trim() || 'var(--muted)';
+
+/* date helpers ------------------------------------------------ */
+function parseDate(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); }
+function dayOfYear(dt){ return Math.round((Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate())-Date.UTC(dt.getFullYear(),0,0))/86400000); }
+function isLeap(y){ return (y%4===0&&y%100!==0)||y%400===0; }
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const TODAY = RAW.meta.lastDay;
+
+/* number formatting ------------------------------------------- */
+function fmt(v, dec){
+  if(v==null||isNaN(v)) return '–';
+  if(Math.abs(v)>=1000) return Math.round(v).toLocaleString('en-US');
+  const f=Math.pow(10,dec); return (Math.round(v*f)/f).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:dec});
+}
+function fmtCompact(v){
+  if(v==null||isNaN(v)) return '–';
+  if(Math.abs(v)>=1e6) return (v/1e6).toFixed(1).replace(/\.0$/,'')+'M';
+  if(Math.abs(v)>=1e4) return Math.round(v/1e3)+'K';
+  if(Math.abs(v)>=1000) return Math.round(v).toLocaleString('en-US');
+  return Math.round(v).toString();
+}
+function niceDate(s){ const dt=parseDate(s); return MONTHS[dt.getMonth()]+' '+dt.getDate()+', '+dt.getFullYear(); }
+function niceDateShort(s){ const dt=parseDate(s); return MONTHS[dt.getMonth()]+' '+dt.getDate(); }
+
+/* ============================ state ============================ */
+const state = {
+  metric:'steps',
+  gran:'week',
+  mode:'avg',
+  years: new Set(YEARS),   // default: all years shown for comparison
+};
+if(state.years.size===0) YEARS.forEach(y=>state.years.add(y));
+
+/* ==================== per-metric series ==================== */
+// returns {byYear:{year:[{date,v}]}, valuesByYear, ...} for present days
+function metricSeries(key){
+  const byYear={};
+  for(const d of DATE_KEYS){
+    const rec=DAYS[d]; if(!(key in rec)) continue;
+    const y=+d.slice(0,4);
+    (byYear[y]||(byYear[y]=[])).push({date:d, v:rec[key], doy:dayOfYear(parseDate(d))});
+  }
+  return byYear;
+}
+
+/* ============================ render ============================ */
+const $ = s=>document.querySelector(s);
+const tooltip = $('#tooltip');
+function showTip(html, x, y){
+  tooltip.innerHTML=html; tooltip.style.opacity='1';
+  const w=tooltip.offsetWidth, h=tooltip.offsetHeight;
+  let left=x+16, top=y+16;
+  if(left+w>window.innerWidth-8) left=x-w-16;
+  if(top+h>window.innerHeight-8) top=y-h-16;
+  tooltip.style.left=left+'px'; tooltip.style.top=top+'px';
+}
+function hideTip(){ tooltip.style.opacity='0'; }
+
+/* ---- controls ---- */
+function buildControls(){
+  const sel=$('#metric');
+  for(const m of METRICS){
+    const o=document.createElement('option'); o.value=m.key; o.textContent=m.label+(m.unit?` (${m.unit})`:'')+(m.sparse?'  · sparse':''); sel.appendChild(o);
+  }
+  sel.value=state.metric;
+  sel.onchange=()=>{ state.metric=sel.value; renderAll(); };
+
+  // legend / year toggles
+  const leg=$('#legend'); leg.innerHTML='';
+  for(const y of [...YEARS].sort((a,b)=>b-a)){
+    const c=document.createElement('button'); c.className='chip'; c.setAttribute('aria-pressed', state.years.has(y));
+    const partial = countDaysInYear(y) < (isLeap(y)?366:365)-2;
+    c.innerHTML=`<span class="k" style="background:${YEAR_COLOR(y)}"></span><span class="lbl">${y}</span>`+(partial?`<span style="color:var(--muted);font-size:10.5px">partial</span>`:'');
+    c.onclick=()=>{ if(state.years.has(y)) state.years.delete(y); else state.years.add(y); c.setAttribute('aria-pressed', state.years.has(y)); renderAll(); };
+    leg.appendChild(c);
+  }
+
+  $('#themeBtn').onclick=()=>{
+    const cur=document.documentElement.getAttribute('data-theme');
+    const sysDark=matchMedia('(prefers-color-scheme:dark)').matches;
+    const next = cur? (cur==='dark'?'light':'dark') : (sysDark?'light':'dark');
+    document.documentElement.setAttribute('data-theme', next); renderAll();
+  };
+}
+function syncModeAvailability(){}  /* chart removed; kept as no-op for callers */
+function countDaysInYear(y){ return DATE_KEYS.filter(d=>+d.slice(0,4)===y).length; }
+
+/* ---- year aggregates & annual recap ---- */
+function yearAgg(y){
+  const keys=['steps','totalEnergy','activeEnergy','exerciseMin','distance','flights','standHours'];
+  const sum={}, cnt={}; let rhrS=0,rhrN=0, activeDays=0, tracked=0;
+  for(const d of DATE_KEYS){ if(+d.slice(0,4)!==y) continue; const r=DAYS[d]; tracked++;
+    for(const k of keys){ if(k in r){ sum[k]=(sum[k]||0)+r[k]; cnt[k]=(cnt[k]||0)+1; } }
+    if('restingHR' in r){ rhrS+=r.restingHR; rhrN++; }
+    if((r.steps||0)>=5000 || (r.exerciseMin||0)>=20) activeDays++;
+  }
+  const wk={}; let wkN=0,wkMin=0,wkCal=0;
+  for(const w of WORKOUTS){ if(+w.date.slice(0,4)!==y) continue; wkN++; wkMin+=w.durationMin||0; wkCal+=w.energyCal||0;
+    const a=wk[w.type]||(wk[w.type]={c:0,min:0}); a.c++; a.min+=w.durationMin||0; }
+  return {y, sum, cnt, rhr:rhrN?rhrS/rhrN:null, activeDays, tracked, wk, wkN, wkMin, wkCal,
+          days: cnt.steps||0, partial: ((isLeap(y)?366:365)-(cnt.steps||0)) > 30};
+}
+let _peak=null;
+function peakYear(){
+  if(_peak!==null) return _peak;
+  let best=null;
+  for(const y of YEARS){ const a=yearAgg(y); if(a.days<200 || !a.cnt.steps) continue;
+    const sd=a.sum.steps/a.cnt.steps; if(best===null || sd>best.sd) best={y, sd, agg:a}; }
+  if(!best){ for(const y of YEARS){ const a=yearAgg(y); if(!a.cnt.steps) continue;
+    const sd=a.sum.steps/a.cnt.steps; if(best===null||sd>best.sd) best={y,sd,agg:a}; } }
+  _peak=best; return best;
+}
+function renderBenchmark(){
+  const pk=peakYear(); const host=$('#benchmark'); if(!pk){ host.innerHTML=''; return; }
+  const pa=pk.agg, cy=+TODAY.slice(0,4), ca=yearAgg(cy);
+  const pkSteps=Math.round(pk.sd);
+  const cSteps=ca.cnt.steps?Math.round(ca.sum.steps/ca.cnt.steps):0;
+  const pct=pkSteps?Math.round(cSteps/pkSteps*100):0;
+  let ltSteps=0, ltCal=0, ltTennis=0, ltTennisMin=0;
+  for(const d of DATE_KEYS){ const r=DAYS[d]; if('steps'in r)ltSteps+=r.steps; if('totalEnergy'in r)ltCal+=r.totalEnergy; }
+  for(const w of WORKOUTS){ if(w.type==='Tennis'){ltTennis++; ltTennisMin+=w.durationMin||0;} }
+  host.innerHTML=`<div class="bench-grid">
+    <div class="bench-cell peak-cell">
+      <div class="bl">Most active year — the benchmark</div>
+      <div class="by">${pk.y} <span class="peak-badge">PEAK</span></div>
+      <div class="bstats">${pkSteps.toLocaleString()} steps/day · ${pa.wkN} workouts · ${Math.round(pa.wkMin/60)}h active · resting HR ${pa.rhr?Math.round(pa.rhr):'–'}</div>
+    </div>
+    <div class="bench-cell">
+      <div class="bl">${cy} so far</div>
+      <div class="by">${cSteps.toLocaleString()} <small>steps/day</small></div>
+      <div class="bstats"><span class="${pct>=90?'up':'down'}" style="font-weight:700">${pct}% of peak</span> · ${ca.wkN} workouts logged</div>
+    </div>
+    <div class="bench-cell">
+      <div class="bl">Lifetime</div>
+      <div class="bstats life">${fmtCompact(ltSteps)} steps · ${fmtCompact(ltCal)} Cal · ${WORKOUTS.length} workouts<br>${ltTennis} tennis sessions (${Math.round(ltTennisMin/60)}h on court)</div>
+    </div>
+  </div>`;
+}
+function renderAnnualRecap(){
+  const host=$('#recaps'); host.innerHTML='';
+  const pk=peakYear(); const pkY=pk?pk.y:null, pkSd=pk?pk.sd:null;
+  const shown=[...state.years].sort((a,b)=>b-a);
+  for(const y of shown){
+    const a=yearAgg(y); if(!a.days) continue;
+    const sd=a.sum.steps/a.cnt.steps; const isPeak=y===pkY;
+    const pct=pkSd?Math.round(sd/pkSd*100):null;
+    const rows=[
+      ['Steps', fmtCompact(a.sum.steps||0), Math.round(sd).toLocaleString()+'/day'],
+      ['Total energy', a.cnt.totalEnergy?fmtCompact(a.sum.totalEnergy)+' Cal':'–', a.cnt.totalEnergy?Math.round(a.sum.totalEnergy/a.cnt.totalEnergy).toLocaleString()+'/day':''],
+      ['Active energy', a.cnt.activeEnergy?fmtCompact(a.sum.activeEnergy)+' Cal':'–', a.cnt.activeEnergy?Math.round(a.sum.activeEnergy/a.cnt.activeEnergy).toLocaleString()+'/day':''],
+      ['Exercise', a.cnt.exerciseMin?fmtCompact(a.sum.exerciseMin)+' min':'–', a.cnt.exerciseMin?Math.round(a.sum.exerciseMin/a.cnt.exerciseMin)+'/day':''],
+      ['Distance', a.cnt.distance?Math.round(a.sum.distance).toLocaleString()+' mi':'–', ''],
+      ['Resting HR', a.rhr?Math.round(a.rhr)+' bpm':'–', a.rhr?'avg':''],
+    ];
+    const statHtml=rows.map(r=>`<div class="rc-row"><span class="rc-k">${r[0]}</span><span class="rc-v">${r[1]}</span><span class="rc-d">${r[2]||''}</span></div>`).join('');
+    const wkPills=Object.entries(a.wk).sort((x,z)=>z[1].c-x[1].c)
+      .map(([t,o])=>`<span class="act">${ACT_EMOJI[t]||'•'} ${actName(t)} ×${o.c}${o.min>=60?` · ${Math.round(o.min/60)}h`:''}</span>`).join('');
+    const el=document.createElement('div'); el.className='recap'+(isPeak?' peak':'');
+    el.innerHTML=`
+      <div class="rc-head">
+        <span class="rc-year">${y}</span>
+        ${isPeak?'<span class="peak-badge">PEAK</span>':(pct!=null?`<span class="rc-pct ${pct>=90?'up':pct<60?'down':'mid'}">${pct}% of peak</span>`:'')}
+        ${a.partial?'<span class="rc-partial">partial</span>':''}
+      </div>
+      <div class="rc-hero">${Math.round(sd).toLocaleString()} <small>steps/day</small></div>
+      <div class="rc-sub">${a.activeDays} active days · ${a.days} tracked</div>
+      <div class="rc-stats">${statHtml}</div>
+      <div class="rc-wk"><div class="rc-wk-h">${a.wkN} workouts · ${Math.round(a.wkMin/60)}h · ${fmtCompact(a.wkCal)} Cal</div>${wkPills?`<div class="rc-pills">${wkPills}</div>`:'<div class="rc-none">no workouts logged</div>'}</div>`;
+    host.appendChild(el);
+  }
+}
+function yearArray(key,y){
+  const endIso=(y===+TODAY.slice(0,4))?TODAY:y+'-12-31'; const end=parseDate(endIso);
+  const n=Math.round((Date.UTC(end.getFullYear(),end.getMonth(),end.getDate())-Date.UTC(y,0,1))/86400000)+1;
+  const arr=[],dates=[];
+  for(let i=0;i<n;i++){ const dt=new Date(y,0,1+i); const iso=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); dates.push(iso); const r=DAYS[iso]; arr.push(r&&key in r?r[key]:null); }
+  return {arr,dates};
+}
+function renderYearBests(){
+  const m=M(state.metric); const isSum=m.agg==='sum'; const dir=m.better==='low'?'low':'high';
+  $('#ybTitle').textContent=`Best day · week · month by year — ${m.label}`;
+  $('#ybHint').textContent = isSum
+    ? 'Best single day, best rolling 7-day total, and best calendar month — for every year. Watch how your bests rise and fall.'
+    : (dir==='low'?'Lowest day, best 7-day average, and best month — per year (lower is better here).':'Best day, best 7-day average, and best month — per year.');
+  const shown=[...state.years].sort((a,b)=>b-a);
+  const cell=(val,sub)=>`<td><div class="yb-v">${fmt(val,m.dec)}${m.unit?`<small> ${m.unit}</small>`:''}</div><div class="yb-d">${sub}</div></td>`;
+  let html=`<thead><tr><th>Year</th><th>Best day</th><th>Best 7 days${isSum?' · total':' · avg'}</th><th>Best month${isSum?' · total':' · avg'}</th><th>Year avg${isSum?' /day':''}</th></tr></thead><tbody>`;
+  for(const y of shown){
+    const {arr,dates}=yearArray(state.metric,y);
+    const present=[]; for(let i=0;i<arr.length;i++) if(arr[i]!=null) present.push({v:arr[i],d:dates[i]});
+    if(!present.length){ html+=`<tr><td class="yb-year">${y}</td><td colspan="4"><span style="color:var(--muted)">no data</span></td></tr>`; continue; }
+    const bestDay=present.reduce((p,q)=>(dir==='low'?q.v<p.v:q.v>p.v)?q:p);
+    const w7=bestWindow(arr,dates,7,m.agg,m.better,isSum?4:6);
+    const mo={}; for(const p of present){ const k=p.d.slice(5,7); const b=mo[k]||(mo[k]={s:0,c:0}); b.s+=p.v; b.c++; }
+    let bm=null; for(const k in mo){ const b=mo[k]; if(!isSum&&b.c<10)continue; const sc=isSum?b.s:b.s/b.c; if(bm===null||(dir==='low'?sc<bm.sc:sc>bm.sc)) bm={sc,k,c:b.c}; }
+    if(!bm){ for(const k in mo){ const b=mo[k]; const sc=isSum?b.s:b.s/b.c; if(bm===null||(dir==='low'?sc<bm.sc:sc>bm.sc)) bm={sc,k,c:b.c}; } }
+    const yavg=present.reduce((s,p)=>s+p.v,0)/present.length;
+    const bdActs=dayActivities(bestDay.d).map(a=>`${actName(a.type)}${a.count>1?' ×'+a.count:''}`).join(', ');
+    html+=`<tr><td class="yb-year">${y}</td>`+
+      cell(bestDay.v, niceDateShort(bestDay.d)+(bdActs?` · ${bdActs}`:''))+
+      (w7?cell(isSum?w7.sum:w7.score, rangeStr(w7.start,w7.end)):'<td>–</td>')+
+      (bm?cell(bm.sc, `${MONTHS[+bm.k-1]} · ${bm.c} days`):'<td>–</td>')+
+      `<td><div class="yb-v" style="font-weight:600">${fmt(yavg,m.dec)}</div><div class="yb-d">${present.length} days</div></td></tr>`;
+  }
+  html+='</tbody>'; $('#yearBests').innerHTML=html;
+}
+
+/* ---- year summary cards ---- */
+function yearStat(key, y){
+  const m=M(key); let sum=0,cnt=0;
+  for(const d of DATE_KEYS){ if(+d.slice(0,4)!==y) continue; const r=DAYS[d]; if(!(key in r)) continue; sum+=r[key]; cnt++; }
+  if(!cnt) return null;
+  return { total:sum, avg:sum/cnt, days:cnt, y };
+}
+function renderYearCards(){
+  const m=M(state.metric);
+  $('#ycTitle').textContent = m.label+' by year';
+  const perDay = m.agg==='sum';
+  $('#ycHint').textContent = perDay
+    ? `Daily average (over days with data). Totals in the table below. Δ compares to the prior year.`
+    : `Yearly average (over days with data). Δ compares to the prior year.`;
+  const wrap=$('#yearCards'); wrap.innerHTML='';
+  const shown=[...state.years].sort((a,b)=>b-a);
+  const statByYear={}; YEARS.forEach(y=>statByYear[y]=yearStat(state.metric,y));
+  for(const y of shown){
+    const s=statByYear[y]; const card=document.createElement('div'); card.className='ycard';
+    if(!s){ card.innerHTML=`<div class="yr"><span class="dot" style="background:${YEAR_COLOR(y)}"></span>${y}</div><div class="empty" style="padding:8px 0">No data</div>`; wrap.appendChild(card); continue; }
+    const shownVal = perDay ? s.avg : s.avg;
+    const prev=statByYear[y-1];
+    let deltaHtml='';
+    if(prev){
+      const a=perDay?s.avg:s.avg, b=perDay?prev.avg:prev.avg;
+      const pct=(a-b)/b*100; const dir = a>b?'up':a<b?'down':'flat';
+      let good = m.better==='high'? a>=b : m.better==='low'? a<=b : null;
+      const cls = good===null?'flat':(good?'up':'down');
+      const arrow = dir==='up'?'↑':dir==='down'?'↓':'→';
+      deltaHtml=`<div class="delta ${cls}">${arrow} ${Math.abs(pct).toFixed(0)}% <span style="color:var(--muted);font-weight:500">vs ${y-1}</span></div>`;
+    }
+    card.innerHTML=`
+      <div class="yr"><span class="dot" style="background:${YEAR_COLOR(y)}"></span>${y}</div>
+      <div class="val">${fmt(shownVal, m.dec)}<small>${m.unit||(perDay?'/day':'')}${perDay&&m.unit?'/day':''}</small></div>
+      <div class="meta">${s.days} days${perDay?` · ${fmtCompact(s.total)} total`:''}</div>
+      ${deltaHtml}`;
+    wrap.appendChild(card);
+  }
+}
+
+/* ---- overlay line chart ---- */
+function renderChart(){
+  const m=M(state.metric); const host=$('#chart'); host.innerHTML='';
+  $('#chartTitle').textContent = m.label+' — year over year';
+  const cum = state.mode==='cum' && m.agg==='sum';
+  $('#chartHint').textContent = cum
+    ? `Cumulative running total through the year — see how each year pulls ahead or falls behind.`
+    : (m.agg==='sum'
+        ? `${state.gran==='week'?'Weekly':'Monthly'} total, one line per year, aligned by calendar position.`
+        : `${state.gran==='week'?'Weekly':'Monthly'} average, one line per year.`);
+
+  const shown=[...state.years].filter(y=>DATE_KEYS.some(d=>+d.slice(0,4)===y && state.metric in DAYS[d])).sort((a,b)=>a-b);
+  if(!shown.length){ host.innerHTML='<div class="empty">No data for the selected years.</div>'; return; }
+
+  const series=metricSeries(state.metric);
+  const nBuckets = state.gran==='week'?53:12;
+
+  // build per-year bucketed value array (1..nBuckets)
+  const lines=shown.map(y=>{
+    const pts=(series[y]||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+    const arr=new Array(nBuckets+1).fill(null);
+    if(cum){
+      // cumulative through each bucket (by day of year)
+      const byBucket={}; pts.forEach(p=>{ const idx=state.gran==='week'?Math.min(nBuckets,Math.floor((p.doy-1)/7)+1):parseDate(p.date).getMonth()+1; byBucket[idx]=(byBucket[idx]||0)+p.v; });
+      let run=0, any=false;
+      const lastBucket = y==+TODAY.slice(0,4) ? (state.gran==='week'?Math.floor((dayOfYear(parseDate(TODAY))-1)/7)+1:parseDate(TODAY).getMonth()+1) : nBuckets;
+      for(let i=1;i<=nBuckets;i++){ if(i in byBucket){run+=byBucket[i];any=true;} if(i<=lastBucket && any) arr[i]=run; }
+    } else {
+      const agg=m.agg; const buckets={};
+      pts.forEach(p=>{ const idx=state.gran==='week'?Math.min(nBuckets,Math.floor((p.doy-1)/7)+1):parseDate(p.date).getMonth()+1; const b=buckets[idx]||(buckets[idx]={s:0,c:0}); b.s+=p.v; b.c++; });
+      for(const idx in buckets){ const b=buckets[idx]; arr[idx]= agg==='sum'? b.s : b.s/b.c; }
+    }
+    return {y, arr, color:YEAR_COLOR(y)};
+  });
+
+  // scales
+  let maxV=0, minV=Infinity;
+  lines.forEach(l=>l.arr.forEach(v=>{ if(v!=null){ if(v>maxV)maxV=v; if(v<minV)minV=v; }}));
+  if(minV===Infinity) minV=0;
+  const startAtZero = m.agg==='sum' || cum;
+  let yLo = startAtZero?0:Math.max(0, minV - (maxV-minV)*0.15);
+  let yHi = maxV*1.06 || 1;
+
+  const W=Math.max(560, host.clientWidth||900), H=340;
+  const pad={l:52,r:52,t:14,b:34};
+  const iw=W-pad.l-pad.r, ih=H-pad.t-pad.b;
+  const xOf=i=> pad.l + (nBuckets>1?(i-1)/(nBuckets-1):0)*iw;
+  const yOf=v=> pad.t + (1-(v-yLo)/(yHi-yLo))*ih;
+
+  const NS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(NS,'svg'); svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.setAttribute('width','100%'); svg.setAttribute('height',H);
+  const add=(p,t,a)=>{const e=document.createElementNS(NS,t); for(const k in a)e.setAttribute(k,a[k]); p.appendChild(e); return e;};
+
+  // y gridlines + ticks
+  const ticks=niceTicks(yLo,yHi,5);
+  ticks.forEach(tv=>{
+    add(svg,'line',{class:'gridline',x1:pad.l,x2:W-pad.r,y1:yOf(tv),y2:yOf(tv)});
+    const tx=add(svg,'text',{x:pad.l-8,y:yOf(tv)+3,'text-anchor':'end',class:''}); tx.setAttribute('class','tick'); tx.textContent=fmtCompact(tv);
+    tx.setAttribute('fill','var(--muted)'); tx.style.fontSize='11px';
+  });
+
+  // x ticks (month labels)
+  const xticks = state.gran==='week'
+    ? MONTHS.map((mo,i)=>({label:mo, i:Math.round(i*(53/12))+1}))
+    : MONTHS.map((mo,i)=>({label:mo, i:i+1}));
+  xticks.forEach(t=>{ const tx=add(svg,'text',{x:xOf(t.i),y:H-pad.b+18,'text-anchor':'middle'}); tx.setAttribute('class','tick'); tx.setAttribute('fill','var(--muted)'); tx.style.fontSize='11px'; tx.textContent=t.label; });
+
+  // lines + collect endpoints
+  const endLabels=[];
+  for(const l of lines){
+    let dstr='', started=false;
+    for(let i=1;i<=nBuckets;i++){ const v=l.arr[i]; if(v==null){continue;} const X=xOf(i),Y=yOf(v); dstr+=(started?'L':'M')+X.toFixed(1)+' '+Y.toFixed(1)+' '; started=true; }
+    if(dstr) add(svg,'path',{d:dstr,fill:'none',stroke:l.color,'stroke-width':2,'stroke-linejoin':'round','stroke-linecap':'round',opacity: l.y==+TODAY.slice(0,4)?1:0.92});
+    let lastI=-1; for(let i=nBuckets;i>=1;i--){ if(l.arr[i]!=null){lastI=i;break;} }
+    if(lastI>0){ const X=xOf(lastI),Y=yOf(l.arr[lastI]);
+      add(svg,'circle',{cx:X,cy:Y,r:4,fill:l.color,stroke:'var(--surface-1)','stroke-width':2});
+      endLabels.push({X,Y,y:l.y,color:l.color});
+    }
+  }
+  // place end labels with vertical collision avoidance (nudge apart, keep on-canvas)
+  endLabels.sort((a,b)=>a.Y-b.Y);
+  const minGap=13, botLimit=H-pad.b-2;
+  for(let i=1;i<endLabels.length;i++){ if(endLabels[i].Y-endLabels[i-1].Y<minGap) endLabels[i].Y=endLabels[i-1].Y+minGap; }
+  const overflow=endLabels.length?Math.max(0,endLabels[endLabels.length-1].Y-botLimit):0;
+  for(const e of endLabels){
+    const ly=e.Y-overflow; const rightEdge=e.X>W-pad.r-30; const lx=rightEdge?e.X-8:e.X+8; const anc=rightEdge?'end':'start';
+    if(Math.abs(ly-e.Y)>2) add(svg,'line',{x1:e.X,y1:e.Y,x2:lx+(rightEdge?-2:2),y2:ly-3,stroke:e.color,'stroke-width':1,opacity:.5});
+    const tl=add(svg,'text',{x:lx,y:ly,'text-anchor':anc}); tl.textContent=e.y; tl.setAttribute('fill','var(--text-secondary)'); tl.style.fontSize='11.5px'; tl.style.fontWeight='600'; tl.setAttribute('font-variant-numeric','tabular-nums');
+  }
+
+  // crosshair + hover
+  const cross=add(svg,'line',{class:'zeroline',x1:0,x2:0,y1:pad.t,y2:H-pad.b,opacity:0,'stroke-dasharray':'3 3'});
+  const hitDots=[];
+  const overlay=add(svg,'rect',{x:pad.l,y:pad.t,width:iw,height:ih,fill:'transparent'});
+  function onMove(ev){
+    const rect=svg.getBoundingClientRect(); const px=(ev.clientX-rect.left)/rect.width*W;
+    let bi=Math.round(1+(px-pad.l)/iw*(nBuckets-1)); bi=Math.max(1,Math.min(nBuckets,bi));
+    cross.setAttribute('x1',xOf(bi)); cross.setAttribute('x2',xOf(bi)); cross.setAttribute('opacity',0.5);
+    hitDots.forEach(d=>d.remove()); hitDots.length=0;
+    const rows=lines.map(l=>({y:l.y,v:l.arr[bi],color:l.color})).filter(r=>r.v!=null).sort((a,b)=>b.v-a.v);
+    rows.forEach(r=>{ const c=add(svg,'circle',{cx:xOf(bi),cy:yOf(r.v),r:4.5,fill:r.color,stroke:'var(--surface-1)','stroke-width':2}); hitDots.push(c); });
+    const per = state.gran==='week'?`Week ${bi}`:MONTHS[bi-1];
+    const unit=m.unit?` ${m.unit}`:'';
+    let html=`<div class="tt-title">${per}${cum?' · cumulative':''}</div>`;
+    if(!rows.length) html+=`<div class="tt-row"><span class="nm">no data</span></div>`;
+    rows.forEach(r=>{ html+=`<div class="tt-row"><span class="k" style="background:${r.color}"></span><span class="nm">${r.y}</span><span class="v">${fmt(r.v,m.dec)}${unit}</span></div>`; });
+    showTip(html, ev.clientX, ev.clientY);
+  }
+  overlay.addEventListener('pointermove',onMove);
+  overlay.addEventListener('pointerleave',()=>{cross.setAttribute('opacity',0); hitDots.forEach(d=>d.remove()); hitDots.length=0; hideTip();});
+
+  host.appendChild(svg);
+}
+function niceTicks(lo,hi,n){
+  const span=hi-lo||1; const step0=span/n; const mag=Math.pow(10,Math.floor(Math.log10(step0)));
+  const norm=step0/mag; let step; if(norm<1.5)step=1;else if(norm<3)step=2;else if(norm<7)step=5;else step=10; step*=mag;
+  const out=[]; for(let v=Math.ceil(lo/step)*step; v<=hi+1e-9; v+=step) out.push(v);
+  return out;
+}
+
+/* ---- records / personal bests ---- */
+function buildDailyArray(key){
+  // contiguous calendar array from firstDay..lastDay with nulls for gaps
+  const first=parseDate(DATE_KEYS[0]), last=parseDate(DATE_KEYS[DATE_KEYS.length-1]);
+  const n=Math.round((Date.UTC(last.getFullYear(),last.getMonth(),last.getDate())-Date.UTC(first.getFullYear(),first.getMonth(),first.getDate()))/86400000)+1;
+  const arr=new Array(n).fill(null); const dates=new Array(n);
+  for(let i=0;i<n;i++){ const dt=new Date(first.getFullYear(),first.getMonth(),first.getDate()+i); const iso=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); dates[i]=iso; const r=DAYS[iso]; if(r&&key in r) arr[i]=r[key]; }
+  return {arr,dates,first};
+}
+function bestWindow(arr,dates,win,agg,better,minCov){
+  let best=null;
+  for(let i=0;i+win<=arr.length;i++){
+    let sum=0,cnt=0; for(let j=i;j<i+win;j++){ if(arr[j]!=null){sum+=arr[j];cnt++;} }
+    if(cnt<minCov) continue;
+    const score = agg==='sum'? sum : sum/cnt;
+    if(best===null || (better==='low'? score<best.score : score>best.score)) best={score,sum,cnt,start:dates[i],end:dates[i+win-1]};
+  }
+  return best;
+}
+function calBest(key, unit){ // best calendar week & month
+  const m=M(key); const groups={week:{},month:{}};
+  for(const d of DATE_KEYS){ const r=DAYS[d]; if(!(key in r))continue; const dt=parseDate(d);
+    const wk=dt.getFullYear()+'-W'+String(Math.floor((dayOfYear(dt)-1)/7)+1).padStart(2,'0');
+    const mo=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+    for(const [g,kk] of [['week',wk],['month',mo]]){ const b=groups[g][kk]||(groups[g][kk]={s:0,c:0,label:kk}); b.s+=r[key]; b.c++; }
+  }
+  // avg metrics need a coverage floor so a 1-day week/month can't win; relax if none qualify
+  const minc={week:4, month:15};
+  const pick=(g,floor)=>{ let best=null; for(const kk in groups[g]){ const b=groups[g][kk]; if(m.agg!=='sum' && b.c<floor) continue; const score=m.agg==='sum'?b.s:b.s/b.c; if(best===null||(m.better==='low'?score<best.score:score>best.score)) best={score,...b,key:kk}; } return best; };
+  return {week:pick('week',minc.week)||pick('week',0), month:pick('month',minc.month)||pick('month',0)};
+}
+function renderRecords(){
+  const m=M(state.metric); const wrap=$('#records'); wrap.innerHTML='';
+  const {arr,dates}=buildDailyArray(state.metric);
+  const present=arr.map((v,i)=>({v,d:dates[i]})).filter(x=>x.v!=null);
+  if(!present.length){ wrap.innerHTML='<div class="empty">No data for this metric.</div>'; return; }
+  const isSum=m.agg==='sum';
+  const neutral=(m.better==null);
+  const dir=m.better==='low'?'low':'high';
+  const W=neutral?'Highest':'Best';          // headline word ("Best" implies a good direction)
+  const unit=m.unit?m.unit:'';
+  $('#recTitle').textContent = (neutral?'Extremes — ':'Records — ')+m.label;
+  const bestDay = present.reduce((a,b)=> (dir==='low'? b.v<a.v : b.v>a.v)?b:a );
+  const w7=bestWindow(arr,dates,7,m.agg,m.better,isSum?4:6);
+  const w30=bestWindow(arr,dates,30,m.agg,m.better,isSum?18:26);
+  const cal=calBest(state.metric);
+  const cards=[];
+  const bdActs=dayActivities(bestDay.d).map(a=>`${actName(a.type)}${a.count>1?' ×'+a.count:''}`).join(', ');
+  cards.push({l:`${W} day`, v:bestDay.v, dec:m.dec, unit, d:niceDate(bestDay.d), sub:bdActs});
+  if(w7) cards.push({l: isSum?`${W} 7 days (total)`:`${W} 7-day avg`, v:isSum?w7.sum:w7.score, dec:m.dec, unit, d:`${niceDateShort(w7.start)} – ${niceDate(w7.end)}`, sub:`${w7.cnt}/7 days${isSum?` · ${fmt(w7.sum/w7.cnt,m.dec)}${unit}/day`:''}`});
+  if(w30) cards.push({l: isSum?`${W} 30 days (total)`:`${W} 30-day avg`, v:isSum?w30.sum:w30.score, dec:m.dec, unit, d:`${niceDateShort(w30.start)} – ${niceDate(w30.end)}`, sub:`${w30.cnt}/30 days${isSum?` · ${fmt(w30.sum/w30.cnt,m.dec)}${unit}/day`:''}`});
+  if(cal.week){ const wl=cal.week.key.replace('-W',' · wk '); cards.push({l: isSum?`${W} week (total)`:`${W} week avg`, v:isSum?cal.week.s:cal.week.score, dec:m.dec, unit, d:wl.split(' · ')[0]+' '+wl.split(' · ')[1], sub:`${cal.week.c} days`}); }
+  if(cal.month){ const [yy,mm]=cal.month.key.split('-'); cards.push({l: isSum?`${W} month (total)`:`${W} month avg`, v:isSum?cal.month.s:cal.month.score, dec:m.dec, unit, d:`${MONTHS[+mm-1]} ${yy}`, sub:`${cal.month.c} days`}); }
+
+  for(const c of cards){
+    const el=document.createElement('div'); el.className='rec';
+    el.innerHTML=`<div class="rl">${c.l}</div><div class="rv">${fmt(c.v,c.dec)}<small>${c.unit}</small></div><div class="rd">${c.d}</div>${c.sub?`<div class="rsub">${c.sub}</div>`:''}`;
+    wrap.appendChild(el);
+  }
+}
+
+/* that day's other totals — "the metrics in the day too" */
+const COMPANION_ORDER=['totalEnergy','steps','distance','exerciseMin','flights','standHours'];
+const CLABEL={steps:'steps', totalEnergy:'Cal', activeEnergy:'act Cal', distance:'mi', exerciseMin:'min', flights:'fl', standHours:'h stand'};
+function dayCompanions(iso, exclude){
+  const r=DAYS[iso]; if(!r) return '';
+  const parts=[];
+  for(const key of COMPANION_ORDER){
+    if(key===exclude || !(key in r)) continue;
+    const mm=M(key);
+    parts.push(`<span class="cstat"><b>${fmt(r[key],mm.dec)}</b> ${CLABEL[key]}</span>`);
+  }
+  return parts.join('<span class="cdot">·</span>');
+}
+
+/* ---- workouts logged per day ---- */
+const ACT_EMOJI={Tennis:'🎾',Walking:'🚶',Running:'🏃',Snowboarding:'🏂',Hiking:'🥾',Cycling:'🚴',HighIntensityIntervalTraining:'⚡',FunctionalStrengthTraining:'🏋️',Swimming:'🏊',CoreTraining:'💪',Yoga:'🧘',Elliptical:'🎽',TraditionalStrengthTraining:'🏋️'};
+const ACT_NAME={HighIntensityIntervalTraining:'HIIT',FunctionalStrengthTraining:'Strength',TraditionalStrengthTraining:'Strength',Snowboarding:'Snowboard'};
+const WK_BY_DAY={};
+for(const w of WORKOUTS){ (WK_BY_DAY[w.date]||(WK_BY_DAY[w.date]=[])).push(w); }
+function dayActivities(iso){
+  const ws=WK_BY_DAY[iso]; if(!ws||!ws.length) return [];
+  const g={};
+  for(const w of ws){ const a=g[w.type]||(g[w.type]={type:w.type,count:0,min:0,cal:0}); a.count++; a.min+=w.durationMin||0; a.cal+=w.energyCal||0; }
+  return Object.values(g).sort((a,b)=>b.min-a.min);
+}
+function actDur(min){ return min>=60 ? (min/60).toFixed(1)+'h' : Math.round(min)+'m'; }
+function actName(t){ return ACT_NAME[t]||t; }
+function actPillsHTML(iso){
+  return dayActivities(iso).map(a=>`<span class="act">${ACT_EMOJI[a.type]||'•'} ${actName(a.type)}${a.count>1?` ×${a.count}`:''} · ${actDur(a.min)}</span>`).join('');
+}
+
+/* ---- leaderboard: top 10 days ---- */
+function renderLeaderboard(){
+  const m=M(state.metric); const neutral=(m.better==null); const dir=m.better==='low'?'low':'high';
+  $('#lbTitle').textContent = `Top 10 days — ${m.label}`;
+  const base = neutral ? 'Highest single-day values (no defined “best” for this metric).'
+    : (dir==='low' ? 'Lowest single-day values (lower is better).' : 'Highest single-day values.');
+  $('#lbHint').textContent = base + ' Each row also shows that day’s other totals.';
+  const rows=DATE_KEYS.filter(d=>state.metric in DAYS[d]).map(d=>({d, v:DAYS[d][state.metric]}));
+  rows.sort((a,b)=> dir==='low'? a.v-b.v : b.v-a.v);
+  const top=rows.slice(0,10);
+  const host=$('#leaderboard'); host.innerHTML='';
+  if(!top.length){ host.innerHTML='<div class="empty">No data.</div>'; return; }
+  const maxV=Math.max(...top.map(r=>r.v));
+  const scaleLo = dir==='low'? Math.min(...rows.map(r=>r.v))*0.98 : 0;
+  const barMax = dir==='low'? maxV*1.02 : maxV;
+  top.forEach((r,i)=>{
+    const y=+r.d.slice(0,4); const col=YEAR_COLOR(y);
+    const frac = dir==='low' ? (barMax-r.v)/(barMax-scaleLo) : r.v/barMax;
+    const comp=dayCompanions(r.d, state.metric);
+    const acts=actPillsHTML(r.d);
+    const row=document.createElement('div'); row.className='lb-row'+(i===0?' top':'');
+    row.innerHTML=`<div class="lb-rank">${i+1}</div><div class="lb-date">${niceDate(r.d)}</div>`+
+      `<div><div class="lb-bar" style="width:${Math.max(2,frac*100).toFixed(1)}%;background:${col}"></div></div>`+
+      `<div class="lb-val">${fmt(r.v,m.dec)}${m.unit?` <span style="color:var(--muted);font-weight:500">${m.unit}</span>`:''}</div>`+
+      (comp?`<div class="lb-companions">${comp}</div>`:'')+
+      (acts?`<div class="lb-acts">${acts}</div>`:'');
+    host.appendChild(row);
+  });
+}
+
+/* ---- all-metrics records board ---- */
+const BOARD_METRICS=['steps','totalEnergy','activeEnergy','distance','exerciseMin','flights','standHours','restingHR','walkingHR','hrv','vo2','spo2','sleepHours'];
+function lifetimeStat(key){
+  const m=M(key); let s=0,c=0;
+  for(const d of DATE_KEYS){ const r=DAYS[d]; if(!(key in r))continue; s+=r[key]; c++; }
+  if(!c) return null;
+  return m.agg==='sum' ? {v:s, kind:'total'} : {v:s/c, kind:'avg'};
+}
+function metricRecords(key){
+  const m=M(key); const {arr,dates}=buildDailyArray(key);
+  const present=[]; for(let i=0;i<arr.length;i++) if(arr[i]!=null) present.push({v:arr[i],d:dates[i]});
+  if(!present.length) return null;
+  const isSum=m.agg==='sum'; const dir=m.better==='low'?'low':'high';
+  const bestDay=present.reduce((a,b)=>(dir==='low'?b.v<a.v:b.v>a.v)?b:a);
+  const w7=bestWindow(arr,dates,7,m.agg,m.better,isSum?4:6);
+  const w30=bestWindow(arr,dates,30,m.agg,m.better,isSum?18:26);
+  const cal=calBest(key);
+  return {m,isSum,bestDay,w7,w30,month:cal.month,life:lifetimeStat(key)};
+}
+function rangeStr(a,b){
+  const da=parseDate(a), db=parseDate(b);
+  if(da.getFullYear()===db.getFullYear()){
+    if(da.getMonth()===db.getMonth()) return `${MONTHS[da.getMonth()]} ${da.getDate()}–${db.getDate()}, ${db.getFullYear()}`;
+    return `${niceDateShort(a)} – ${niceDateShort(b)}, ${db.getFullYear()}`;
+  }
+  return `${niceDateShort(a)} ${da.getFullYear()} – ${niceDateShort(b)} ${db.getFullYear()}`;
+}
+function rbCell(val, dec, unit, sub){
+  if(val==null) return '<td><span style="color:var(--muted)">–</span></td>';
+  return `<td><div class="rbv">${fmt(val,dec)}${unit?`<small>${unit}</small>`:''}</div><div class="rbd">${sub||''}</div></td>`;
+}
+function renderRecordsBoard(){
+  const t=$('#recordsBoard');
+  let html='<thead><tr><th>Metric</th><th>Lifetime</th><th>Best day</th><th>Best 7 days</th><th>Best 30 days</th><th>Best month</th></tr></thead><tbody>';
+  for(const key of BOARD_METRICS){
+    const r=metricRecords(key); if(!r) continue; const m=r.m, u=m.unit;
+    let life='<td><span style="color:var(--muted)">–</span></td>';
+    if(r.life){ life = r.life.kind==='total'
+      ? `<td><div class="rbv">${fmtCompact(r.life.v)}${u?`<small>${u}</small>`:''}</div><div class="rbd">total ever</div></td>`
+      : `<td><div class="rbv">${fmt(r.life.v,m.dec)}${u?`<small>${u}</small>`:''}</div><div class="rbd">avg/day</div></td>`; }
+    const day=rbCell(r.bestDay.v,m.dec,u,niceDate(r.bestDay.d));
+    const w7=r.w7? rbCell(r.isSum?r.w7.sum:r.w7.score,m.dec,u,rangeStr(r.w7.start,r.w7.end)) : rbCell(null);
+    const w30=r.w30? rbCell(r.isSum?r.w30.sum:r.w30.score,m.dec,u,rangeStr(r.w30.start,r.w30.end)) : rbCell(null);
+    let mo=rbCell(null);
+    if(r.month){ const [yy,mm]=r.month.key.split('-'); mo=rbCell(r.isSum?r.month.s:r.month.score,m.dec,u,`${MONTHS[+mm-1]} ${yy}`); }
+    const tag = m.agg==='sum' ? '' : (m.better==='low'?' <span style="color:var(--muted);font-weight:400;font-size:10px">lowest wins</span>':' <span style="color:var(--muted);font-weight:400;font-size:10px">avg</span>');
+    html+=`<tr data-metric="${key}"${key===state.metric?' class="sel"':''}><td>${m.label}${u?` <span style="color:var(--muted);font-weight:400">(${u})</span>`:''}${tag}</td>${life}${day}${w7}${w30}${mo}</tr>`;
+  }
+  html+='</tbody>';
+  t.innerHTML=html;
+  t.querySelectorAll('tr[data-metric]').forEach(tr=>tr.onclick=()=>{
+    const k=tr.dataset.metric; const sel=$('#metric'); sel.value=k; state.metric=k; syncModeAvailability(); renderAll();
+    const anchor=document.querySelector('#recTitle'); if(anchor) anchor.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+}
+
+/* ---- calendar heatmaps ---- */
+function renderHeatmap(){
+  const m=M(state.metric); const host=$('#heatmap'); host.innerHTML='';
+  const shown=[...state.years].sort((a,b)=>b-a);
+  // global scale: p95 across all present days (all years, not just shown, for stable scale)
+  const allv=DATE_KEYS.filter(d=>state.metric in DAYS[d]).map(d=>DAYS[d][state.metric]).sort((a,b)=>a-b);
+  if(!allv.length){ host.innerHTML='<div class="empty">No data.</div>'; return; }
+  const lo=allv[0], p95=allv[Math.floor(allv.length*0.95)]||allv[allv.length-1], hi=allv[allv.length-1];
+  const invert = m.better==='low';
+  const qcol=['var(--q1)','var(--q2)','var(--q3)','var(--q4)','var(--q5)'];
+  function colorFor(v){
+    if(v==null) return 'var(--q0)';
+    let t=(v-lo)/((p95-lo)||1); if(invert) t=1-t; t=Math.max(0,Math.min(1,t));
+    const idx=Math.min(4,Math.floor(t*5)); return qcol[idx];
+  }
+  $('#hmScale').textContent = `(${fmtCompact(lo)}–${fmtCompact(p95)}${m.unit?' '+m.unit:''})`;
+  const dirEl=$('#hmDir'); if(dirEl) dirEl.textContent = invert ? 'darker = lower (better for this metric)' : 'darker means more';
+  const NS='http://www.w3.org/2000/svg';
+  const cs=13, gap=3, cell=cs; // cell size
+  for(const y of shown){
+    const jan1=new Date(y,0,1); const jan1wd=jan1.getDay();
+    const nDays=isLeap(y)?366:365;
+    const cols=Math.ceil((nDays+jan1wd)/7);
+    const wpx=cols*(cs+gap), hpx=7*(cs+gap)+16;
+    const row=document.createElement('div'); row.className='hm-year';
+    const lab=document.createElement('div'); lab.className='hm-label'; lab.textContent=y; row.appendChild(lab);
+    const svg=document.createElementNS(NS,'svg'); svg.setAttribute('width',wpx+10); svg.setAttribute('height',hpx); svg.setAttribute('viewBox',`0 0 ${wpx+10} ${hpx}`); svg.style.maxWidth='none';
+    // month labels
+    let lastMo=-1;
+    for(let doy=1;doy<=nDays;doy++){ const dt=new Date(y,0,doy); const iso=y+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); if(iso>TODAY) break; const col=Math.floor((doy-1+jan1wd)/7); if(dt.getMonth()!==lastMo && dt.getDate()<=7){ lastMo=dt.getMonth(); const t=document.createElementNS(NS,'text'); t.setAttribute('x',col*(cs+gap)); t.setAttribute('y',10); t.setAttribute('fill','var(--muted)'); t.style.fontSize='9.5px'; t.textContent=MONTHS[dt.getMonth()]; svg.appendChild(t);} }
+    for(let doy=1;doy<=nDays;doy++){
+      const dt=new Date(y,0,doy); const iso=y+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+      if(iso>TODAY) break;
+      const col=Math.floor((doy-1+jan1wd)/7); const rw=dt.getDay();
+      const r=DAYS[iso]; const v=(r&&state.metric in r)?r[state.metric]:null;
+      const rect=document.createElementNS(NS,'rect'); rect.setAttribute('class','cell');
+      rect.setAttribute('x',col*(cs+gap)); rect.setAttribute('y',16+rw*(cs+gap)); rect.setAttribute('width',cs); rect.setAttribute('height',cs); rect.setAttribute('rx',2.5); rect.setAttribute('fill',colorFor(v));
+      rect.addEventListener('pointermove',ev=>{ const acts=dayActivities(iso).map(a=>`<div class="tt-row"><span class="nm">${ACT_EMOJI[a.type]||'•'} ${actName(a.type)}${a.count>1?` ×${a.count}`:''}</span><span class="v">${actDur(a.min)}</span></div>`).join(''); showTip(`<div class="tt-title">${niceDate(iso)}</div><div class="tt-row"><span class="nm">${m.label}</span><span class="v">${v==null?'no data':fmt(v,m.dec)+(m.unit?' '+m.unit:'')}</span></div>${acts}`, ev.clientX, ev.clientY); });
+      rect.addEventListener('pointerleave',hideTip);
+      svg.appendChild(rect);
+    }
+    row.appendChild(svg); host.appendChild(row);
+  }
+}
+
+/* ---- workouts ---- */
+function renderWorkouts(){
+  // sessions per year, with total hours + calories in the tooltip (uses recovered workout stats)
+  const agg={};
+  for(const w of WORKOUTS){ const y=+w.date.slice(0,4); const a=agg[y]||(agg[y]={n:0,min:0,cal:0}); a.n++; a.min+=w.durationMin||0; a.cal+=w.energyCal||0; }
+  const ys=Object.keys(agg).map(Number).sort((a,b)=>a-b);
+  drawBars('#wkYear', ys.map(y=>({label:''+y, value:agg[y].n, color:YEAR_COLOR(y),
+    tip:`${agg[y].n} sessions · ${(agg[y].min/60).toFixed(0)} h · ${fmtCompact(agg[y].cal)} Cal`})), 'sessions');
+
+  // tennis by month — CONTINUOUS axis so gaps (months with no tennis) stay visible
+  const host=$('#wkMonth'); host.innerHTML='';
+  const tByYM={}; for(const w of WORKOUTS){ if(w.type!=='Tennis')continue; const mo=w.date.slice(0,7); tByYM[mo]=(tByYM[mo]||0)+1; }
+  const tkeys=Object.keys(tByYM).sort();
+  if(!tkeys.length){ host.innerHTML='<div class="empty">No tennis workouts.</div>'; return; }
+  const [fy,fm]=tkeys[0].split('-').map(Number); const [ly,lm]=tkeys[tkeys.length-1].split('-').map(Number);
+  const cont=[]; let yy=fy, mm=fm;
+  while(yy<ly || (yy===ly && mm<=lm)){ const kk=yy+'-'+String(mm).padStart(2,'0'); cont.push({label:kk, value:tByYM[kk]||0, color:YEAR_COLOR(yy)}); mm++; if(mm>12){mm=1;yy++;} }
+  drawBars('#wkMonth', cont, 'sessions', true);
+  const yset=[...new Set(tkeys.map(k=>+k.slice(0,4)))].sort();
+  const leg=document.createElement('div'); leg.className='wk-legend';
+  yset.forEach(y=>{ const s=document.createElement('span'); s.className='wk-key'; s.innerHTML=`<span class="sw" style="background:${YEAR_COLOR(y)}"></span>`; s.appendChild(document.createTextNode(y)); leg.appendChild(s); });
+  host.appendChild(leg);
+}
+function drawBars(sel, data, unit, dense){
+  const host=$(sel); host.innerHTML=''; if(!data.length){host.innerHTML='<div class="empty">No workouts.</div>';return;}
+  const NS='http://www.w3.org/2000/svg'; const W=Math.max(300, host.clientWidth||400), H=200; const pad={l:34,r:10,t:10,b:dense?34:24};
+  const iw=W-pad.l-pad.r, ih=H-pad.t-pad.b; const maxV=Math.max(...data.map(d=>d.value))||1;
+  const bw=Math.min(dense?9:34, iw/data.length*0.7); const gap=iw/data.length;
+  const svg=document.createElementNS(NS,'svg'); svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.setAttribute('width','100%'); svg.setAttribute('height',H);
+  const add=(t,a,txt)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]); if(txt!=null)e.textContent=txt; svg.appendChild(e);return e;};
+  niceTicks(0,maxV,4).forEach(tv=>{ add('line',{x1:pad.l,x2:W-pad.r,y1:pad.t+(1-tv/maxV)*ih,y2:pad.t+(1-tv/maxV)*ih,stroke:'var(--grid)','stroke-width':1}); const t=add('text',{x:pad.l-6,y:pad.t+(1-tv/maxV)*ih+3,'text-anchor':'end',fill:'var(--muted)'},fmtCompact(tv)); t.style.fontSize='10px'; });
+  data.forEach((d,i)=>{ const x=pad.l+gap*i+gap/2-bw/2; const h=d.value/maxV*ih; const y=pad.t+ih-h;
+    const r=add('rect',{x,y,width:bw,height:Math.max(1,h),rx:3,fill:d.color});
+    const body = d.tip ? d.tip : `${d.value} ${unit}`;
+    r.addEventListener('pointermove',ev=>showTip(`<div class="tt-title">${d.label}</div><div class="tt-row"><span class="v" style="font-weight:650">${body}</span></div>`,ev.clientX,ev.clientY));
+    r.addEventListener('pointerleave',hideTip);
+    if(!dense||i%3===0){ const t=add('text',{x:pad.l+gap*i+gap/2,y:H-pad.b+14,'text-anchor':'middle',fill:'var(--muted)'}, dense? d.label.slice(2).replace('-',"’") : d.label); t.style.fontSize=dense?'8.5px':'10.5px'; }
+    if(!dense){ const t=add('text',{x:pad.l+gap*i+gap/2,y:y-5,'text-anchor':'middle',fill:'var(--text-secondary)'}, d.value); t.style.fontSize='11px'; t.style.fontWeight='600'; }
+  });
+  host.appendChild(svg);
+}
+
+/* ---- comparison table ---- */
+function renderTable(){
+  const t=$('#table'); const ys=YEARS.slice().sort((a,b)=>b-a);
+  let html='<thead><tr><th>Metric</th>'+ys.map(y=>`<th>${y}</th>`).join('')+'</tr></thead><tbody>';
+  for(const m of METRICS){
+    html+=`<tr><td>${m.label}${m.unit?` <span style="color:var(--muted)">(${m.unit})</span>`:''}${m.agg==='sum'?' <span style="color:var(--muted);font-size:10px">·/day</span>':''}</td>`;
+    for(const y of ys){ const s=yearStat(m.key,y); html+= `<td>${s?fmt(s.avg,m.dec):'–'}</td>`; }
+    html+='</tr>';
+  }
+  html+='</tbody>';
+  t.innerHTML=html;
+}
+function downloadCSV(){
+  const ys=YEARS.slice().sort((a,b)=>a-b);
+  let rows=[['metric','unit','aggregation',...ys.flatMap(y=>[`${y}_perDayAvg`,`${y}_total`,`${y}_daysWithData`])]];
+  for(const m of METRICS){ const r=[m.label,m.unit,m.agg]; for(const y of ys){ const s=yearStat(m.key,y); r.push(s?round(s.avg,3):'', s&&m.agg==='sum'?round(s.total,2):'', s?s.days:''); } rows.push(r); }
+  const csv=rows.map(r=>r.map(c=>typeof c==='string'&&c.includes(',')?`"${c}"`:c).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='health_by_year.csv'; a.click();
+}
+function round(v,d){ const f=Math.pow(10,d); return Math.round(v*f)/f; }
+
+/* ============================ boot ============================ */
+function renderAll(){ renderBenchmark(); renderAnnualRecap(); renderRecordsBoard(); renderYearBests(); renderLeaderboard(); renderHeatmap(); renderWorkouts(); renderTable(); }
+
+function boot(){
+  $('#rangeTag').textContent = `${niceDate(RAW.meta.firstDay)} → ${niceDate(RAW.meta.lastDay)}`;
+  $('#subline').innerHTML = `A year-over-year look at my Apple Health activity — steps, calories, workouts &amp; records. Built from <b>${RAW.meta.recordsParsed.toLocaleString()}</b> records across <b>${RAW.meta.dayCount.toLocaleString()}</b> days &amp; <b>${RAW.meta.workoutCount}</b> workouts. Can I get back to my peak?`;
+  $('#methodNote').innerHTML = `<b>Method:</b> <b>Total energy</b> = active + resting (basal) calories — the "whole day" number (~5k on a big day). <b>Active energy</b> is just the Move ring (~3.4k max). Steps, distance &amp; flights use per-day max(Apple&nbsp;Watch, iPhone) to avoid double-counting the same activity from two devices. Active energy, exercise minutes &amp; stand hours come from Apple's own daily Activity summary; resting energy is summed from the Watch. Heart-rate metrics are daily averages from the Watch. "Time in bed" is sparse (mostly in-bed segments, little staged sleep) — treat it as a rough signal. For <i>sum</i> metrics the table shows the per-day average over days with data; totals are in the CSV.`;
+  $('#foot').innerHTML = `Built from an Apple Health <code>export.xml</code> — a single static page. · ${RAW.meta.recordsParsed.toLocaleString()} records · Built by <a href="https://azoni.ai" target="_blank" rel="noopener">azoni.ai</a> · one of <a href="https://launchpad-console.netlify.app" target="_blank" rel="noopener">azoni's launchpad</a> apps`;
+  $('#csvBtn').onclick=e=>{e.preventDefault(); downloadCSV();};
+  buildControls();
+  syncModeAvailability();
+  renderAll();
+  window.addEventListener('resize', ()=>{ clearTimeout(window.__rz); window.__rz=setTimeout(()=>{renderHeatmap();renderWorkouts();},150); });
+}
+boot();
+</script>
+</body>
+</html>

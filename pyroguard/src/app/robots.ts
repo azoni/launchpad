@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
-      { userAgent: "*", allow: "/", disallow: ["/api/"] },
+      { userAgent: "*", allow: "/", disallow: ["/api/", "/admin", "/tech"] },
       // AI search/inference bots — ALLOW (these send traffic)
       { userAgent: "Claude-SearchBot", allow: "/" },
       { userAgent: "Claude-User", allow: "/" },

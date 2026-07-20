@@ -1,0 +1,11 @@
+# Health Recap
+
+> A year-over-year recap of a personal Apple Health export — steps, calories, workouts, and personal records, compared across years to see how activity has changed over time. A single static page, no login.
+
+## Pages
+- [Health Recap](https://health-recap-azoni.netlify.app/): The full dashboard — benchmark banner (most active year vs now vs lifetime), per-year annual recap panels, all-time records (best day / rolling 7-day / rolling 30-day / month for every metric), best-by-year breakdowns, top-10 days with the activities behind them, calendar heatmaps, workout breakdowns, and a full comparison table with CSV export.
+
+## Notes
+- Metrics: steps, active energy (Move ring), total energy (active + resting), exercise minutes, distance, flights, stand hours, resting/walking heart rate, HRV, VO2 max, blood oxygen, respiratory rate, time in bed.
+- Methodology: iPhone/Watch step data de-duplicated by per-day max; energy rings from Apple's ActivitySummary; DST-safe date handling; sleep intervals merged by union.
+- One of azoni's launchpad apps: https://launchpad-console.netlify.app

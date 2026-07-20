@@ -37,7 +37,7 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
   .tactical-label {
-    @apply uppercase text-[10px] tracking-widest2 text-faint;
+    @apply uppercase text-[11.5px] tracking-widest2 text-muted;
   }
   .grid-bg {
     background-image:
@@ -74,4 +74,15 @@
 ::-webkit-scrollbar-thumb {
   background: #ff4500;
   border-radius: 2px;
+}
+
+/* Respect reduced-motion — calm the pulsing/sliding for projectors & sensitive viewers */
+@media (prefers-reduced-motion: reduce) {
+  .animate-soft-pulse,
+  .animate-slide-in,
+  .animate-fade-up {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

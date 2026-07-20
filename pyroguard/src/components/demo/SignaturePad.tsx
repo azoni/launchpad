@@ -39,8 +39,16 @@ export function SignaturePad({ onSigned, disabled = false }: { onSigned: (signed
       const { x, y } = pos(e);
       ctx.beginPath();
       ctx.moveTo(x, y);
+      // A single tap counts as ink — lay down a dot so Confirm enables without a full stroke.
+      ctx.lineTo(x + 0.1, y + 0.1);
+      ctx.stroke();
+      if (!hasInk.current) {
+        hasInk.current = true;
+        setSigned(true);
+        onSigned(true);
+      }
     },
-    [disabled]
+    [disabled, onSigned]
   );
 
   const move = useCallback(
@@ -96,7 +104,7 @@ export function SignaturePad({ onSigned, disabled = false }: { onSigned: (signed
       </div>
       {!disabled && (
         <div className="mt-2 flex justify-end">
-          <button onClick={clear} className="text-faint hover:text-ink text-[10px] tracking-widest2 uppercase">
+          <button onClick={clear} className="text-faint hover:text-ink text-[12px] tracking-widest2 uppercase">
             ✕ Clear
           </button>
         </div>
