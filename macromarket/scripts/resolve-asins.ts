@@ -7,8 +7,11 @@
  *
  * Writes src/data/verified.json = { [slug]: { asin, image } }.
  * Run (creds in env):  npx tsx scripts/resolve-asins.ts
+ *   --only a,b,c   resolve just these slugs and MERGE into the existing
+ *                  verified.json (other entries untouched). Without --only,
+ *                  the whole eligible catalog is re-resolved from scratch.
  */
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { CATALOG } from "../src/data/catalog";
 import { searchItems } from "../src/lib/amazon/client";
 import type { ProteinForm } from "../src/lib/catalog/types";
@@ -52,9 +55,34 @@ function isForbidden(form: ProteinForm, title: string): boolean {
 }
 
 async function main() {
-  const items = CATALOG.filter((c) => c.asin); // branded packaged products only (whole foods stay search-link)
-  const out: Record<string, { asin: string; image: string }> = {};
+  // Branded, Amazon-purchasable products only — an item qualifies via a seed ASIN
+  // or by being a branded "amazon-est" item (new seeds often ship without an ASIN).
+  // Pure grocery whole foods (grocery-est/usda-ers, or no brand) stay search-link.
+  const eligible = CATALOG.filter(
+    (c) => c.asin || (c.brand && c.priceSource === "amazon-est"),
+  );
+
+  const onlyArg = process.argv.find((a) => a.startsWith("--only"));
+  const onlyIds = onlyArg
+    ? new Set(
+        (onlyArg.includes("=") ? onlyArg.split("=")[1] : process.argv[process.argv.indexOf(onlyArg) + 1] ?? "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      )
+    : null;
+  const items = onlyIds ? eligible.filter((c) => onlyIds.has(c.id)) : eligible;
+
+  const verifiedPath = new URL("../src/data/verified.json", import.meta.url);
+  const out: Record<string, { asin: string; image: string }> =
+    onlyIds && existsSync(verifiedPath)
+      ? (JSON.parse(readFileSync(verifiedPath, "utf8")) as Record<string, { asin: string; image: string }>)
+      : {};
+  // A re-resolved slug that fails to match must LOSE its stale entry (it was
+  // wrong or dead), not silently keep it.
+  if (onlyIds) for (const id of onlyIds) delete out[id];
   let matched = 0, missed = 0, done = 0;
+  if (onlyIds) console.log(`--only mode: resolving ${items.length} of ${eligible.length} eligible (merging into existing verified.json)`);
 
   for (const c of items) {
     const brand = c.brand ?? "";
@@ -99,10 +127,7 @@ async function main() {
     if (done % 25 === 0) console.log(`  …${done}/${items.length}  (matched ${matched})`);
   }
 
-  writeFileSync(
-    new URL("../src/data/verified.json", import.meta.url),
-    JSON.stringify(out, null, 2) + "\n",
-  );
+  writeFileSync(verifiedPath, JSON.stringify(out, null, 2) + "\n");
   console.log(`\nDONE. Matched ${matched}, missed ${missed} of ${items.length}. Wrote src/data/verified.json.`);
 }
 

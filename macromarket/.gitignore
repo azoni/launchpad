@@ -42,3 +42,7 @@ next-env.d.ts
 
 # netlify local link/state
 .netlify
+
+# transient script artifacts (audits, research outputs)
+scripts/*.json
+scripts/*.txt

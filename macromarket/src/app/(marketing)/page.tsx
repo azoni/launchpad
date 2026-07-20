@@ -4,6 +4,7 @@ import { ArrowRight, Calculator, MessageCircle, Tag } from "lucide-react";
 import { Leaderboard } from "@/components/Leaderboard";
 import { JsonLd } from "@/components/JsonLd";
 import { getAllItems } from "@/lib/catalog";
+import { getItemViews } from "@/lib/stats/views";
 import {
   itemListJsonLd,
   organizationJsonLd,
@@ -18,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const items = await getAllItems();
+  const [items, views] = await Promise.all([getAllItems(), getItemViews()]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -50,7 +51,7 @@ export default async function HomePage() {
 
       {/* Search + browse + leaderboard — the main discovery surface */}
       <section>
-        <Leaderboard items={items} />
+        <Leaderboard items={items} views={views} />
       </section>
 
       {/* Themed collections → AI coach */}

@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { PlaceholderImage } from "@/components/PlaceholderImage";
 import { Badge } from "@/components/ui/badge";
 import { JsonLd } from "@/components/JsonLd";
+import { ViewBeacon } from "@/components/ViewBeacon";
 import {
   allSlugs,
   getItemBySlug,
@@ -116,6 +117,7 @@ export default async function FoodPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
+      <ViewBeacon slug={item.id} />
       <JsonLd data={productJsonLd(item)} />
       <JsonLd
         data={breadcrumbJsonLd([

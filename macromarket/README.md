@@ -2,7 +2,10 @@
 
 Ranks foods, snacks, and supplements by **dollars per gram of protein** — the most
 protein for your money. Includes a protein-goal calculator, a deals tab, and a
-Claude-powered protein coach that recommends the cheapest picks.
+Claude-powered protein coach that recommends the cheapest picks. The home
+leaderboard defaults to **Most popular** (lifetime food-page views, tracked via
+`/api/view` into the single `aggregates/itemViews` doc — one write per view, one
+read per rebuild).
 
 Next.js (App Router) · TypeScript · Tailwind v4 · Firebase · Amazon Creators API ·
 Anthropic · deployed on Netlify → https://macromarket-app.netlify.app
@@ -50,6 +53,26 @@ npx tsx scripts/audit-asins.ts     # report OK / WRONG / NODATA for current ASIN
 `resolve-asins.ts` only accepts a search result whose title matches the product's
 brand + name, so a wrong-product ASIN can't get in — worst case an item is left on
 the search-link fallback.
+
+## Daily poster + automation (admin → Social)
+
+The Social tab is an Instagram composer: pick a deal, blog post, or custom
+message → a **branded card** (square/portrait/story PNG via `/api/social-card`,
+satori-rendered with the site's Fraunces/DM Sans palette) plus a caption are
+generated. Download the PNG, copy the caption, post manually, then "Mark as
+posted" (history in Firestore `socialPosts`).
+
+Two Netlify scheduled functions automate the content each morning (~6am PT):
+
+- `daily-blog` → `POST /api/admin/daily?task=blog` — AI blog draft (rotating
+  topic, grounded in catalog data) saved to the Content tab as a **draft**.
+- `daily-social` → `POST /api/admin/daily?task=social` — today's IG post
+  prepared (fresh blog post if ≤3 days old, else best live deal, else rotating
+  value pick; no repeats within 7 days) into `socialQueue`, surfaced in the
+  Social tab under "Prepared for you".
+
+Both are idempotent per day (`?force=1` regenerates). Captions/drafts use Haiku
+and are cost-logged to the portfolio feed.
 
 ## Usage dashboard
 

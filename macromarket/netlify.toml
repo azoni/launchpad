@@ -2,6 +2,11 @@
   command = "npm run build"
   publish = ".next"
 
+# Scheduled functions (daily blog draft + daily Instagram post) live here,
+# alongside the Next.js runtime functions the plugin generates.
+[functions]
+  directory = "netlify/functions"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 

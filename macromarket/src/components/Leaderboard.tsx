@@ -17,9 +17,10 @@ import { costSortKey } from "@/lib/catalog/metrics";
 import type { CatalogItem, CategorySlug, DietTag } from "@/lib/catalog/types";
 import { cn } from "@/lib/utils";
 
-type Sort = "cost" | "density" | "protein" | "price";
+type Sort = "popular" | "cost" | "density" | "protein" | "price";
 
 const SORTS: { value: Sort; label: string }[] = [
+  { value: "popular", label: "Most popular" },
   { value: "cost", label: "Best value (per 10g protein)" },
   { value: "density", label: "Most protein per calorie" },
   { value: "protein", label: "Most protein per serving" },
@@ -51,10 +52,17 @@ const DEFAULT: State = {
   sources: { amazon: true, whole: false },
   category: "all",
   diet: "all",
-  sort: "cost",
+  sort: "popular",
 };
 
-export function Leaderboard({ items }: { items: CatalogItem[] }) {
+export function Leaderboard({
+  items,
+  views = {},
+}: {
+  items: CatalogItem[];
+  /** lifetime food-page views by item id — powers the "Most popular" sort */
+  views?: Record<string, number>;
+}) {
   const [q, setQ] = useState("");
   const [s, setS] = useState<State>(DEFAULT);
   const [visible, setVisible] = useState(PAGE);
@@ -92,8 +100,17 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
       return true;
     });
 
+    const byValue = (a: CatalogItem, b: CatalogItem) =>
+      costSortKey(a.metrics.costPerGramProteinCents) -
+      costSortKey(b.metrics.costPerGramProteinCents);
+
     return list.sort((a, b) => {
       switch (s.sort) {
+        case "popular":
+          // most-viewed first; unviewed items fall back to the value ladder
+          return (
+            (views[b.id] ?? 0) - (views[a.id] ?? 0) || byValue(a, b)
+          );
         case "density":
           return b.metrics.proteinDensity - a.metrics.proteinDensity;
         case "protein":
@@ -103,13 +120,10 @@ export function Leaderboard({ items }: { items: CatalogItem[] }) {
             costSortKey(a.effectivePriceCents) - costSortKey(b.effectivePriceCents)
           );
         default:
-          return (
-            costSortKey(a.metrics.costPerGramProteinCents) -
-            costSortKey(b.metrics.costPerGramProteinCents)
-          );
+          return byValue(a, b);
       }
     });
-  }, [items, q, s, anySource]);
+  }, [items, q, s, anySource, views]);
 
   const shownCats = CATEGORIES.filter(
     (c) => !anySource || s.sources[categorySource(c.slug)],

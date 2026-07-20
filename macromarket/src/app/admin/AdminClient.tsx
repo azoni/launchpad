@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { SocialComposer } from "@/components/admin/SocialComposer";
 import type { Post } from "@/lib/blog";
 import { formatPer10g } from "@/lib/format";
 import { slugify } from "@/lib/slug";
@@ -78,7 +79,7 @@ function ago(iso: string | null): string {
 export function AdminClient() {
   const [key, setKey] = useState("");
   const [authed, setAuthed] = useState(false);
-  const [view, setView] = useState<"overview" | "content">("overview");
+  const [view, setView] = useState<"overview" | "content" | "social">("overview");
   const [posts, setPosts] = useState<Post[]>([]);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -213,7 +214,7 @@ export function AdminClient() {
     <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1 rounded-lg border border-line bg-white p-1">
-          {(["overview", "content"] as const).map((v) => (
+          {(["overview", "content", "social"] as const).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
@@ -424,6 +425,8 @@ export function AdminClient() {
             </div>
           )}
         </div>
+      ) : view === "social" ? (
+        <SocialComposer api={api} adminKey={key} />
       ) : (
         <div className="mt-5 flex flex-col gap-5">
           {/* AI draft generator */}
