@@ -1,0 +1,18 @@
+# Health Recap — static single-page app (no build step).
+# public/index.html is a self-contained page with data inlined; regenerate via build/build.sh.
+[build]
+  publish = "public"
+  command = "true"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
