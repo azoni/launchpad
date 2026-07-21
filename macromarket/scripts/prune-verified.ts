@@ -11,8 +11,14 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 
-// Confirmed-wrong matches from the 2026-07 resolve (checked against live titles):
+// Confirmed-wrong matches from the 2026-07 resolve (checked against live titles).
+// NOTE: items re-resolved in the verify round (body-fortress, special-k, wilde
+// chicken chips) were removed from this list — their pack was corrected and the
+// fresh ASIN passed the audit, so dropping them again would be wrong.
 const MANUAL_DROP = [
+  // orphaned verified.json entry — item removed as a duplicate of
+  // explore-cuisine-edamame-spaghetti-8oz
+  "explore-cuisine-organic-edamame-spaghetti-8-oz",
   "fage-total-0-greek-yogurt-32oz", // matched 16oz listing
   "jif-peanut-butter-creamy-40oz", // matched 4-lb can
   "krave-beef-jerky-chili-lime-9oz", // matched 2.7oz bag
@@ -36,7 +42,6 @@ const MANUAL_DROP = [
   "barebells-caramel-cashew-12pack", // matched 24-pack
   "fairlife-core-power-elite-12pack", // matched 3P "Worldwide Nutrition Bundle"
   "starkist-chunk-light-tuna-pouch-10pack", // matched 24-pack
-  "wilde-protein-chips-chicken-8pack", // matched Sea Salt & Vinegar variant
   "textured-vegetable-protein-2lb", // matched 10 oz bag
   "david-protein-bar-chocolate-chip-12pack", // matched 24-pack
   "core-power-elite-vanilla-12pack", // live ×2.6 — bundle/gouged listing
@@ -46,11 +51,9 @@ const MANUAL_DROP = [
   "genova-yellowfin-tuna-olive-oil-12can", // live ×0.53 — smaller pack listing
   "brunswick-kipper-snacks-18can", // pack count unverifiable from listing
   "premier-protein-chocolate-almond-cereal-9oz", // live ×1.97 — 2-pack listing
-  "special-k-protein-cereal-13oz", // live ×2.31 — multipack listing
   "once-again-sunflower-butter-16oz", // live ×2.43 — multipack listing
   "nutricost-whey-protein-concentrate-5lb", // live ×1.85 — gouged/bundle listing
   "vega-sport-premium-protein-4lb", // live ×1.72 — gouged listing
-  "body-fortress-super-advanced-whey", // live ×2.27 — 2-pack listing
   "gold-standard-whey-isolate-1-58lb", // live ×1.64 — larger-size listing
   "barilla-protein-plus-penne-8pack", // matched a single 14.5 oz box
   "explore-cuisine-red-lentil-penne-6pack", // live ×1.55 — pack mismatch
