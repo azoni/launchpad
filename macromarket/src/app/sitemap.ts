@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 import { getPublishedPosts } from "@/lib/blog";
 import { allSlugs } from "@/lib/catalog";
+import { allComparePairs, compareSlugFor } from "@/lib/catalog/autoCompares";
 import { CATEGORIES } from "@/lib/catalog/categories";
-import { COMPARE_PAIRS, compareSlug } from "@/lib/catalog/compares";
+import { COLLECTIONS } from "@/lib/catalog/collections";
 import { APP_URL } from "@/lib/utils";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -12,6 +13,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: url("/"), lastModified: now, changeFrequency: "daily", priority: 1 },
     { url: url("/deals"), lastModified: now, changeFrequency: "daily", priority: 0.9 },
+    { url: url("/price-index"), lastModified: now, changeFrequency: "weekly", priority: 0.9 },
+    { url: url("/best"), lastModified: now, changeFrequency: "weekly", priority: 0.8 },
+    { url: url("/compare"), lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: url("/calculator"), lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: url("/blog"), lastModified: now, changeFrequency: "weekly", priority: 0.7 },
     { url: url("/coach"), lastModified: now, changeFrequency: "monthly", priority: 0.6 },
@@ -21,6 +25,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: url("/privacy"), lastModified: now, changeFrequency: "yearly", priority: 0.2 },
     { url: url("/terms"), lastModified: now, changeFrequency: "yearly", priority: 0.2 },
   ];
+
+  const collections: MetadataRoute.Sitemap = COLLECTIONS.map((c) => ({
+    url: url(`/best/${c.slug}`),
+    lastModified: now,
+    changeFrequency: "weekly",
+    priority: 0.8,
+  }));
 
   const posts: MetadataRoute.Sitemap = (await getPublishedPosts()).map((p) => ({
     url: url(`/blog/${p.slug}`),
@@ -43,12 +54,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  const compares: MetadataRoute.Sitemap = COMPARE_PAIRS.map((pair) => ({
-    url: url(`/compare/${compareSlug(pair)}`),
+  const compares: MetadataRoute.Sitemap = allComparePairs().map((pair) => ({
+    url: url(`/compare/${compareSlugFor(pair)}`),
     lastModified: now,
     changeFrequency: "monthly",
     priority: 0.6,
   }));
 
-  return [...staticPages, ...posts, ...categories, ...foods, ...compares];
+  return [
+    ...staticPages,
+    ...collections,
+    ...posts,
+    ...categories,
+    ...foods,
+    ...compares,
+  ];
 }

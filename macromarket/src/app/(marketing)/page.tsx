@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Calculator, MessageCircle, Tag } from "lucide-react";
 import { Leaderboard } from "@/components/Leaderboard";
 import { JsonLd } from "@/components/JsonLd";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { getAllItems } from "@/lib/catalog";
 import { getItemViews } from "@/lib/stats/views";
 import {
@@ -79,6 +80,11 @@ export default async function HomePage() {
             …or ask your own
           </span>
         </div>
+      </section>
+
+      {/* Email capture — owned distribution channel */}
+      <section className="mt-8">
+        <NewsletterSignup source="home" />
       </section>
 
       {/* Methodology teaser (GEO intro) */}

@@ -40,6 +40,7 @@ const SIZES = {
   square: { width: 1080, height: 1080 },
   portrait: { width: 1080, height: 1350 },
   story: { width: 1080, height: 1920 },
+  pin: { width: 1000, height: 1500 }, // Pinterest 2:3
 } as const;
 type SizeKey = keyof typeof SIZES;
 

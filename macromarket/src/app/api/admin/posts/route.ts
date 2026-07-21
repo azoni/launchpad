@@ -2,6 +2,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getAllPosts } from "@/lib/blog";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
+import { submitToIndexNow } from "@/lib/indexnow";
 import { slugify } from "@/lib/slug";
 
 export const runtime = "nodejs";
@@ -65,6 +66,10 @@ export async function POST(req: Request) {
     await ref.set(data, { merge: true });
   } catch (e) {
     return json({ error: `save failed: ${(e as Error).message}` }, 500);
+  }
+  // Ping IndexNow the moment a post goes (or stays) public so it's recrawled fast.
+  if (status === "published") {
+    void submitToIndexNow([`/blog/${slug}`, "/blog", "/"]);
   }
   return json({ ok: true, slug });
 }

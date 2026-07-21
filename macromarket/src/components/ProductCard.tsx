@@ -6,7 +6,7 @@ import { formatPer10g, formatPrice } from "@/lib/format";
 import type { CatalogItem } from "@/lib/catalog/types";
 import { cn } from "@/lib/utils";
 
-type Source = "leaderboard" | "category" | "compare";
+type Source = "leaderboard" | "category" | "compare" | "collection";
 
 /** Photo-forward product card for the responsive discovery grid. */
 export function ProductCard({

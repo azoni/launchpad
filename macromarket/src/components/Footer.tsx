@@ -3,6 +3,9 @@ import Link from "next/link";
 const LINKS = [
   { href: "/", label: "Rankings" },
   { href: "/deals", label: "Deals" },
+  { href: "/best", label: "Best of" },
+  { href: "/compare", label: "Compare" },
+  { href: "/price-index", label: "Price Index" },
   { href: "/calculator", label: "Protein Calculator" },
   { href: "/coach", label: "AI Coach" },
   { href: "/blog", label: "Blog" },

@@ -5,10 +5,11 @@ import { SiteLogo } from "./SiteLogo";
 const NAV = [
   { href: "/", label: "Rankings" },
   { href: "/deals", label: "Deals" },
+  { href: "/best", label: "Best of" },
+  { href: "/price-index", label: "Price Index" },
   { href: "/calculator", label: "Calculator" },
   { href: "/coach", label: "AI Coach" },
   { href: "/blog", label: "Blog" },
-  { href: "/about", label: "How it works" },
 ];
 
 export function Navbar() {

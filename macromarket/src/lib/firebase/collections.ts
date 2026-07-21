@@ -8,6 +8,8 @@ export const COLLECTIONS = {
   savedGoals: "savedGoals",
   socialPosts: "socialPosts", // daily-poster history: what was posted where, when
   socialQueue: "socialQueue", // auto-prepared daily IG posts (doc id = YYYY-MM-DD)
+  subscribers: "subscribers", // email list (doc id = lowercased email)
+  digests: "digests", // generated weekly deals emails (doc id = YYYY-MM-DD)
 } as const;
 
 /**

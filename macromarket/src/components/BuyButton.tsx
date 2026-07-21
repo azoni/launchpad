@@ -9,6 +9,7 @@ type ClickSource =
   | "detail"
   | "category"
   | "compare"
+  | "collection"
   | "calculator"
   | "coach";
 

@@ -56,12 +56,13 @@ interface SocialData {
 }
 
 type Kind = "deal" | "blog" | "custom";
-type Size = "square" | "portrait" | "story";
+type Size = "square" | "portrait" | "story" | "pin";
 
 const SIZES: { value: Size; label: string; dims: string }[] = [
   { value: "square", label: "Square", dims: "1080×1080" },
   { value: "portrait", label: "Portrait", dims: "1080×1350" },
   { value: "story", label: "Story", dims: "1080×1920" },
+  { value: "pin", label: "Pinterest", dims: "1000×1500" },
 ];
 
 const CATEGORY_HASHTAGS: Record<string, string> = {

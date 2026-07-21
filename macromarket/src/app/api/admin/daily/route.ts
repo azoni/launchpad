@@ -16,7 +16,9 @@ import { CATEGORIES, CATEGORY_BY_SLUG } from "@/lib/catalog/categories";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { COLLECTIONS } from "@/lib/firebase/collections";
 import { formatPer10g, formatPrice } from "@/lib/format";
+import { submitToIndexNow } from "@/lib/indexnow";
 import { generateCaption } from "@/lib/social/captions";
+import { buildWeeklyDigest, sendDigest } from "@/lib/social/digest";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -95,6 +97,13 @@ async function runBlogTask(force: boolean) {
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   });
+  // Prices refresh daily, so nudge search engines to recrawl the value pages.
+  void submitToIndexNow([
+    "/",
+    "/deals",
+    "/price-index",
+    "/best/cheapest-protein-overall",
+  ]);
   return { task: "blog", ok: true, slug, topic };
 }
 
@@ -184,6 +193,51 @@ async function runSocialTask(force: boolean) {
   return { task: "social", ok: true, kind, refSlug };
 }
 
+async function runDigestTask(force: boolean) {
+  const db = getAdminDb();
+  if (!db) return { task: "digest", ok: false, error: "storage not configured" };
+
+  const date = today();
+  const ref = db.collection(COLLECTIONS.digests).doc(date);
+  if (!force && (await ref.get()).exists) {
+    return { task: "digest", ok: true, skipped: "already built today" };
+  }
+
+  const digest = await buildWeeklyDigest();
+
+  // Active subscribers (bounded read).
+  const subsSnap = await db
+    .collection(COLLECTIONS.subscribers)
+    .where("status", "==", "active")
+    .limit(5000)
+    .get();
+  const recipients = subsSnap.docs
+    .map((d) => String(d.data().email ?? ""))
+    .filter((e) => e.includes("@"));
+
+  const { sent, error } = await sendDigest(recipients, digest);
+
+  await ref.set({
+    subject: digest.subject,
+    html: digest.html,
+    text: digest.text,
+    recipientCount: recipients.length,
+    sent,
+    sendError: error ?? null,
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
+  return {
+    task: "digest",
+    ok: true,
+    subscribers: recipients.length,
+    sent,
+    // If Resend isn't configured the digest is stored for manual send.
+    stored: sent === 0,
+    note: error,
+  };
+}
+
 export async function POST(req: Request) {
   if (!authed(req)) return json({ error: "unauthorized" }, 401);
   const url = new URL(req.url);
@@ -193,7 +247,8 @@ export async function POST(req: Request) {
   try {
     if (task === "blog") return json(await runBlogTask(force));
     if (task === "social") return json(await runSocialTask(force));
-    return json({ error: "task must be 'blog' or 'social'" }, 400);
+    if (task === "digest") return json(await runDigestTask(force));
+    return json({ error: "task must be 'blog', 'social', or 'digest'" }, 400);
   } catch (e) {
     console.error(`daily ${task} error`, e);
     return json({ task, ok: false, error: (e as Error).message }, 502);

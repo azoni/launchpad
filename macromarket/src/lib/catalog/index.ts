@@ -170,6 +170,22 @@ export function seedBySlug(slug: string): CatalogSeedItem | undefined {
   return CATALOG.find((s) => s.id === slug);
 }
 
+/**
+ * Resolve items for a "best of" collection: apply the predicate, then sort by
+ * protein density for lean-food collections or by value ($/g) for the rest.
+ */
+export async function getCollectionItems(
+  filter: (i: CatalogItem) => boolean,
+  opts: { sort?: "value" | "density"; limit?: number } = {},
+): Promise<CatalogItem[]> {
+  const all = await getAllItems(); // already sorted cheapest $/g first
+  const filtered = all.filter(filter);
+  if (opts.sort === "density") {
+    filtered.sort((a, b) => b.metrics.proteinDensity - a.metrics.proteinDensity);
+  }
+  return opts.limit ? filtered.slice(0, opts.limit) : filtered;
+}
+
 /** Server-side catalog search used by the AI coach's `search_catalog` tool. */
 export async function searchCatalog(opts: {
   query?: string;
