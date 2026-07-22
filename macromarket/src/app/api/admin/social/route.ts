@@ -189,6 +189,26 @@ export async function POST(req: Request) {
           .doc(queueDate)
           .set({ status: "posted" }, { merge: true });
       }
+      // Cross-site content tracking: tell the azoni.ai hub this went out.
+      // This targets the portfolio's activity webhook — NOT the MCP cost
+      // logger (different Firebase project). Awaited with a short timeout so
+      // the lambda doesn't freeze the request mid-flight; never fails the save.
+      const hookSecret = process.env.AGENT_WEBHOOK_SECRET;
+      if (hookSecret) {
+        const network = String(b.network ?? "instagram");
+        await fetch("https://azoni.ai/.netlify/functions/log-agent-activity", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "content_posted",
+            source: "macromarket",
+            title: `Posted ${String(b.kind ?? "custom")} card to ${network}`,
+            metadata: { channel: "social", platform: network },
+            secret: hookSecret,
+          }),
+          signal: AbortSignal.timeout(4000),
+        }).catch(() => {});
+      }
     } catch (e) {
       return json({ error: `save failed: ${(e as Error).message}` }, 500);
     }
