@@ -59,7 +59,7 @@
   {
     "name": "PyroGuard",
     "slug": "pyroguard",
-    "description": "All-in-one operations platform for fire/life-safety inspection contractors — a SedonaOffice replacement in ground-up rebuild. Play 'A Day in the Field': one real NFPA 25 inspection riser-to-invoice, with offline photo capture in a dead zone.",
+    "description": "All-in-one operations platform for fire/life-safety inspection contractors \u2014 a SedonaOffice replacement in ground-up rebuild. Play 'A Day in the Field': one real NFPA 25 inspection riser-to-invoice, with offline photo capture in a dead zone.",
     "url": "https://pyroguard-demo.netlify.app",
     "tags": [
       "Next.js",
@@ -96,13 +96,25 @@
   {
     "name": "Health Recap",
     "slug": "health",
-    "description": "A year-over-year recap of a personal Apple Health export — steps, calories, workouts, and personal records compared across years. Benchmark banner (peak year vs now), per-year annual recaps, all-time records, best day/week/month breakdowns, and activity mix.",
+    "description": "A year-over-year recap of a personal Apple Health export \u2014 steps, calories, workouts, and personal records compared across years. Benchmark banner (peak year vs now), per-year annual recaps, all-time records, best day/week/month breakdowns, and activity mix.",
     "url": "https://health-recap-azoni.netlify.app",
     "tags": [
       "Static",
       "Data Viz",
       "Apple Health",
       "Personal"
+    ]
+  },
+  {
+    "name": "Varscout",
+    "slug": "varscout",
+    "description": "A funding-carry screener for Variational Omni. Ranks 540+ perpetual markets by carry net of the round-trip spread you'd actually pay at your size, using the venue's own tiered depth quotes, and collects its own funding history because the upstream endpoint publishes none.",
+    "url": "https://varscout.netlify.app",
+    "tags": [
+      "Next.js",
+      "Firebase",
+      "Trading",
+      "Data Viz"
     ]
   }
 ]

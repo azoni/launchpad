@@ -1,0 +1,28 @@
+# Varscout
+
+> A funding-carry screener for Variational Omni. It reads the venue's public market-statistics endpoint and ranks 540+ perpetual markets by funding carry net of the round-trip spread you would actually pay at your chosen position size, using Omni's own tiered depth quotes. Varscout identifies positions; it cannot place them, because Variational's trading API does not exist yet.
+
+## Pages
+
+- [Screener](https://varscout.netlify.app/): The live ranking. Shows one recommended position — direction, size, entry, cost, payback, risk — plus every other market that clears the filters. Position size is an interactive control because it changes the answer.
+- [Markets](https://varscout.netlify.app/markets): Directory of every perpetual listed on Variational Omni with live mark price, funding rate, base spread, open-interest skew and 24-hour volume.
+- [Market tearsheet](https://varscout.netlify.app/market/BTC): Per-market detail. Publishes the full tiered depth curve and what a carry position costs at each size from $1,000 to $1m. One page exists per liquid market; substitute any ticker.
+- [Method](https://varscout.netlify.app/method): How each number is derived, and a plain account of the four things this data cannot tell you.
+
+## Key facts
+
+- **Funding is annualized.** The value `0.1095` seen across hundreds of Omni markets is exactly 0.01% x 3 x 365 — the standard 0.01%-per-8-hours baseline. Together with markets at zero, roughly four in five markets sit at a default funding rate that carries no signal, and Varscout excludes them.
+- **The real universe is about 50 markets, not 543.** The top ten markets are close to 90% of total volume; several hundred listings trade under $100,000 a day.
+- **Omni charges no trading fees, so the spread is the entire cost.** Because the venue publishes tiered quotes, that cost is knowable before trading.
+- **Carries are size-illusions.** The round-trip spread can widen roughly tenfold between the base tier and a $100,000 clip while the carry stays flat, so the best-ranked market genuinely inverts between a small and a large position. Only ten markets publish a $1m tier at all.
+- **Collecting funding on a perpetual is not arbitrage.** It is an unhedged directional position, and Omni provides no internal way to hedge it. Varscout therefore reports carry-to-volatility alongside carry.
+- **Nothing is backtested.** The upstream endpoint publishes no history, so Varscout runs its own collector every five minutes. Rows are marked PROVISIONAL until enough readings accumulate to judge whether a funding rate persists.
+- **There is no order flow to read.** Omni is request-for-quote with a single liquidity provider as the only eligible maker. No order book exists, so there is no resting liquidity to observe.
+
+## API
+
+- `GET /api/aggregates` — the collector's rolling per-market history (observation counts, mean funding, funding standard deviation, sign counts, annualized realized volatility, trailing series). Cached at the edge. Read-only, no key required.
+
+## About
+
+Built by [azoni.ai](https://azoni.ai). Research tooling, not investment advice and not a broker.

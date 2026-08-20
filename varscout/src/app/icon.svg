@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Varscout">
+  <!-- Paper card: the tearsheet the whole site is styled after -->
+  <rect x="0" y="0" width="512" height="512" rx="96" fill="#FAF8F3"/>
+  <rect x="8" y="8" width="496" height="496" rx="90" fill="none" stroke="#E0DACE" stroke-width="10"/>
+
+  <!-- Ledger ruling: rows of figures to be read through -->
+  <g stroke="#CEC6B6" stroke-width="9" stroke-linecap="round">
+    <line x1="104" y1="150" x2="408" y2="150"/>
+    <line x1="104" y1="232" x2="408" y2="232"/>
+    <line x1="104" y1="314" x2="336" y2="314"/>
+    <line x1="104" y1="396" x2="288" y2="396"/>
+  </g>
+
+  <!-- The one signal found among the rows -->
+  <path d="M104 386 L182 330 L258 350 L330 232 L408 158"
+        fill="none" stroke="#B4472E" stroke-width="30"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Terminal dot, echoing the sparklines throughout the site -->
+  <circle cx="408" cy="158" r="34" fill="#B4472E"/>
+  <circle cx="408" cy="158" r="13" fill="#FAF8F3"/>
+</svg>

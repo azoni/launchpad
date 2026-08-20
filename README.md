@@ -16,6 +16,7 @@ A monorepo of independent web apps, each built and deployed from a single prompt
 | [daily](./dayrun/) | An opt-in calendar — sign in with Google, sync your calendar, track interviews & opportunities, toggle what the world sees | [dayrun-app.netlify.app](https://dayrun-app.netlify.app) |
 | [macromarket](./macromarket/) | Ranks foods, snacks & supplements by dollars per gram of protein — with a protein calculator, deals, and an AI coach | [macromarket-app.netlify.app](https://macromarket-app.netlify.app) |
 | [health](./health/) | Year-over-year recap of a personal Apple Health export — benchmark year, annual recaps, all-time records & activity breakdowns | [health-recap-azoni.netlify.app](https://health-recap-azoni.netlify.app) |
+| [varscout](./varscout/) | Funding-carry screener for Variational Omni perps — ranks 540+ markets by carry net of the tiered spread at your position size | [varscout.netlify.app](https://varscout.netlify.app) |
 
 ## How It Works
 

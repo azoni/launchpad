@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+/*
+  Varscout — editorial research desk.
+
+  Personality: a printed tearsheet from a research desk. Quiet, dense with
+  figures, confident enough to leave white space. Nothing glows or gradients;
+  the only ornament is a hairline rule and one rust accent that marks where the
+  editor wants your eye.
+
+  Type: Newsreader (serif, headlines and figures) + Public Sans (grotesque, UI
+  and body). Tabular numerals throughout so columns of numbers actually align —
+  the whole point of a tearsheet.
+*/
+
+@theme {
+  --color-paper: #faf8f3;
+  --color-paper-2: #f4f0e7;
+  --color-ink: #1a1a1a;
+  --color-ink-2: #4a453d;
+  --color-muted: #6b6459;
+  --color-rule: #e0dace;
+  --color-rule-2: #cec6b6;
+
+  --color-rust: #b4472e;
+  --color-rust-soft: #f2e3de;
+  --color-forest: #2f6b4f;
+  --color-forest-soft: #e2ece6;
+  --color-amber: #a67c00;
+  --color-amber-soft: #f6eed6;
+
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-sans: var(--font-public-sans), system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background:
+      /* faint horizontal ruling, like a ledger page */
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 63px,
+        rgba(176, 166, 148, 0.07) 63px,
+        rgba(176, 166, 148, 0.07) 64px
+      );
+  }
+
+  /* Figures must line up in columns. Non-negotiable for a data sheet. */
+  table,
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: -0.011em;
+  }
+
+  ::selection {
+    background: var(--color-rust);
+    color: var(--color-paper);
+  }
+
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--color-rust);
+    outline-offset: 2px;
+    border-radius: 1px;
+  }
+}
+
+@layer components {
+  /* Section label: small caps over a hairline, the signature editorial device. */
+  .eyebrow {
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+
+  .rule-accent {
+    border-top: 2px solid var(--color-rust);
+  }
+
+  /* Tearsheet block: hairline box, no radius, no shadow. Paper, not plastic. */
+  .sheet {
+    background: var(--color-paper);
+    border: 1px solid var(--color-rule);
+  }
+
+  /* Signature micro-interaction: rows lift off the page on hover. */
+  .row-lift {
+    transition:
+      background-color 140ms ease,
+      transform 140ms ease,
+      box-shadow 140ms ease;
+  }
+  .row-lift:hover {
+    background: var(--color-paper-2);
+    transform: translateX(2px);
+    box-shadow: -2px 0 0 0 var(--color-rust);
+  }
+
+  /* Live values flash once when they change, so updates are noticed not missed. */
+  @keyframes tick-flash {
+    0% {
+      background-color: var(--color-amber-soft);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+  .tick-flash {
+    animation: tick-flash 900ms ease-out;
+  }
+
+  @keyframes pulse-dot {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.25;
+    }
+  }
+  .pulse-dot {
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .row-lift:hover {
+    transform: none;
+  }
+}
