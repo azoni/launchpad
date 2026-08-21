@@ -1,14 +1,50 @@
 # Varscout
 
-A funding-carry screener for [Variational Omni](https://omni.variational.io/).
+A live screener for [Variational Omni](https://omni.variational.io/).
 Live at **https://varscout.netlify.app**
 
-Ranks 540+ perpetual markets by funding carry net of the round-trip spread you'd
-actually pay at your size, using Omni's own tiered depth quotes. Shows one
-recommended position with entry, cost, payback, and risk — plus everything else
-that clears the filters.
+Two modes, because two horizons need different arithmetic:
 
-## What makes the numbers non-obvious
+- **Now** (default) — what's moving on a horizon of hours. Volume as a multiple
+  of its normal rate, price move in standard deviations, open-interest change,
+  and a flow read separating positions opening from positions closing.
+- **Carry** — multi-day holds ranked by funding yield net of amortized spread.
+
+## Why the two modes aren't the same ranking presented twice
+
+Funding accrues per second; the spread is paid once. One hour of 50% annualized
+carry is ~0.006%, against a round trip costing 5–50x that. So on short horizons
+**carry cannot justify a position and the move has to** — Now mode uses cost as
+a *gate*, not a subtraction. Over a week the ratio reverses and carry dominates.
+
+The gate is **edge vs spread**: the one-sigma move over your holding window
+divided by the move needed to cover the round trip. Below 1x, a normal move
+doesn't pay for the trade, and the market is excluded however much volume it
+prints.
+
+## How the live signals work
+
+**Volume spikes are inferred, not read from a tape.** The endpoint publishes no
+trades. `volume_24h` is a rolling window, so its change per second estimates the
+current trading rate, compared against a per-market baseline (mean + sd) the
+collector accumulates over days. Negative deltas mean an old burst aged out of
+the window rather than trading stopping, so they're floored at zero.
+
+**Volatility comes from the collector's multi-day history, not the live window.**
+Short-window vol is unstable, and a smoothly trending price has almost no
+variance in its increments — session vol would report a market as dead precisely
+while it's moving most. This was caught by `verify-pulse.ts` before it shipped.
+
+**"Live" means about a minute.** Upstream advances in discrete ~70s steps: six
+polls 8s apart return byte-identical data, then hundreds of quotes move at once.
+The page polls every 20s and counts a tick **only when the venue's own timestamp
+advances** — counting repeat polls would divide real volume by imaginary elapsed
+time. Sub-minute resolution isn't available from this source at any poll rate.
+
+**A spike is not a direction.** Elevated volume says something is happening, not
+how it resolves. The direction shown is momentum continuation, not a forecast.
+
+## What makes the carry numbers non-obvious
 
 **Funding is annualized, and most of it is noise.** The `0.1095` seen across
 hundreds of markets is exactly `0.01% × 3 × 365` — the standard 0.01%/8h
@@ -47,9 +83,15 @@ and writes two regardless of how much history exists.
 | Path | Purpose |
 | --- | --- |
 | `src/lib/variational/scoring.ts` | Depth curve, gates, carry math. Parity-verified against `Meme/omni-scout/scout.py` |
-| `src/lib/variational/history.ts` | Incremental accumulator → funding stability, annualized realized vol |
-| `src/app/api/collect/route.ts` | Folds one poll into the aggregates |
-| `src/app/api/aggregates/route.ts` | Cached read for the browser |
+| `src/lib/variational/pulse.ts` | Short-horizon metrics: volume spike, sigma move, OI flow, edge-vs-spread gate |
+| `src/lib/variational/history.ts` | Incremental accumulator → funding stability, realized vol, volume baseline |
+| `src/lib/useScreener.ts` | Session tick buffer, deduped on upstream quote timestamp |
+| `src/app/api/collect/route.ts` | Folds one poll into the aggregates + seed series |
+| `src/app/api/aggregates/route.ts` | Cached read for the browser (history + seed) |
+
+The seed series lives in its own Firestore doc (`stats/seed`), not folded into
+`stats/current` — together they'd push that doc toward the 1MB ceiling as
+markets accumulate.
 
 ## Gotchas that cost real time here
 
@@ -80,6 +122,7 @@ node --env-file=.env.local scripts/verify-firestore.mjs    # credential smoke te
 node --env-file=.env.local scripts/verify-collector.mjs [baseUrl]
 node --experimental-strip-types scripts/verify-history.ts  # accumulator vs batch math
 node --experimental-strip-types scripts/verify-port.ts <snapshot.json> [notional]
+npx tsx scripts/verify-pulse.ts                 # pulse metrics vs hand-computed
 node scripts/gen-icons.mjs                      # re-rasterize icon.svg
 node scripts/push-env.mjs                       # .env.local -> Netlify
 ```
