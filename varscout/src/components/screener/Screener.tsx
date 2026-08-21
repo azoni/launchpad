@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { BestTrade } from "./BestTrade";
+import { CallCard } from "./CallCard";
 import { Controls } from "./Controls";
 import { RankTable } from "./RankTable";
 import { PulseLead } from "./PulseLead";
@@ -58,9 +59,45 @@ export function Screener() {
 
   const scored = mode === "pulse" ? live.scored : carry.scored;
   const excluded = mode === "pulse" ? live.excluded : carry.excluded;
+  const hasResult = scored.length > 0 && Boolean(snapshot);
+
+  /** The answer comes first; the controls that shape it come after. */
+  const lead = () => {
+    if (loading && !snapshot) return <Skeleton />;
+    if (error && !snapshot)
+      return (
+        <Empty title="Could not reach Variational">
+          The public stats endpoint did not respond: {error}. Nothing is cached client-side, so
+          there is nothing to show until it comes back.
+        </Empty>
+      );
+    if (!hasResult)
+      return (
+        <Empty title={mode === "pulse" ? "Nothing is moving enough to trade" : "No position clears the filters"}>
+          {mode === "pulse" ? (
+            <>
+              Every market failed a gate at {money(pcfg.notional)}: {summarize(excluded)}. On a{" "}
+              {pcfg.holdHours}h horizon the spread is the binding constraint, so quiet markets simply
+              do not clear it. Try a longer look-back, a smaller size, or a lower minimum edge.
+            </>
+          ) : (
+            <>
+              Every market failed a gate at {money(cfg.notional)}: {summarize(excluded)}. Sitting out
+              is the answer. Try a smaller size — the spread is what usually disqualifies a market,
+              and it shrinks fast as the clip does.
+            </>
+          )}
+        </Empty>
+      );
+    return mode === "pulse" ? (
+      <CallCard r={live.scored[0]} cfg={pcfg} alternatives={live.scored.slice(1, 4)} />
+    ) : (
+      <BestTrade r={carry.scored[0]} cfg={cfg} />
+    );
+  };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <StatusBar
         snapshot={snapshot}
         historyMeta={historyMeta}
@@ -73,7 +110,7 @@ export function Screener() {
         mode={mode}
       />
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-rule pb-4">
+      <div className="flex flex-wrap items-center gap-2 border-b border-rule pb-3">
         <ModeTab active={mode === "pulse"} onClick={() => setMode("pulse")}>
           Now — what&rsquo;s moving
         </ModeTab>
@@ -82,7 +119,9 @@ export function Screener() {
         </ModeTab>
       </div>
 
-      <div className="sheet px-5 py-6 sm:px-7">
+      {lead()}
+
+      <div className="sheet px-5 py-5 sm:px-7">
         {mode === "pulse" ? (
           <PulseControls
             cfg={pcfg}
@@ -95,44 +134,31 @@ export function Screener() {
         )}
       </div>
 
-      {loading && !snapshot ? (
-        <Skeleton />
-      ) : error && !snapshot ? (
-        <Empty title="Could not reach Variational">
-          The public stats endpoint did not respond: {error}. Nothing is cached client-side, so
-          there is nothing to show until it comes back.
-        </Empty>
-      ) : scored.length === 0 ? (
-        <Empty title={mode === "pulse" ? "Nothing is moving enough to trade" : "No position clears the filters"}>
-          {mode === "pulse" ? (
-            <>
-              Every market failed a gate at {money(pcfg.notional)}:{" "}
-              {summarize(excluded)}. On a {pcfg.holdHours}h horizon the spread is the binding
-              constraint, so quiet markets simply do not clear it. Try a longer look-back, a smaller
-              size, or a lower minimum edge.
-            </>
-          ) : (
-            <>
-              Every market failed a gate at {money(cfg.notional)}: {summarize(excluded)}. Sitting out
-              is the answer. Try a smaller size — the spread is what usually disqualifies a market,
-              and it shrinks fast as the clip does.
-            </>
-          )}
-        </Empty>
-      ) : mode === "pulse" ? (
+      {hasResult && mode === "pulse" && (
         <>
-          <PulseLead
-            r={live.scored[0]}
-            cfg={pcfg}
-            windowMinutes={windowMinutes}
-            ticks={windowed[live.scored[0].ticker] ?? []}
-          />
-          {scored.length > 1 && (
+          <details className="group">
+            <summary className="cursor-pointer list-none border-b border-rule pb-2 text-[0.85rem] text-muted hover:text-rust">
+              <span className="group-open:hidden">
+                Full breakdown for {live.scored[0].ticker} →
+              </span>
+              <span className="hidden group-open:inline">Hide breakdown ↑</span>
+            </summary>
+            <div className="pt-6">
+              <PulseLead
+                r={live.scored[0]}
+                cfg={pcfg}
+                windowMinutes={windowMinutes}
+                ticks={windowed[live.scored[0].ticker] ?? []}
+              />
+            </div>
+          </details>
+
+          {live.scored.length > 1 && (
             <section>
               <div className="mb-4 flex items-baseline justify-between border-b border-rust pb-2">
-                <h2 className="font-serif text-[1.5rem] leading-none">Also active</h2>
+                <h2 className="font-serif text-[1.5rem] leading-none">Everything else active</h2>
                 <p className="text-[0.75rem] text-muted">
-                  {scored.length - 1} more clearing a {pcfg.minViability}x edge
+                  {live.scored.length - 1} more clearing a {pcfg.minViability}x edge
                 </p>
               </div>
               <PulseTable rows={live.scored.slice(1, 25)} />
@@ -140,9 +166,10 @@ export function Screener() {
           )}
           <ExclusionNote excluded={excluded} total={snapshot?.markets.length ?? 0} mode={mode} />
         </>
-      ) : (
+      )}
+
+      {hasResult && mode === "carry" && (
         <>
-          <BestTrade r={carry.scored[0]} cfg={cfg} />
           {carry.scored.length > 1 && (
             <section>
               <div className="mb-4 flex items-baseline justify-between border-b border-rust pb-2">
@@ -239,7 +266,6 @@ function StatusBar({
         <>
           <span className="tnum">OI {money(p.openInterest)}</span>
           <span className="tnum">24h {money(p.volume24h)}</span>
-          <span className="tnum">{p.numMarkets} markets</span>
         </>
       )}
       {mode === "pulse" && (
@@ -314,14 +340,12 @@ function Skeleton() {
   return (
     <div className="sheet animate-pulse px-6 py-9 sm:px-9">
       <div className="h-3 w-28 bg-rule" />
-      <div className="mt-4 h-11 w-2/3 bg-rule" />
-      <div className="mt-3 h-4 w-full bg-rule/60" />
-      <div className="mt-2 h-4 w-4/5 bg-rule/60" />
-      <div className="mt-8 grid grid-cols-2 gap-6 border-t border-rule pt-7 sm:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i}>
-            <div className="h-2.5 w-16 bg-rule" />
-            <div className="mt-2 h-6 w-20 bg-rule/60" />
+      <div className="mt-5 h-14 w-2/3 bg-rule" />
+      <div className="mt-7 grid grid-cols-3 gap-px border border-rule bg-rule">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="bg-paper px-4 py-6">
+            <div className="mx-auto h-7 w-20 bg-rule/60" />
+            <div className="mx-auto mt-3 h-2.5 w-24 bg-rule/60" />
           </div>
         ))}
       </div>

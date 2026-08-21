@@ -309,6 +309,14 @@ export function pulse(
   const oiTerm = oiDeltaPct !== null ? clamp(Math.abs(oiDeltaPct) / 0.05, 0, 1) : 0;
   const activity = spikeTerm * 0.4 + moveTerm * 0.4 + oiTerm * 0.2;
 
+  // Not all activity is equally well evidenced. A market with no reference
+  // coverage is only known to have moved *on Omni*, where volume is thin and the
+  // spike had to be inferred from a rolling figure; that is a weaker claim than
+  // a measured global move, and without this discount such markets outranked
+  // obviously stronger candidates. Implied volatility is one noisy sample rather
+  // than an estimate, so it is discounted too.
+  const confidence = (ref ? 1 : 0.7) * (volSource === "implied" ? 0.85 : 1);
+
   const flow = readFlow(movePct, oiDeltaPct);
   // Continuation, not reversal: the readable signal here is that flow is
   // entering on one side, not that it is exhausted. Falls back to the reference
@@ -352,7 +360,7 @@ export function pulse(
     carryOverHoldPct,
     bias,
     activity,
-    score: activity,
+    score: activity * confidence,
     flags,
   };
 }

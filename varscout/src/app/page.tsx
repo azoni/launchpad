@@ -97,40 +97,29 @@ export default function Home() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
-        <header className="mb-10 max-w-3xl">
-          <p className="eyebrow">Variational Omni · funding carry</p>
-          <h1 className="mt-3 font-serif text-[2.5rem] leading-[1.06] tracking-tight sm:text-[3.25rem]">
+        <header className="mb-7 max-w-3xl">
+          <p className="eyebrow">Variational Omni</p>
+          <h1 className="mt-2 font-serif text-[2.3rem] leading-[1.06] tracking-tight sm:text-[2.9rem]">
             What&rsquo;s worth trading right now.
           </h1>
-          <p className="mt-5 text-[1.05rem] leading-relaxed text-ink-2">
-            Varscout watches the public market-statistics endpoint published by{" "}
+          <p className="mt-4 text-[1rem] leading-relaxed text-ink-2">
+            One call, from every perpetual on{" "}
             <a
               href={OMNI_URL}
               className="text-ink underline decoration-rule-2 underline-offset-2 hover:text-rust"
             >
               Variational Omni
-            </a>{" "}
-            and surfaces the perpetuals where something is actually happening — volume running above
-            its normal rate, price moving more than usual, open interest building. Omni charges no
-            trading fees, so the spread is the entire cost of a position, and every market here is
-            filtered by one test: does it typically move enough, in the time you plan to hold it, to
-            cover its own round trip?
-          </p>
-          <p className="mt-4 text-[1.02rem] leading-relaxed text-ink-2">
-            That test matters because on a horizon of hours, funding carry is worth almost nothing —
-            an hour of 50% annualized carry is 0.006%, against a spread costing many times that. For
-            longer holds the arithmetic reverses, which is what the second tab is for.
-          </p>
-          <p className="mt-4 text-[0.92rem] leading-relaxed text-muted">
-            Read the{" "}
-            <Link href="/method" className="text-ink-2 underline decoration-rule-2 underline-offset-2 hover:text-rust">
-              method
+            </a>
+            , picked on real trading volume and filtered by a single test: does it typically move
+            enough, in the time you plan to hold it, to cover its own spread? Omni charges no
+            trading fees, so that spread is the whole cost.{" "}
+            <Link href="/method" className="underline decoration-rule-2 underline-offset-2 hover:text-rust">
+              How it works
             </Link>{" "}
-            for how each number is derived and what it cannot tell you, or browse{" "}
-            <Link href="/markets" className="text-ink-2 underline decoration-rule-2 underline-offset-2 hover:text-rust">
-              every tracked market
+            ·{" "}
+            <Link href="/markets" className="underline decoration-rule-2 underline-offset-2 hover:text-rust">
+              All markets
             </Link>
-            .
           </p>
         </header>
 
