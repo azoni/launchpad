@@ -203,7 +203,7 @@ function StatusBar({
 }: {
   snapshot: ReturnType<typeof useScreenerData>["snapshot"];
   historyMeta: { updatedAt: number | null; runs: number };
-  referenceMeta: { covered: number; requested: number; error?: string };
+  referenceMeta: { covered: number; requested: number; source: string | null; error?: string };
   lastTickAt: number | null;
   tickCount: number;
   loading: boolean;
@@ -246,7 +246,7 @@ function StatusBar({
         <span className="tnum">
           {referenceMeta.error
             ? "reference: unavailable"
-            : `volume: Binance on ${referenceMeta.covered}/${referenceMeta.requested}`}
+            : `volume: ${referenceMeta.source ?? "?"} on ${referenceMeta.covered}/${referenceMeta.requested}`}
         </span>
       )}
       <span className="tnum ml-auto">

@@ -7,7 +7,7 @@ import { rankPulse, type PulseConfig, type Tick } from "@/lib/variational/pulse"
 import type { MarketHistory, ScoringConfig, Snapshot } from "@/lib/variational/types";
 import type { AggregatesResponse } from "@/app/api/aggregates/route";
 import type { ReferenceResponse } from "@/app/api/reference/route";
-import type { Reference } from "@/lib/reference/binance";
+import type { Reference } from "@/lib/reference/sources";
 
 /**
  * Upstream serves a cached snapshot that advances in discrete steps of roughly
@@ -30,7 +30,14 @@ export interface ScreenerState {
   histories: Record<string, MarketHistory>;
   buffers: Record<string, Tick[]>;
   references: Record<string, Reference>;
-  referenceMeta: { covered: number; requested: number; fetchedAt: number | null; error?: string };
+  referenceMeta: {
+    covered: number;
+    requested: number;
+    fetchedAt: number | null;
+    /** Which venue answered — venues geo-block, so this is not a constant. */
+    source: string | null;
+    error?: string;
+  };
   historyMeta: { updatedAt: number | null; runs: number };
   /** Upstream timestamp of the newest tick actually observed, in ms. */
   lastTickAt: number | null;
@@ -192,6 +199,7 @@ export function useScreenerData(): ScreenerState {
       covered: ref?.covered ?? 0,
       requested: ref?.requested ?? 0,
       fetchedAt: ref?.fetchedAt ?? null,
+      source: ref?.source ?? null,
       error: ref?.error,
     },
     historyMeta: { updatedAt: raw?.updatedAt ?? null, runs: raw?.runs ?? 0 },

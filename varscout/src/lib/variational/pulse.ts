@@ -1,6 +1,6 @@
 import { costAt } from "./scoring";
 import { SECONDS_PER_YEAR } from "./history";
-import type { Reference } from "@/lib/reference/binance";
+import type { Reference } from "@/lib/reference/sources";
 import type { Market, MarketHistory } from "./types";
 
 /** One observed upstream tick for a market, keyed by the venue's own timestamp. */

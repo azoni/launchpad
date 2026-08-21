@@ -176,12 +176,20 @@ export default function MethodPage() {
             it filtered out 495 of 543 markets, including nearly every genuine mover.
           </p>
           <p>
-            So volume and 24-hour movement come from Binance instead, covering 296 of Omni&rsquo;s
-            543 listings and about 64% of its open interest. Omni&rsquo;s figures still decide the
+            So volume and 24-hour movement come from a public spot venue instead, currently covering
+            a little over 200 of Omni&rsquo;s 543 listings. Omni&rsquo;s figures still decide the
             things only they can: the spread you pay, the depth available at your size, funding, and
             open interest. The two are shown side by side — <em>real 24h</em> against{" "}
             <em>on Omni</em> — because they answer different questions. One tells you whether
             anything is happening; the other tells you whether you can get filled.
+          </p>
+          <p>
+            Which venue supplies it is not fixed. Several major exchanges geo-block the servers this
+            site runs on — Binance answers <Term>451</Term> and Bybit <Term>403</Term> from a US
+            data centre, while working perfectly from a laptop, which is a good way to ship a screener
+            that silently shows nothing. So the site tries several venues in turn and reports the one
+            that answered in the status line above the table. If every venue refuses, it falls back
+            to Omni&rsquo;s own figures and says so rather than rendering an empty page.
           </p>
           <p>
             Spikes are <strong>measured, not inferred</strong>, for the most active markets: the

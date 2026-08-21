@@ -3,7 +3,7 @@
  * Run with: npx tsx scripts/verify-coverage.mts
  */
 import { fetchSnapshotCached } from "../src/lib/variational/api";
-import { buildReference } from "../src/lib/reference/binance";
+import { buildReference } from "../src/lib/reference/sources";
 import { rankPulse, DEFAULT_PULSE, type Tick } from "../src/lib/variational/pulse";
 import type { MarketHistory } from "../src/lib/variational/types";
 
@@ -22,7 +22,9 @@ for (const [ticker, s] of Object.entries(seed)) {
 }
 
 console.log("building reference from Binance...");
-const refs = await buildReference(snap.markets.map((m) => m.ticker), { spikeDepth: 40 });
+const built = await buildReference(snap.markets.map((m) => m.ticker), { spikeDepth: 40 });
+const refs = built.markets;
+console.log(`source: ${built.source}  attempts:`, built.attempts.map(a => a.source + (a.ok ? " ok" : " FAIL")).join(", "));
 console.log(`reference coverage: ${Object.keys(refs).length}/${snap.markets.length}`);
 
 const OLD = { ...DEFAULT_PULSE, minRefVolume: Infinity, minOmniVolume: 1_000_000 };

@@ -24,11 +24,25 @@ prints.
 
 ## How the live signals work
 
-**Volume spikes are inferred, not read from a tape.** The endpoint publishes no
-trades. `volume_24h` is a rolling window, so its change per second estimates the
-current trading rate, compared against a per-market baseline (mean + sd) the
-collector accumulates over days. Negative deltas mean an old burst aged out of
-the window rather than trading stopping, so they're floored at zero.
+**Omni's `volume_24h` is venue volume, not market volume.** It runs 10–100× below
+a token's real turnover (ORDI: $0.02M on Omni vs $7.2M globally). Screening on it
+hid nearly every genuine mover, so real volume and 24h change come from a public
+spot venue via cached `/api/reference`; Omni's figures are kept strictly for
+spread, depth, funding and OI. Both are shown side by side.
+
+**The reference venue is a fallback chain, because exchanges geo-block.** Binance
+returns **451** and Bybit **403** to Netlify's us-east-1 functions while both work
+fine from a laptop — a single-source design passes local testing and silently
+returns nothing in production. `sources.ts` tries Binance → Bybit → OKX → KuCoin
+and reports the winner plus a per-venue attempt log in the response. OKX currently
+wins with ~213/543 coverage.
+
+**Spikes are measured for the most active markets**, not inferred: the latest real
+5-minute volume bar vs the median of the previous twelve, which needs no warm-up.
+Markets without reference coverage fall back to the older estimator — the change
+in rolling `volume_24h` per second against a collector-built baseline — marked
+`est`. Negative deltas there mean an old burst aged out of the window rather than
+trading stopping, so they're floored at zero.
 
 **Volatility comes from the collector's multi-day history, not the live window.**
 Short-window vol is unstable, and a smoothly trending price has almost no
