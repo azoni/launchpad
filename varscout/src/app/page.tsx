@@ -44,7 +44,23 @@ const jsonLd = {
           name: "What does Varscout rank markets by?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Funding carry net of the round-trip spread you would actually pay at your chosen position size, using Variational Omni's own tiered depth quotes. Cost is amortized over the intended holding period, and markets whose spread cannot be earned back within three days are excluded.",
+            text: "Two ways, for two horizons. The default 'Now' view ranks by current activity — volume running above its baseline rate, price moving in standard-deviation terms, and open interest building — gated by whether a typical move covers the spread in your holding window. The 'Carry' view ranks longer holds by funding yield net of the amortized round-trip spread.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "How does Varscout detect a volume spike without a trade feed?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "The endpoint publishes no trade tape, so volume is inferred from the rolling 24-hour figure: its change per second estimates the rate trading is happening now. That rate is compared with a per-market baseline mean and standard deviation accumulated over days, and reported as a multiple of normal. Negative changes mean an old burst aged out of the trailing window rather than that trading stopped, so they are floored at zero.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Why is funding carry irrelevant for short trades on Omni?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Funding accrues continuously while the spread is paid once. One hour of a 50% annualized carry is about 0.006%, against a round-trip spread costing five to fifty times that. On a horizon of hours the price move has to justify the trade; carry only dominates over days.",
           },
         },
         {
@@ -84,21 +100,26 @@ export default function Home() {
         <header className="mb-10 max-w-3xl">
           <p className="eyebrow">Variational Omni · funding carry</p>
           <h1 className="mt-3 font-serif text-[2.5rem] leading-[1.06] tracking-tight sm:text-[3.25rem]">
-            One position, chosen from 540 markets.
+            What&rsquo;s worth trading right now.
           </h1>
           <p className="mt-5 text-[1.05rem] leading-relaxed text-ink-2">
-            Varscout reads the public market-statistics endpoint published by{" "}
+            Varscout watches the public market-statistics endpoint published by{" "}
             <a
               href={OMNI_URL}
               className="text-ink underline decoration-rule-2 underline-offset-2 hover:text-rust"
             >
               Variational Omni
             </a>{" "}
-            and ranks every perpetual by funding carry net of what the spread actually costs at your
-            size. Omni charges no trading fees, so the spread is the entire cost of a position — and
-            because the venue publishes tiered depth quotes, that cost can be computed before you
-            trade rather than discovered after. Most of the book is filtered out: roughly four in
-            five markets sit at a default funding rate that carries no information.
+            and surfaces the perpetuals where something is actually happening — volume running above
+            its normal rate, price moving more than usual, open interest building. Omni charges no
+            trading fees, so the spread is the entire cost of a position, and every market here is
+            filtered by one test: does it typically move enough, in the time you plan to hold it, to
+            cover its own round trip?
+          </p>
+          <p className="mt-4 text-[1.02rem] leading-relaxed text-ink-2">
+            That test matters because on a horizon of hours, funding carry is worth almost nothing —
+            an hour of 50% annualized carry is 0.006%, against a spread costing many times that. For
+            longer holds the arithmetic reverses, which is what the second tab is for.
           </p>
           <p className="mt-4 text-[0.92rem] leading-relaxed text-muted">
             Read the{" "}

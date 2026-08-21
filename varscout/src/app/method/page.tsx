@@ -63,6 +63,27 @@ export default function MethodPage() {
           </p>
         </header>
 
+        <Section n="00" title="Two modes, because two horizons need different maths">
+          <p>
+            The default view, <strong>Now</strong>, is for trades measured in hours. The second,{" "}
+            <strong>Carry</strong>, is for positions held for days. They are not presentation
+            variants of one ranking — the arithmetic that decides a good trade genuinely inverts
+            between them.
+          </p>
+          <p>
+            The reason is that funding accrues per second while the spread is paid once. Hold a 50%
+            annualized carry for one hour and you earn about {" "}
+            <Term>0.006%</Term>. A typical round trip costs 5 to 50 times that. So on a short
+            horizon <em>carry is worth essentially nothing</em> and cannot justify a position;
+            the move has to. Over a week the ratio reverses and carry dominates.
+          </p>
+          <p>
+            Now mode therefore ranks by where activity is, and uses cost as a gate rather than a
+            subtraction. Carry mode ranks by yield net of amortized cost. Sections 01 to 05 describe
+            Carry mode; section 06 describes Now.
+          </p>
+        </Section>
+
         <Section n="01" title="Funding is annualized, and most of it is noise">
           <p>
             The endpoint publishes a <Term>funding_rate</Term> per market. It is an annualized rate
@@ -146,7 +167,41 @@ export default function MethodPage() {
           </p>
         </Section>
 
-        <Section n="06" title="What this cannot tell you">
+        <Section n="06" title="Now mode: volume spikes, and whether a move can clear the spread">
+          <p>
+            The upstream endpoint does not publish a trade tape, so volume has to be inferred.{" "}
+            <Term>volume_24h</Term> is a rolling window; its change per second is an estimator of
+            the rate trading is happening <em>now</em> — inflow minus whatever rolled off a day ago.
+            A negative reading means an old burst aged out rather than that trading stopped, so it
+            is floored at zero rather than read as a signal.
+          </p>
+          <p>
+            That rate is compared against a baseline the collector has been accumulating for this
+            market: its mean and standard deviation over days. A spike is reported as a plain
+            multiple of normal, and as a z-score where the baseline is established enough to support
+            one.
+          </p>
+          <p>
+            Price movement is reported in standard deviations rather than percent, because 1% means
+            something different in gold than in a memecoin. The sigma is taken from the collector&rsquo;s
+            multi-day volatility, not from the last few minutes: volatility measured over a short
+            window is badly unstable, and a price that trends smoothly has almost no variance in its
+            increments — it would report a market as dead precisely while it is moving most.
+          </p>
+          <p>
+            Open-interest change separates new positioning from position closing, which is the
+            difference between a move with fuel behind it and one that is unwinding. Price up on
+            rising OI is longs opening; price up on falling OI is shorts buying back.
+          </p>
+          <p>
+            The gate is <strong>edge versus spread</strong>: the one-sigma move over your holding
+            window divided by the move needed just to cover the round trip. Below 1, a normal move
+            does not pay for the trade and the market is excluded no matter how much volume it
+            prints. This is the single number worth looking at before taking anything here.
+          </p>
+        </Section>
+
+        <Section n="07" title="What this cannot tell you">
           <p>
             <strong>It is not an arbitrage.</strong> Collecting funding on a perpetual is an
             unhedged directional position, and Omni offers no way to hedge it internally. A 55%
@@ -166,6 +221,22 @@ export default function MethodPage() {
             liquidity provider as the only eligible maker. There is no order book, so no resting
             liquidity to observe and nothing to anticipate. Limit orders exist, but as private
             conditional triggers against the provider&rsquo;s quote, not as public depth.
+          </p>
+          <p>
+            <strong>A spike is not a direction.</strong> Elevated volume says something is
+            happening; it does not say how it resolves. The direction shown in Now mode is momentum
+            continuation, which is a description of what just occurred, not a forecast. You are also
+            quoting against the same market maker who sees that flow and widens when it gets noisy —
+            so the spread you are measured against can move against you exactly when the signal
+            fires.
+          </p>
+          <p>
+            <strong>&ldquo;Live&rdquo; means about a minute.</strong> The upstream snapshot advances
+            in discrete steps of roughly 70 seconds: six polls eight seconds apart return
+            byte-identical data, then several hundred quotes move at once. This page polls every 20
+            seconds so it catches each step promptly, and it counts a tick only when the venue&rsquo;s
+            own timestamp advances — counting repeat polls would divide real volume by imaginary
+            elapsed time. Sub-minute resolution is not available from this source at any polling rate.
           </p>
           <p>
             <strong>Execution is manual.</strong> Variational&rsquo;s trading API is not available

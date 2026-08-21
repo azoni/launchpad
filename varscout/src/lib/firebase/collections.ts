@@ -10,6 +10,17 @@
 export const STATS = "stats";
 export const STATS_CURRENT = "current";
 
+/**
+ * Short trailing series used to seed a browser's tick buffer on first load, so
+ * a new visitor sees volume and momentum immediately instead of waiting minutes
+ * for their own samples. Kept in its own document: folded into `current` it
+ * would push that doc toward Firestore's 1MB ceiling as markets accumulate.
+ */
+export const STATS_SEED = "seed";
+
+/** Trailing samples per market in the seed doc. At 5-minute polling, 48 ≈ 4h. */
+export const SEED_CAP = 48;
+
 /** Packed point-in-time snapshots, retained for later backtesting. */
 export const SNAPSHOTS = "snapshots";
 

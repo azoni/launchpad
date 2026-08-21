@@ -83,6 +83,11 @@ export interface MarketHistory {
    */
   posN?: number;
   negN?: number;
+
+  /** Baseline trading rate in USD/second, and its spread, for spike z-scores. */
+  volRateMean?: number | null;
+  volRateSd?: number | null;
+  volRateN?: number;
 }
 
 export type ExclusionReason =

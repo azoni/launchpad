@@ -1,10 +1,18 @@
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { STATS, STATS_CURRENT } from "@/lib/firebase/collections";
+import { STATS, STATS_CURRENT, STATS_SEED } from "@/lib/firebase/collections";
 import { derive, type Accum } from "@/lib/variational/history";
 import type { MarketHistory, Platform } from "@/lib/variational/types";
 
 export const dynamic = "force-dynamic";
+
+/** Parallel arrays: timestamp (s), mark, volume_24h, total open interest. */
+export interface SeedSeries {
+  t: number[];
+  m: number[];
+  v: number[];
+  o: number[];
+}
 
 export interface AggregatesResponse {
   updatedAt: number | null;
@@ -12,6 +20,8 @@ export interface AggregatesResponse {
   platform: Platform | null;
   /** Per-ticker derived history. Empty object when the collector hasn't run yet. */
   histories: Record<string, MarketHistory>;
+  /** Trailing window so a first-time visitor can render spikes immediately. */
+  seed: Record<string, SeedSeries>;
 }
 
 /**
@@ -25,17 +35,27 @@ export interface AggregatesResponse {
  */
 export async function GET() {
   const db = getAdminDb();
-  const empty: AggregatesResponse = { updatedAt: null, runs: 0, platform: null, histories: {} };
+  const empty: AggregatesResponse = {
+    updatedAt: null,
+    runs: 0,
+    platform: null,
+    histories: {},
+    seed: {},
+  };
 
   if (!db) return json(empty, 30);
 
   try {
-    const doc = await db.collection(STATS).doc(STATS_CURRENT).get();
+    const [doc, seedDoc] = await Promise.all([
+      db.collection(STATS).doc(STATS_CURRENT).get(),
+      db.collection(STATS).doc(STATS_SEED).get(),
+    ]);
     const data = doc.data() as
       | { updatedAt?: number; runs?: number; platform?: Platform; accums?: Record<string, Accum> }
       | undefined;
+    const seed = (seedDoc.data()?.series ?? {}) as Record<string, SeedSeries>;
 
-    if (!data?.accums) return json(empty, 30);
+    if (!data?.accums) return json({ ...empty, seed }, 30);
 
     const histories: Record<string, MarketHistory> = {};
     for (const [ticker, a] of Object.entries(data.accums)) {
@@ -56,6 +76,7 @@ export async function GET() {
         runs: data.runs ?? 0,
         platform: data.platform ?? null,
         histories,
+        seed,
       },
       120,
     );

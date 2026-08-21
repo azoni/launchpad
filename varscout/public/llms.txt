@@ -1,10 +1,10 @@
 # Varscout
 
-> A funding-carry screener for Variational Omni. It reads the venue's public market-statistics endpoint and ranks 540+ perpetual markets by funding carry net of the round-trip spread you would actually pay at your chosen position size, using Omni's own tiered depth quotes. Varscout identifies positions; it cannot place them, because Variational's trading API does not exist yet.
+> A live screener for Variational Omni. It watches the venue's public market-statistics endpoint and surfaces perpetuals where something is happening now — volume running above its normal rate, price moving more than usual, open interest building — filtered by whether a typical move covers the round-trip spread in the time you plan to hold. A second mode ranks longer holds by funding carry net of that spread. Varscout identifies positions; it cannot place them, because Variational's trading API does not exist yet.
 
 ## Pages
 
-- [Screener](https://varscout.netlify.app/): The live ranking. Shows one recommended position — direction, size, entry, cost, payback, risk — plus every other market that clears the filters. Position size is an interactive control because it changes the answer.
+- [Screener](https://varscout.netlify.app/): The live ranking, in two modes. "Now" surfaces what is moving on a horizon of hours: volume as a multiple of normal, price move in standard deviations, open-interest change, and the edge-versus-spread gate. "Carry" ranks multi-day holds by funding net of amortized spread. Look-back window, holding period and position size are interactive because each changes the answer.
 - [Markets](https://varscout.netlify.app/markets): Directory of every perpetual listed on Variational Omni with live mark price, funding rate, base spread, open-interest skew and 24-hour volume.
 - [Market tearsheet](https://varscout.netlify.app/market/BTC): Per-market detail. Publishes the full tiered depth curve and what a carry position costs at each size from $1,000 to $1m. One page exists per liquid market; substitute any ticker.
 - [Method](https://varscout.netlify.app/method): How each number is derived, and a plain account of the four things this data cannot tell you.
@@ -19,9 +19,19 @@
 - **Nothing is backtested.** The upstream endpoint publishes no history, so Varscout runs its own collector every five minutes. Rows are marked PROVISIONAL until enough readings accumulate to judge whether a funding rate persists.
 - **There is no order flow to read.** Omni is request-for-quote with a single liquidity provider as the only eligible maker. No order book exists, so there is no resting liquidity to observe.
 
+## How the live signals work
+
+- **Volume spikes are inferred, not read from a tape.** The endpoint publishes no trades. `volume_24h` is a rolling window, so its change per second estimates the current trading rate; that is compared against a per-market baseline (mean and standard deviation) the collector accumulates over days, and reported as a multiple of normal. Negative changes mean an old burst aged out of the window, not that trading stopped, so they are floored at zero.
+- **Moves are reported in standard deviations**, using multi-day volatility rather than the last few minutes. Short-window volatility is unstable, and a smoothly trending price has almost no variance in its increments — it would read as dead precisely while moving most.
+- **Edge versus spread is the gate.** It is the one-sigma move over your holding window divided by the move needed to cover the round trip. Below 1x, a normal move does not pay for the trade, and the market is excluded however much volume it prints.
+- **Open-interest change separates opening from closing.** Price up on rising OI is longs opening; price up on falling OI is shorts covering.
+- **Funding is irrelevant on short horizons.** One hour of 50% annualized carry is roughly 0.006%, against spreads costing many times that. Carry only dominates over days, which is what the second mode is for.
+- **Live means about a minute.** The upstream snapshot advances in discrete ~70-second steps — six polls eight seconds apart return byte-identical data, then hundreds of quotes move at once. The page polls every 20 seconds and counts a tick only when the venue's own timestamp advances. Sub-minute resolution is not available from this source at any polling rate.
+- **A spike is not a direction.** Elevated volume says something is happening, not how it resolves.
+
 ## API
 
-- `GET /api/aggregates` — the collector's rolling per-market history (observation counts, mean funding, funding standard deviation, sign counts, annualized realized volatility, trailing series). Cached at the edge. Read-only, no key required.
+- `GET /api/aggregates` — the collector's rolling per-market history: observation counts, mean funding, funding standard deviation, funding sign counts, annualized realized volatility, baseline trading rate in USD/second with its standard deviation, and a trailing seed series (timestamp, mark, 24h volume, open interest) so a client can render spikes on first paint. Cached at the edge. Read-only, no key required.
 
 ## About
 

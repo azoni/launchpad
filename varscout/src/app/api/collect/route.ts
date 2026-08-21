@@ -4,10 +4,12 @@ import {
   META,
   META_COLLECTOR,
   MIN_STORE_VOLUME,
+  SEED_CAP,
   SNAPSHOTS,
   SNAPSHOT_RETENTION_DAYS,
   STATS,
   STATS_CURRENT,
+  STATS_SEED,
 } from "@/lib/firebase/collections";
 import { fetchSnapshot } from "@/lib/variational/api";
 import { accumulate, type Accum } from "@/lib/variational/history";
@@ -74,6 +76,32 @@ export async function POST(req: Request) {
     },
     { merge: false },
   );
+
+  // Seed series: the trailing window a browser needs to render volume spikes
+  // and momentum on first paint, before it has collected ticks of its own.
+  const seedRef = db.collection(STATS).doc(STATS_SEED);
+  const prevSeed = (await seedRef.get()).data() as
+    | { series?: Record<string, { t: number[]; m: number[]; v: number[]; o: number[] }> }
+    | undefined;
+  const series = prevSeed?.series ?? {};
+  for (const m of tracked) {
+    const s = series[m.ticker] ?? { t: [], m: [], v: [], o: [] };
+    s.t.push(nowS);
+    s.m.push(m.mark);
+    s.v.push(m.vol24);
+    s.o.push(m.oiLong + m.oiShort);
+    if (s.t.length > SEED_CAP) {
+      s.t = s.t.slice(-SEED_CAP);
+      s.m = s.m.slice(-SEED_CAP);
+      s.v = s.v.slice(-SEED_CAP);
+      s.o = s.o.slice(-SEED_CAP);
+    }
+    series[m.ticker] = s;
+  }
+  for (const ticker of Object.keys(series)) {
+    if (!live.has(ticker)) delete series[ticker];
+  }
+  await seedRef.set({ updatedAt: snap.fetchedAt, series });
 
   // Packed snapshot, kept for future backtesting. Keyed by ticker with short
   // field names — Firestore rejects nested arrays, so an array of tuples is not
