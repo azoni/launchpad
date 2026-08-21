@@ -1,5 +1,6 @@
 import { costAt } from "./scoring";
 import { SECONDS_PER_YEAR } from "./history";
+import type { Reference } from "@/lib/reference/binance";
 import type { Market, MarketHistory } from "./types";
 
 /** One observed upstream tick for a market, keyed by the venue's own timestamp. */
@@ -17,14 +18,22 @@ export interface PulseConfig {
   holdHours: number;
   /** Reject markets whose typical move can't clear the spread by this multiple. */
   minViability: number;
-  minVolume: number;
+  /**
+   * Floor on *real* market activity, from reference data where available.
+   * Deliberately not a floor on Omni's own venue volume: that runs 8-100x below
+   * a token's actual turnover and was hiding genuine movers.
+   */
+  minRefVolume: number;
+  /** Last-resort floor on Omni volume, used only where no reference exists. */
+  minOmniVolume: number;
 }
 
 export const DEFAULT_PULSE: PulseConfig = {
   notional: 25_000,
   holdHours: 4,
   minViability: 1.5,
-  minVolume: 1_000_000,
+  minRefVolume: 2_000_000,
+  minOmniVolume: 50_000,
 };
 
 export type FlowRead =
@@ -37,7 +46,17 @@ export type FlowRead =
 export interface Pulsed {
   ticker: string;
   name: string;
+  /** Omni's own venue volume — what you can trade here. */
   vol24: number;
+  /** Global 24h volume from reference data, where covered. */
+  refVol24: number | null;
+  /** Global 24h price change, available immediately with no warm-up. */
+  refPct24: number | null;
+  /** Latest real 5m volume bar vs the median of prior bars. */
+  refSpike: number | null;
+  refSymbol: string | null;
+  /** Where the activity figures came from. */
+  activitySource: "reference" | "omni";
   mark: number;
 
   /** Window actually measured, in seconds — real elapsed upstream time. */
@@ -63,7 +82,9 @@ export interface Pulsed {
 
   /** Annualized vol used for the viability test, and where it came from. */
   vol: number | null;
-  volSource: "session" | "collected" | null;
+  volSource: "session" | "collected" | "implied" | null;
+  /** Whether the spike figure was measured from real bars or inferred. */
+  spikeSource: "measured" | "inferred" | null;
 
   costBps: number;
   tier: string;
@@ -128,12 +149,18 @@ export function pulse(
   ticks: Tick[],
   hist: MarketHistory | undefined,
   cfg: PulseConfig,
+  ref?: Reference,
 ): Pulsed {
   const flags: string[] = [];
   const base: Pulsed = {
     ticker: m.ticker,
     name: m.name,
     vol24: m.vol24,
+    refVol24: ref?.vol24 ?? null,
+    refPct24: ref?.pct24 ?? null,
+    refSpike: ref?.spike ?? null,
+    refSymbol: ref?.symbol ?? null,
+    activitySource: ref ? "reference" : "omni",
     mark: m.mark,
     windowS: 0,
     samples: ticks.length,
@@ -147,6 +174,7 @@ export function pulse(
     flow: "quiet",
     vol: null,
     volSource: null,
+    spikeSource: null,
     costBps: 0,
     tier: "",
     breakevenPct: 0,
@@ -160,7 +188,15 @@ export function pulse(
     excluded: null,
   };
 
-  if (m.vol24 < cfg.minVolume) return { ...base, excluded: "thin volume" };
+  // Activity gate. Where reference coverage exists it decides, because it
+  // measures the token's real turnover. Omni's own volume is only consulted as
+  // a fallback, and then only to weed out genuinely dead listings — a market
+  // being quiet *on Omni* says nothing about whether the token is in play.
+  if (ref) {
+    if (ref.vol24 < cfg.minRefVolume) return { ...base, excluded: "quiet globally" };
+  } else if (m.vol24 < cfg.minOmniVolume) {
+    return { ...base, excluded: "thin volume" };
+  }
 
   const cost = costAt(m.quotes, cfg.notional);
   if (!cost || !(cost.mid > 0)) return { ...base, excluded: "no quote" };
@@ -193,22 +229,38 @@ export function pulse(
   // and would report a market as untradeable precisely when it is moving most.
   // The multi-day figure also makes "2 sigma" mean "large for this market"
   // rather than "large compared to the last ten minutes".
+  //
+  // Last resort, for markets the collector does not track: imply vol from the
+  // reference 24h move. For a random walk E|r| = sigma*sqrt(2/pi), so a single
+  // day's absolute return divided by 0.798 estimates a daily sigma. It is one
+  // noisy sample rather than a real estimate, and is labelled as such — but it
+  // beats excluding an obviously active market for want of a number.
   const sv = sessionVol(ticks);
-  const vol = hist?.vol ?? sv ?? null;
-  const volSource = hist?.vol != null ? "collected" : sv !== null ? "session" : null;
+  const impliedVol =
+    ref && Number.isFinite(ref.pct24) ? (Math.abs(ref.pct24) / 0.7979) * Math.sqrt(365) : null;
+  const vol = hist?.vol ?? sv ?? impliedVol ?? null;
+  const volSource: Pulsed["volSource"] =
+    hist?.vol != null ? "collected" : sv !== null ? "session" : impliedVol !== null ? "implied" : null;
 
   const holdYears = cfg.holdHours / (365 * 24);
   const typicalMovePct = vol !== null ? vol * Math.sqrt(holdYears) : null;
   const viability = typicalMovePct !== null && breakevenPct > 0 ? typicalMovePct / breakevenPct : null;
 
-  // --- volume spike against the collector's baseline ---
+  // --- volume spike ---
+  // A real 5-minute bar from reference data beats anything inferred from a
+  // rolling 24h figure: it is measured rather than estimated, and it needs no
+  // baseline to warm up. The inferred version stays as the fallback for markets
+  // with no reference coverage.
   const baselineHr = hist?.volRateMean != null ? hist.volRateMean * 3600 : null;
   const baselineSdHr = hist?.volRateSd != null ? hist.volRateSd * 3600 : null;
   const volZ =
     volRate !== null && baselineHr !== null && baselineSdHr && baselineSdHr > 0
       ? (volRate - baselineHr) / baselineSdHr
       : null;
-  const volMult = volRate !== null && baselineHr && baselineHr > 0 ? volRate / baselineHr : null;
+  const inferredMult = volRate !== null && baselineHr && baselineHr > 0 ? volRate / baselineHr : null;
+  const volMult = ref?.spike ?? inferredMult;
+  const spikeSource: Pulsed["spikeSource"] =
+    ref?.spike != null ? "measured" : inferredMult !== null ? "inferred" : null;
 
   const moveSigma =
     movePct !== null && vol !== null && windowS > 0
@@ -218,11 +270,14 @@ export function pulse(
   const carryOverHoldPct = (Math.abs(m.funding) * cfg.holdHours) / (365 * 24);
 
   // --- gates ---
-  // A zero-length window means every tick carried the same upstream timestamp,
-  // so nothing has actually been observed yet however many polls were made.
-  if (ticks.length < 2 || windowS <= 0)
+  // A cold tick buffer is no longer fatal: reference data carries a 24h move and
+  // a measured spike, which is enough to rank a market on its first paint. Only
+  // exclude when there is neither a window nor any reference to fall back on.
+  const hasWindow = ticks.length >= 2 && windowS > 0;
+  if (!hasWindow && !ref)
     return { ...base, costBps: cost.costBps, tier: cost.tier, breakevenPct, excluded: "warming up" };
-  if (viability === null) return { ...base, costBps: cost.costBps, tier: cost.tier, breakevenPct, excluded: "no volatility yet" };
+  if (viability === null)
+    return { ...base, costBps: cost.costBps, tier: cost.tier, breakevenPct, excluded: "no volatility yet" };
   if (viability < cfg.minViability)
     return {
       ...base,
@@ -238,24 +293,42 @@ export function pulse(
 
   // --- activity blend ---
   // Each component is clamped so one extreme reading cannot dominate the rank.
-  const spikeTerm = volZ !== null ? clamp(volZ / 3, 0, 1) : volMult !== null ? clamp((volMult - 1) / 2, 0, 1) : 0;
-  const moveTerm = moveSigma !== null ? clamp(Math.abs(moveSigma) / 2.5, 0, 1) : 0;
+  // A measured spike is trusted directly; the inferred z-score is only used when
+  // no real bars are available.
+  const spikeTerm =
+    volMult !== null
+      ? clamp((volMult - 1) / 2, 0, 1)
+      : volZ !== null
+        ? clamp(volZ / 3, 0, 1)
+        : 0;
+  // Short-window movement is the sharper signal, but a cold buffer falls back to
+  // the reference 24h move so a market still ranks on its first paint.
+  const windowMoveTerm = moveSigma !== null ? clamp(Math.abs(moveSigma) / 2.5, 0, 1) : 0;
+  const dayMoveTerm = ref ? clamp(Math.abs(ref.pct24) / 0.15, 0, 1) : 0;
+  const moveTerm = hasWindow ? Math.max(windowMoveTerm, dayMoveTerm * 0.6) : dayMoveTerm;
   const oiTerm = oiDeltaPct !== null ? clamp(Math.abs(oiDeltaPct) / 0.05, 0, 1) : 0;
-  const activity = spikeTerm * 0.45 + moveTerm * 0.35 + oiTerm * 0.2;
+  const activity = spikeTerm * 0.4 + moveTerm * 0.4 + oiTerm * 0.2;
 
   const flow = readFlow(movePct, oiDeltaPct);
   // Continuation, not reversal: the readable signal here is that flow is
-  // entering on one side, not that it is exhausted.
-  const bias =
-    movePct === null || Math.abs(moveSigma ?? 0) < 0.5 ? null : movePct > 0 ? "LONG" : "SHORT";
+  // entering on one side, not that it is exhausted. Falls back to the reference
+  // day move while the tick buffer is still cold.
+  const directional = hasWindow && Math.abs(moveSigma ?? 0) >= 0.5 ? movePct : null;
+  const dayDirectional = ref && Math.abs(ref.pct24) >= 0.02 ? ref.pct24 : null;
+  const biasSource = directional ?? dayDirectional;
+  const bias = biasSource === null ? null : biasSource > 0 ? "LONG" : "SHORT";
 
-  if (volMult !== null && volMult >= 3) flags.push("volume spike");
+  if (volMult !== null && volMult >= 2.5) flags.push("volume spike");
   if (moveSigma !== null && Math.abs(moveSigma) >= 2) flags.push("outsized move");
+  if (ref && Math.abs(ref.pct24) >= 0.1) flags.push("big 24h move");
   if (oiDeltaPct !== null && oiDeltaPct >= 0.03) flags.push("OI building");
   if (oiDeltaPct !== null && oiDeltaPct <= -0.03) flags.push("OI unwinding");
   if (viability < 2.5) flags.push("tight vs spread");
-  if (m.vol24 < 2_000_000) flags.push("thin");
-  if (hist?.volRateN != null && hist.volRateN < 20) flags.push("baseline provisional");
+  // Thinness now means thin *on Omni* specifically — the venue you have to fill
+  // on — which is a distinct warning from the token being quiet overall.
+  if (m.vol24 < 500_000) flags.push("thin on Omni");
+  if (!ref) flags.push("no reference data");
+  if (volSource === "implied") flags.push("vol implied from 24h move");
 
   return {
     ...base,
@@ -270,6 +343,7 @@ export function pulse(
     flow,
     vol,
     volSource,
+    spikeSource,
     costBps: cost.costBps,
     tier: cost.tier,
     breakevenPct,
@@ -288,11 +362,12 @@ export function rankPulse(
   buffers: Record<string, Tick[]>,
   histories: Record<string, MarketHistory>,
   cfg: PulseConfig,
+  references: Record<string, Reference> = {},
 ): { scored: Pulsed[]; excluded: Record<string, number> } {
   const scored: Pulsed[] = [];
   const excluded: Record<string, number> = {};
   for (const m of markets) {
-    const r = pulse(m, buffers[m.ticker] ?? [], histories[m.ticker], cfg);
+    const r = pulse(m, buffers[m.ticker] ?? [], histories[m.ticker], cfg, references[m.ticker]);
     if (r.excluded) excluded[r.excluded] = (excluded[r.excluded] ?? 0) + 1;
     else scored.push(r);
   }

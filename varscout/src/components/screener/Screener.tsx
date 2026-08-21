@@ -22,9 +22,10 @@ const EXCLUSION_COPY: Record<string, string> = {
   "no carry": "no funding to collect",
   "no quote": "no usable quote",
   "slow payback": "spread too wide to earn back in time",
-  "warming up": "not enough ticks observed yet",
+  "warming up": "no reference data and not enough ticks yet",
   "no volatility yet": "no volatility measured yet",
   "spread too wide for the hold": "spread too wide for this holding window",
+  "quiet globally": "quiet in the real market, not just on Omni",
 };
 
 export function Screener() {
@@ -37,6 +38,8 @@ export function Screener() {
     snapshot,
     histories,
     buffers,
+    references,
+    referenceMeta,
     historyMeta,
     lastTickAt,
     tickCount,
@@ -45,7 +48,7 @@ export function Screener() {
   } = useScreenerData();
 
   const carry = useRanked(snapshot, histories, cfg);
-  const live = usePulsed(snapshot, buffers, histories, pcfg, windowMinutes, tickCount);
+  const live = usePulsed(snapshot, buffers, histories, references, pcfg, windowMinutes, tickCount);
 
   const windowed = useMemo(
     () => (snapshot ? sliceWindow(buffers, windowMinutes, Math.floor(snapshot.fetchedAt / 1000)) : {}),
@@ -61,11 +64,13 @@ export function Screener() {
       <StatusBar
         snapshot={snapshot}
         historyMeta={historyMeta}
+        referenceMeta={referenceMeta}
         lastTickAt={lastTickAt}
         tickCount={tickCount}
         loading={loading}
         error={error}
         qualifying={scored.length}
+        mode={mode}
       />
 
       <div className="flex flex-wrap items-center gap-2 border-b border-rule pb-4">
@@ -188,19 +193,23 @@ function ModeTab({
 function StatusBar({
   snapshot,
   historyMeta,
+  referenceMeta,
   lastTickAt,
   tickCount,
   loading,
   error,
   qualifying,
+  mode,
 }: {
   snapshot: ReturnType<typeof useScreenerData>["snapshot"];
   historyMeta: { updatedAt: number | null; runs: number };
+  referenceMeta: { covered: number; requested: number; error?: string };
   lastTickAt: number | null;
   tickCount: number;
   loading: boolean;
   error: string | null;
   qualifying: number;
+  mode: Mode;
 }) {
   // Re-render on a timer so the "last tick" age counts up between polls rather
   // than freezing at whatever it read when data last arrived.
@@ -232,6 +241,13 @@ function StatusBar({
           <span className="tnum">24h {money(p.volume24h)}</span>
           <span className="tnum">{p.numMarkets} markets</span>
         </>
+      )}
+      {mode === "pulse" && (
+        <span className="tnum">
+          {referenceMeta.error
+            ? "reference: unavailable"
+            : `volume: Binance on ${referenceMeta.covered}/${referenceMeta.requested}`}
+        </span>
       )}
       <span className="tnum ml-auto">
         {historyMeta.runs > 0

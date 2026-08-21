@@ -6,6 +6,8 @@ import { rank } from "@/lib/variational/scoring";
 import { rankPulse, type PulseConfig, type Tick } from "@/lib/variational/pulse";
 import type { MarketHistory, ScoringConfig, Snapshot } from "@/lib/variational/types";
 import type { AggregatesResponse } from "@/app/api/aggregates/route";
+import type { ReferenceResponse } from "@/app/api/reference/route";
+import type { Reference } from "@/lib/reference/binance";
 
 /**
  * Upstream serves a cached snapshot that advances in discrete steps of roughly
@@ -20,10 +22,15 @@ const HISTORY_INTERVAL_MS = 300_000;
 /** Ticks retained per market. At ~70s per upstream step this is roughly 2 hours. */
 const TICK_CAP = 100;
 
+/** Reference data is CDN-cached at 45s; matching that keeps the page in step. */
+const REFERENCE_INTERVAL_MS = 45_000;
+
 export interface ScreenerState {
   snapshot: Snapshot | null;
   histories: Record<string, MarketHistory>;
   buffers: Record<string, Tick[]>;
+  references: Record<string, Reference>;
+  referenceMeta: { covered: number; requested: number; fetchedAt: number | null; error?: string };
   historyMeta: { updatedAt: number | null; runs: number };
   /** Upstream timestamp of the newest tick actually observed, in ms. */
   lastTickAt: number | null;
@@ -43,6 +50,7 @@ const toSeconds = (iso: string): number => {
 export function useScreenerData(): ScreenerState {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [raw, setRaw] = useState<AggregatesResponse | null>(null);
+  const [ref, setRef] = useState<ReferenceResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [seeded, setSeeded] = useState(false);
@@ -98,6 +106,15 @@ export function useScreenerData(): ScreenerState {
     }
   }, [ingest]);
 
+  const loadReference = useCallback(async () => {
+    try {
+      const res = await fetch("/api/reference");
+      if (res.ok) setRef((await res.json()) as ReferenceResponse);
+    } catch {
+      /* reference is an enhancement — Omni's own figures still rank the book */
+    }
+  }, []);
+
   const loadHistory = useCallback(async () => {
     try {
       const res = await fetch("/api/aggregates");
@@ -135,14 +152,17 @@ export function useScreenerData(): ScreenerState {
   useEffect(() => {
     loadLive();
     loadHistory();
+    loadReference();
     const a = setInterval(loadLive, LIVE_INTERVAL_MS);
     const b = setInterval(loadHistory, HISTORY_INTERVAL_MS);
+    const c = setInterval(loadReference, REFERENCE_INTERVAL_MS);
     return () => {
       clearInterval(a);
       clearInterval(b);
+      clearInterval(c);
       abort.current?.abort();
     };
-  }, [loadLive, loadHistory]);
+  }, [loadLive, loadHistory, loadReference]);
 
   // Sign stability has to be measured against the sign funding has *right now*,
   // which only the live snapshot knows. The API returns raw counters so the
@@ -167,6 +187,13 @@ export function useScreenerData(): ScreenerState {
     snapshot,
     histories,
     buffers: buffers.current,
+    references: ref?.markets ?? {},
+    referenceMeta: {
+      covered: ref?.covered ?? 0,
+      requested: ref?.requested ?? 0,
+      fetchedAt: ref?.fetchedAt ?? null,
+      error: ref?.error,
+    },
     historyMeta: { updatedAt: raw?.updatedAt ?? null, runs: raw?.runs ?? 0 },
     lastTickAt,
     tickCount,
@@ -207,6 +234,7 @@ export function usePulsed(
   snapshot: Snapshot | null,
   buffers: Record<string, Tick[]>,
   histories: Record<string, MarketHistory>,
+  references: Record<string, Reference>,
   cfg: PulseConfig,
   windowMinutes: number,
   tickCount: number,
@@ -214,8 +242,14 @@ export function usePulsed(
   return useMemo(() => {
     if (!snapshot) return { scored: [], excluded: {} };
     const nowS = Math.floor(snapshot.fetchedAt / 1000);
-    return rankPulse(snapshot.markets, sliceWindow(buffers, windowMinutes, nowS), histories, cfg);
+    return rankPulse(
+      snapshot.markets,
+      sliceWindow(buffers, windowMinutes, nowS),
+      histories,
+      cfg,
+      references,
+    );
     // tickCount is the signal that the mutable buffers ref changed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snapshot, histories, cfg, windowMinutes, tickCount]);
+  }, [snapshot, histories, references, cfg, windowMinutes, tickCount]);
 }

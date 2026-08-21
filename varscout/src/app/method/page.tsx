@@ -167,19 +167,30 @@ export default function MethodPage() {
           </p>
         </Section>
 
-        <Section n="06" title="Now mode: volume spikes, and whether a move can clear the spread">
+        <Section n="06" title="Now mode: real volume, spikes, and whether a move can clear the spread">
           <p>
-            The upstream endpoint does not publish a trade tape, so volume has to be inferred.{" "}
-            <Term>volume_24h</Term> is a rolling window; its change per second is an estimator of
-            the rate trading is happening <em>now</em> — inflow minus whatever rolled off a day ago.
-            A negative reading means an old burst aged out rather than that trading stopped, so it
-            is floored at zero rather than read as a signal.
+            <strong>Omni&rsquo;s volume figure is the wrong instrument for this.</strong>{" "}
+            <Term>volume_24h</Term> measures what trades <em>on Omni</em>, which runs 10 to 100 times
+            below a token&rsquo;s real turnover. ONG showed $0.6m on Omni while doing $24m elsewhere
+            and finishing the day up 124%. Screening on Omni&rsquo;s own volume hid that completely —
+            it filtered out 495 of 543 markets, including nearly every genuine mover.
           </p>
           <p>
-            That rate is compared against a baseline the collector has been accumulating for this
-            market: its mean and standard deviation over days. A spike is reported as a plain
-            multiple of normal, and as a z-score where the baseline is established enough to support
-            one.
+            So volume and 24-hour movement come from Binance instead, covering 296 of Omni&rsquo;s
+            543 listings and about 64% of its open interest. Omni&rsquo;s figures still decide the
+            things only they can: the spread you pay, the depth available at your size, funding, and
+            open interest. The two are shown side by side — <em>real 24h</em> against{" "}
+            <em>on Omni</em> — because they answer different questions. One tells you whether
+            anything is happening; the other tells you whether you can get filled.
+          </p>
+          <p>
+            Spikes are <strong>measured, not inferred</strong>, for the most active markets: the
+            latest real five-minute volume bar against the median of the previous twelve. Elsewhere
+            the older estimator still applies — <Term>volume_24h</Term> is a rolling window, so its
+            change per second approximates the current trading rate, compared against a baseline the
+            collector accumulates over days. Those rows are marked <Term>est</Term>. A negative
+            reading there means an old burst aged out of the window rather than trading stopping, so
+            it is floored at zero.
           </p>
           <p>
             Price movement is reported in standard deviations rather than percent, because 1% means
@@ -198,6 +209,14 @@ export default function MethodPage() {
             window divided by the move needed just to cover the round trip. Below 1, a normal move
             does not pay for the trade and the market is excluded no matter how much volume it
             prints. This is the single number worth looking at before taking anything here.
+          </p>
+          <p>
+            Two limits worth knowing. Binance covers a little over half of Omni&rsquo;s book —
+            equities, commodities, forex and the newest listings have no reference at all, and fall
+            back to Omni&rsquo;s own figures with a warning flag. And a market can be genuinely
+            active globally while almost nothing trades on Omni; those rows are marked{" "}
+            <Term>thin on Omni</Term>, and the depth curve on the market page is the honest test of
+            whether size is actually available.
           </p>
         </Section>
 

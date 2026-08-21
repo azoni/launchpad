@@ -52,11 +52,25 @@ export function PulseLead({
       </h2>
 
       <p className="mt-3 max-w-2xl text-[1.02rem] leading-relaxed text-ink-2">
-        {r.name} is trading at{" "}
-        <strong className="font-semibold text-ink">
-          {r.volMult !== null ? `${r.volMult.toFixed(1)}x its usual rate` : money(r.volRate ?? 0) + "/hr"}
-        </strong>
-        , {FLOW_COPY[r.flow]}. The round trip costs {bps(r.costBps)}, so it needs a{" "}
+        {r.name} is{" "}
+        {r.refPct24 !== null && (
+          <>
+            <strong className="font-semibold text-ink">{pct(r.refPct24, 1)} over 24h</strong> on{" "}
+            {money(r.refVol24 ?? 0)} of real volume
+            {r.vol24 > 0 && r.refVol24 && r.refVol24 / r.vol24 > 3 && (
+              <> — {(r.refVol24 / r.vol24).toFixed(0)}x what Omni itself shows</>
+            )}
+            ,{" "}
+          </>
+        )}
+        {r.volMult !== null && (
+          <>
+            trading at{" "}
+            <strong className="font-semibold text-ink">{r.volMult.toFixed(1)}x its usual rate</strong>
+            ,{" "}
+          </>
+        )}
+        {FLOW_COPY[r.flow]}. The round trip costs {bps(r.costBps)}, so it needs a{" "}
         <strong className="font-semibold text-ink">{pct(r.breakevenPct, 2, false)}</strong> move just
         to break even — and it typically moves{" "}
         <strong className="font-semibold text-ink">{pct(r.typicalMovePct, 2, false)}</strong> in{" "}
@@ -68,11 +82,13 @@ export function PulseLead({
           label="Volume vs normal"
           value={r.volMult !== null ? `${r.volMult.toFixed(1)}x` : "—"}
           note={
-            r.volRate !== null
-              ? `${money(r.volRate)}/hr${r.volBaseline ? ` vs ${money(r.volBaseline)}` : ""}`
-              : "no baseline yet"
+            r.spikeSource === "measured"
+              ? "latest 5m bar vs prior 12"
+              : r.volRate !== null
+                ? `estimated · ${money(r.volRate)}/hr`
+                : "no baseline yet"
           }
-          accent={r.volMult !== null && r.volMult >= 3 ? "text-amber" : "text-ink"}
+          accent={r.volMult !== null && r.volMult >= 2.5 ? "text-amber" : "text-ink"}
           big
         />
         <Stat
@@ -96,7 +112,15 @@ export function PulseLead({
       </dl>
 
       <dl className="mt-7 grid grid-cols-2 gap-x-8 gap-y-6 border-t border-rule pt-7 sm:grid-cols-4">
-        <Stat label="Mark" value={price(r.mark)} note={`24h vol ${money(r.vol24)}`} />
+        <Stat
+          label="Real 24h volume"
+          value={r.refVol24 !== null ? money(r.refVol24) : "—"}
+          note={
+            r.refSymbol
+              ? `${r.refSymbol} · ${money(r.vol24)} on Omni`
+              : `no reference · ${money(r.vol24)} on Omni`
+          }
+        />
         <Stat
           label="Round trip"
           value={bps(r.costBps)}
